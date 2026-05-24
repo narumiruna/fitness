@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 
 *.db
 *.db-journal
+
+# Personal data
+data/
