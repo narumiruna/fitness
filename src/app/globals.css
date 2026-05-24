@@ -241,10 +241,152 @@ textarea {
   text-transform: uppercase;
 }
 
+.calendar-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.calendar-header {
+  align-items: center;
+}
+
+.calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.calendar-grid {
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.calendar-weekday,
+.calendar-day {
+  background: var(--panel);
+  min-width: 0;
+}
+
+.calendar-weekday {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 10px 6px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-height: 126px;
+  padding: 10px;
+}
+
+.calendar-day.outside-month {
+  background: #f8fafc;
+  color: var(--muted);
+}
+
+.calendar-day.today {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.calendar-day-number {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.calendar-workouts {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.calendar-workout {
+  background: var(--panel-muted);
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px;
+}
+
+.calendar-workout:hover {
+  border-color: var(--accent);
+}
+
+.calendar-workout-title,
+.calendar-workout-meta,
+.calendar-more {
+  overflow-wrap: anywhere;
+}
+
+.calendar-workout-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.calendar-workout-meta,
+.calendar-more {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
 @media (max-width: 720px) {
   .page-header,
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .calendar-header {
+    gap: 12px;
+  }
+
+  .calendar-actions {
+    width: 100%;
+  }
+
+  .calendar-actions .button {
+    flex: 1 1 88px;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .calendar-weekday {
+    font-size: 0.68rem;
+    padding: 8px 2px;
+  }
+
+  .calendar-day {
+    gap: 5px;
+    min-height: 82px;
+    padding: 6px 4px;
+  }
+
+  .calendar-day-number {
+    font-size: 0.78rem;
+  }
+
+  .calendar-workout {
+    padding: 4px;
+  }
+
+  .calendar-workout-title {
+    font-size: 0.68rem;
+  }
+
+  .calendar-workout-meta {
+    display: none;
   }
 }

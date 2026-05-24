@@ -31,6 +31,7 @@ export default async function RootLayout({
               {user ? (
                 <>
                   <Link href="/workouts">{t("workouts")}</Link>
+                  <Link href="/calendar">{t("calendar")}</Link>
                   <Link href="/exercises">{t("exercises")}</Link>
                   {user.role === "ADMIN" ? (
                     <Link href="/admin/users">{t("admin")}</Link>
