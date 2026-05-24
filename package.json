@@ -15,7 +15,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "workouts:export-csv": "tsx scripts/export-workouts-csv.ts",
+    "workouts:import-csv": "tsx scripts/import-workouts-csv.ts"
   },
   "repository": {
     "type": "git",
