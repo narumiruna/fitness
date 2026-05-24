@@ -123,12 +123,18 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.grid > *,
+.stats-card-grid > * {
+  min-width: 0;
+}
+
 .panel,
 .item {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .panel {
@@ -239,6 +245,71 @@ textarea {
   color: var(--muted);
   font-size: 0.82rem;
   text-transform: uppercase;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.table-scroll .table {
+  min-width: 560px;
+}
+
+.stats-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.stats-card {
+  display: grid;
+  gap: 8px;
+}
+
+.stats-card strong {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.stats-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.stats-bar-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(76px, 0.8fr) minmax(120px, 2fr) minmax(
+      72px,
+      0.8fr
+    );
+}
+
+.stats-bar-label,
+.stats-bar-value {
+  font-size: 0.9rem;
+}
+
+.stats-bar-value {
+  font-weight: 700;
+  text-align: right;
+}
+
+.stats-bar-track {
+  background: var(--panel-muted);
+  border-radius: 999px;
+  display: block;
+  height: 12px;
+  overflow: hidden;
+}
+
+.stats-bar-fill {
+  background: var(--accent);
+  display: block;
+  height: 100%;
+  width: var(--bar-width);
 }
 
 .calendar-shell {
@@ -388,5 +459,13 @@ textarea {
 
   .calendar-workout-meta {
     display: none;
+  }
+
+  .stats-bar-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar-value {
+    text-align: left;
   }
 }
