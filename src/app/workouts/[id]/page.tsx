@@ -106,43 +106,91 @@ export default async function WorkoutPage({
             </button>
           </form>
         </div>
-        <div className="panel">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("order")}</th>
-                <th>{t("exercise")}</th>
-                <th>{t("weight")}</th>
-                <th>{t("reps")}</th>
-                <th>{t("notes")}</th>
-                <th>{t("delete")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workout.sets.map((set) => (
-                <tr key={set.id}>
-                  <td>{set.order}</td>
-                  <td>{set.exercise.defaultName}</td>
-                  <td>{set.weight}</td>
-                  <td>{set.reps}</td>
-                  <td>{set.notes}</td>
-                  <td>
-                    <form action={deleteWorkoutSetAction}>
-                      <input
-                        name="workoutId"
-                        type="hidden"
-                        value={workout.id}
-                      />
-                      <input name="setId" type="hidden" value={set.id} />
-                      <button className="button danger" type="submit">
-                        {t("delete")}
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="panel stack">
+          <div className="section-heading">
+            <h2>{t("setsMetric")}</h2>
+            <span>{workout.sets.length}</span>
+          </div>
+
+          {workout.sets.length === 0 ? (
+            <p className="muted">{t("noSets")}</p>
+          ) : (
+            <>
+              <div className="mobile-list">
+                {workout.sets.map((set) => (
+                  <article className="detail-list-item" key={set.id}>
+                    <div className="detail-list-header">
+                      <div>
+                        <span className="meta-pill">#{set.order}</span>
+                        <h3>{set.exercise.defaultName}</h3>
+                      </div>
+                      <form action={deleteWorkoutSetAction}>
+                        <input
+                          name="workoutId"
+                          type="hidden"
+                          value={workout.id}
+                        />
+                        <input name="setId" type="hidden" value={set.id} />
+                        <button className="button danger" type="submit">
+                          {t("delete")}
+                        </button>
+                      </form>
+                    </div>
+                    <div className="detail-pairs two">
+                      <span>
+                        <small>{t("weight")}</small>
+                        <strong>{set.weight}</strong>
+                      </span>
+                      <span>
+                        <small>{t("reps")}</small>
+                        <strong>{set.reps}</strong>
+                      </span>
+                    </div>
+                    {set.notes ? <p className="muted">{set.notes}</p> : null}
+                  </article>
+                ))}
+              </div>
+
+              <div className="table-scroll desktop-table">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t("order")}</th>
+                      <th>{t("exercise")}</th>
+                      <th>{t("weight")}</th>
+                      <th>{t("reps")}</th>
+                      <th>{t("notes")}</th>
+                      <th>{t("delete")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workout.sets.map((set) => (
+                      <tr key={set.id}>
+                        <td>{set.order}</td>
+                        <td>{set.exercise.defaultName}</td>
+                        <td>{set.weight}</td>
+                        <td>{set.reps}</td>
+                        <td>{set.notes}</td>
+                        <td>
+                          <form action={deleteWorkoutSetAction}>
+                            <input
+                              name="workoutId"
+                              type="hidden"
+                              value={workout.id}
+                            />
+                            <input name="setId" type="hidden" value={set.id} />
+                            <button className="button danger" type="submit">
+                              {t("delete")}
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

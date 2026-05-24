@@ -47,7 +47,7 @@ button {
 
 .topbar {
   align-items: center;
-  background: rgba(246, 247, 248, 0.92);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex;
   gap: 24px;
@@ -148,6 +148,33 @@ button {
 .stack {
   display: grid;
   gap: 14px;
+}
+
+.section-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.section-heading h2 {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.section-heading span,
+.meta-pill {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 9px;
+  white-space: nowrap;
 }
 
 .row {
@@ -256,6 +283,159 @@ textarea {
   min-width: 560px;
 }
 
+.desktop-table {
+  display: block;
+}
+
+.mobile-list {
+  display: none;
+}
+
+.workout-card {
+  display: grid;
+  gap: 14px;
+}
+
+.workout-card-body {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.workout-card h2 {
+  font-size: 1.2rem;
+  margin: 10px 0 0;
+}
+
+.alias-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.alias-chip {
+  align-items: center;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px 9px;
+}
+
+.alias-chip small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.detail-list-item,
+.agenda-item {
+  border-top: 1px solid var(--border);
+  min-width: 0;
+  padding-block: 14px;
+}
+
+.detail-list-item:first-child,
+.agenda-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.detail-list-item:last-child,
+.agenda-item:last-child {
+  padding-bottom: 0;
+}
+
+.detail-list-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.detail-list-header h3 {
+  font-size: 1.05rem;
+  margin: 8px 0 0;
+}
+
+.detail-pairs {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.detail-pairs.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-pairs small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.detail-pairs strong {
+  display: block;
+  font-size: 1.15rem;
+  margin-top: 3px;
+}
+
+.agenda-list {
+  display: grid;
+}
+
+.agenda-item {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(72px, 0.6fr) minmax(0, 1fr) auto;
+}
+
+.agenda-item:hover span {
+  color: var(--accent-strong);
+}
+
+.agenda-item time,
+.agenda-item small {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.agenda-item span {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.stats-section-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.stats-section-header h2 {
+  font-size: 1.45rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.stats-section-header p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.stats-desktop-table {
+  display: block;
+}
+
+.stats-mobile-list {
+  display: none;
+}
+
 .stats-card-grid {
   display: grid;
   gap: 12px;
@@ -270,6 +450,7 @@ textarea {
 .stats-card strong {
   font-size: 1.8rem;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .stats-bars {
@@ -310,6 +491,71 @@ textarea {
   display: block;
   height: 100%;
   width: var(--bar-width);
+}
+
+.stats-list-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.stats-list-card-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.stats-list-card-header strong,
+.stats-list-card-header span {
+  overflow-wrap: anywhere;
+}
+
+.stats-list-card-header span {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.stats-pairs {
+  display: grid;
+  gap: 10px;
+}
+
+.stats-pairs.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats-pairs.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats-pair,
+.stats-record-value {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.stats-pair span,
+.stats-record-value small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stats-pair strong,
+.stats-record-value strong {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.stats-pair small {
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .calendar-shell {
@@ -454,7 +700,11 @@ textarea {
   }
 
   .calendar-workout-title {
-    font-size: 0.68rem;
+    color: transparent;
+    display: block;
+    font-size: 0;
+    height: 8px;
+    line-height: 0;
   }
 
   .calendar-workout-meta {
@@ -467,5 +717,41 @@ textarea {
 
   .stats-bar-value {
     text-align: left;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-list {
+    display: grid;
+  }
+
+  .workout-card-body,
+  .detail-list-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .agenda-item {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-desktop-table {
+    display: none;
+  }
+
+  .stats-mobile-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .stats-section-header {
+    margin-bottom: 12px;
+  }
+
+  .stats-pairs.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

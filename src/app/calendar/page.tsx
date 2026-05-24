@@ -48,6 +48,12 @@ export default async function CalendarPage({
     },
   });
   const workoutsByDate = new Map<string, typeof workouts>();
+  const currentMonthStart = new Date(year, month - 1, 1);
+  const currentMonthEnd = new Date(year, month, 1);
+  const currentMonthWorkouts = workouts.filter(
+    (workout) =>
+      workout.date >= currentMonthStart && workout.date < currentMonthEnd,
+  );
 
   for (const workout of workouts) {
     const key = formatDateKey(workout.date);
@@ -141,6 +147,38 @@ export default async function CalendarPage({
           );
         })}
       </div>
+
+      <section className="panel calendar-agenda">
+        <div className="section-heading">
+          <h2>{t("monthWorkouts")}</h2>
+          <span>{currentMonthWorkouts.length}</span>
+        </div>
+        {currentMonthWorkouts.length > 0 ? (
+          <div className="agenda-list">
+            {currentMonthWorkouts.map((workout) => (
+              <Link
+                className="agenda-item"
+                href={`/workouts/${workout.id}`}
+                key={workout.id}
+              >
+                <time dateTime={workout.date.toISOString()}>
+                  {workout.date.toLocaleDateString("en", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </time>
+                <span>{workout.title || t("workout")}</span>
+                <small>
+                  {workout._count.sets}{" "}
+                  {workout._count.sets === 1 ? t("set") : t("sets")}
+                </small>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">{t("noMonthWorkouts")}</p>
+        )}
+      </section>
     </section>
   );
 }

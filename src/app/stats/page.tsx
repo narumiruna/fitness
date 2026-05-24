@@ -12,6 +12,12 @@ export default async function StatsPage() {
     ...stats.monthlyTrend.map((month) => month.volume),
     1,
   );
+  const periodRows: PeriodRowData[] = [
+    { label: t("workouts"), metric: "workouts", formatter: formatInteger },
+    { label: t("setsMetric"), metric: "sets", formatter: formatInteger },
+    { label: t("reps"), metric: "reps", formatter: formatInteger },
+    { label: t("volume"), metric: "volume", formatter: formatNumber },
+  ];
 
   return (
     <section className="stack">
@@ -53,8 +59,23 @@ export default async function StatsPage() {
 
       <div className="grid">
         <section className="panel">
-          <h2>{t("recentActivity")}</h2>
-          <div className="table-scroll">
+          <SectionHeader
+            title={t("recentActivity")}
+            description={t("recentActivityIntro")}
+          />
+          <div className="stats-mobile-list">
+            {periodRows.map((row) => (
+              <PeriodCard
+                current={stats.currentPeriod}
+                currentLabel={t("current")}
+                key={row.metric}
+                previous={stats.previousPeriod}
+                previousLabel={t("previousPeriod")}
+                row={row}
+              />
+            ))}
+          </div>
+          <div className="table-scroll stats-desktop-table">
             <table className="table">
               <thead>
                 <tr>
@@ -65,41 +86,24 @@ export default async function StatsPage() {
                 </tr>
               </thead>
               <tbody>
-                <PeriodRow
-                  current={stats.currentPeriod}
-                  formatter={formatInteger}
-                  label={t("workouts")}
-                  metric="workouts"
-                  previous={stats.previousPeriod}
-                />
-                <PeriodRow
-                  current={stats.currentPeriod}
-                  formatter={formatInteger}
-                  label={t("setsMetric")}
-                  metric="sets"
-                  previous={stats.previousPeriod}
-                />
-                <PeriodRow
-                  current={stats.currentPeriod}
-                  formatter={formatInteger}
-                  label={t("reps")}
-                  metric="reps"
-                  previous={stats.previousPeriod}
-                />
-                <PeriodRow
-                  current={stats.currentPeriod}
-                  formatter={formatNumber}
-                  label={t("volume")}
-                  metric="volume"
-                  previous={stats.previousPeriod}
-                />
+                {periodRows.map((row) => (
+                  <PeriodRow
+                    current={stats.currentPeriod}
+                    key={row.metric}
+                    previous={stats.previousPeriod}
+                    row={row}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
         </section>
 
         <section className="panel stack">
-          <h2>{t("monthlyTrend")}</h2>
+          <SectionHeader
+            title={t("monthlyTrend")}
+            description={t("monthlyTrendIntro")}
+          />
           <div className="stats-bars">
             {stats.monthlyTrend.map((month) => (
               <div className="stats-bar-row" key={month.key}>
@@ -124,8 +128,35 @@ export default async function StatsPage() {
       </div>
 
       <section className="panel">
-        <h2>{t("topExercises")}</h2>
-        <div className="table-scroll">
+        <SectionHeader
+          title={t("topExercises")}
+          description={t("topExercisesIntro")}
+        />
+        <div className="stats-mobile-list">
+          {stats.exerciseLeaders.map((exercise) => (
+            <article className="stats-list-card" key={exercise.exerciseId}>
+              <div className="stats-list-card-header">
+                <strong>{exercise.exerciseName}</strong>
+                <span>{formatNumber(exercise.volume)}</span>
+              </div>
+              <div className="stats-pairs three">
+                <MetricPair
+                  label={t("volume")}
+                  value={formatNumber(exercise.volume)}
+                />
+                <MetricPair
+                  label={t("setsMetric")}
+                  value={formatInteger(exercise.sets)}
+                />
+                <MetricPair
+                  label={t("reps")}
+                  value={formatInteger(exercise.reps)}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="table-scroll stats-desktop-table">
           <table className="table">
             <thead>
               <tr>
@@ -150,8 +181,42 @@ export default async function StatsPage() {
       </section>
 
       <section className="panel">
-        <h2>{t("personalRecords")}</h2>
-        <div className="table-scroll">
+        <SectionHeader
+          title={t("personalRecords")}
+          description={t("personalRecordsIntro")}
+        />
+        <div className="stats-mobile-list">
+          {stats.personalRecords.map((record) => (
+            <article className="stats-list-card" key={record.exerciseId}>
+              <div className="stats-list-card-header">
+                <strong>{record.exerciseName}</strong>
+              </div>
+              <div className="stats-pairs two">
+                <MetricPair
+                  label={t("maxWeight")}
+                  value={formatNumber(record.maxWeight.value)}
+                  detail={formatSetDetail(record.maxWeight)}
+                />
+                <MetricPair
+                  label={t("maxReps")}
+                  value={formatInteger(record.maxReps.value)}
+                  detail={formatSetDetail(record.maxReps)}
+                />
+                <MetricPair
+                  label={t("bestVolumeSet")}
+                  value={formatNumber(record.maxVolume.value)}
+                  detail={formatSetDetail(record.maxVolume)}
+                />
+                <MetricPair
+                  label={t("estimatedOneRepMax")}
+                  value={formatNumber(record.estimatedOneRepMax.value)}
+                  detail={formatSetDetail(record.estimatedOneRepMax)}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="table-scroll stats-desktop-table">
           <table className="table">
             <thead>
               <tr>
@@ -166,10 +231,18 @@ export default async function StatsPage() {
               {stats.personalRecords.map((record) => (
                 <tr key={record.exerciseId}>
                   <td>{record.exerciseName}</td>
-                  <td>{formatRecord(record.maxWeight)}</td>
-                  <td>{formatRecord(record.maxReps)}</td>
-                  <td>{formatRecord(record.maxVolume)}</td>
-                  <td>{formatRecord(record.estimatedOneRepMax)}</td>
+                  <td>
+                    <RecordValue record={record.maxWeight} />
+                  </td>
+                  <td>
+                    <RecordValue record={record.maxReps} />
+                  </td>
+                  <td>
+                    <RecordValue record={record.maxVolume} />
+                  </td>
+                  <td>
+                    <RecordValue record={record.estimatedOneRepMax} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -177,6 +250,27 @@ export default async function StatsPage() {
         </div>
       </section>
     </section>
+  );
+}
+
+type PeriodRowData = {
+  label: string;
+  metric: keyof PeriodStats;
+  formatter: (value: number) => string;
+};
+
+function SectionHeader({
+  description,
+  title,
+}: {
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className="stats-section-header">
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
   );
 }
 
@@ -191,29 +285,93 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function PeriodRow({
   current,
-  formatter,
-  label,
-  metric,
   previous,
+  row,
 }: {
   current: PeriodStats;
-  formatter: (value: number) => string;
-  label: string;
-  metric: keyof PeriodStats;
   previous: PeriodStats;
+  row: PeriodRowData;
 }) {
   return (
     <tr>
-      <td>{label}</td>
-      <td>{formatter(current[metric])}</td>
-      <td>{formatter(previous[metric])}</td>
-      <td>{formatChange(current[metric], previous[metric], formatter)}</td>
+      <td>{row.label}</td>
+      <td>{row.formatter(current[row.metric])}</td>
+      <td>{row.formatter(previous[row.metric])}</td>
+      <td>
+        {formatChange(current[row.metric], previous[row.metric], row.formatter)}
+      </td>
     </tr>
   );
 }
 
-function formatRecord(record: SetRecord) {
-  return `${formatNumber(record.value)} (${formatNumber(record.weight)} x ${formatInteger(record.reps)})`;
+function PeriodCard({
+  current,
+  currentLabel,
+  previous,
+  previousLabel,
+  row,
+}: {
+  current: PeriodStats;
+  currentLabel: string;
+  previous: PeriodStats;
+  previousLabel: string;
+  row: PeriodRowData;
+}) {
+  return (
+    <article className="stats-list-card">
+      <div className="stats-list-card-header">
+        <strong>{row.label}</strong>
+        <span>
+          {formatChange(
+            current[row.metric],
+            previous[row.metric],
+            row.formatter,
+          )}
+        </span>
+      </div>
+      <div className="stats-pairs two">
+        <MetricPair
+          label={currentLabel}
+          value={row.formatter(current[row.metric])}
+        />
+        <MetricPair
+          label={previousLabel}
+          value={row.formatter(previous[row.metric])}
+        />
+      </div>
+    </article>
+  );
+}
+
+function MetricPair({
+  detail,
+  label,
+  value,
+}: {
+  detail?: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <span className="stats-pair">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail ? <small>{detail}</small> : null}
+    </span>
+  );
+}
+
+function RecordValue({ record }: { record: SetRecord }) {
+  return (
+    <span className="stats-record-value">
+      <strong>{formatNumber(record.value)}</strong>
+      <small>{formatSetDetail(record)}</small>
+    </span>
+  );
+}
+
+function formatSetDetail(record: SetRecord) {
+  return `${formatNumber(record.weight)} x ${formatInteger(record.reps)}`;
 }
 
 function formatChange(

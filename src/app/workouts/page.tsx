@@ -43,19 +43,31 @@ export default async function WorkoutsPage() {
           </button>
         </form>
         <div className="stack">
+          <div className="section-heading">
+            <h2>{t("workouts")}</h2>
+            <span>{workouts.length}</span>
+          </div>
           {workouts.length === 0 ? (
             <div className="item muted">{t("noWorkouts")}</div>
           ) : (
             workouts.map((workout) => (
-              <article className="item stack" key={workout.id}>
-                <div className="row between">
+              <article className="item workout-card" key={workout.id}>
+                <div className="workout-card-body">
                   <div>
-                    <h2>{workout.title || "Workout"}</h2>
-                    <p className="muted">
-                      {workout.date.toLocaleDateString("en")} ·{" "}
-                      {workout.sets.length} sets
-                    </p>
+                    <time
+                      className="meta-pill"
+                      dateTime={workout.date.toISOString()}
+                    >
+                      {workout.date.toLocaleDateString("en")}
+                    </time>
+                    <h2>{workout.title || t("workout")}</h2>
                   </div>
+                  <span className="meta-pill">
+                    {workout.sets.length}{" "}
+                    {workout.sets.length === 1 ? t("set") : t("sets")}
+                  </span>
+                </div>
+                <div className="row">
                   <Link
                     className="button secondary"
                     href={`/workouts/${workout.id}`}

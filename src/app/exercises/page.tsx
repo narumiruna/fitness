@@ -90,11 +90,18 @@ export default async function ExercisesPage({
             <article className="item stack" key={exercise.id}>
               <div>
                 <h2>{exercise.defaultName}</h2>
-                <p className="muted">
-                  {exercise.aliases
-                    .map((alias) => `${alias.alias} (${alias.locale})`)
-                    .join(", ") || t("aliases")}
-                </p>
+                {exercise.aliases.length > 0 ? (
+                  <div className="alias-list">
+                    {exercise.aliases.map((alias) => (
+                      <span className="alias-chip" key={alias.id}>
+                        {alias.alias}
+                        <small>{alias.locale}</small>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted">{t("aliases")}</p>
+                )}
               </div>
               <form
                 className="form-grid two"
