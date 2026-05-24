@@ -11,6 +11,7 @@ const enMessages = {
   workouts: "Workouts",
   exercises: "Exercises",
   admin: "Admin",
+  account: "Account",
   signOut: "Sign out",
   signIn: "Sign in",
   username: "Username",
@@ -47,6 +48,12 @@ const enMessages = {
   sourceLicense: "Source and license",
   sourceLicenseBody:
     "This application is licensed under AGPL-3.0-only. See the repository and LICENSE file for source terms.",
+  changePassword: "Change password",
+  currentPassword: "Current password",
+  newPassword: "New password",
+  confirmPassword: "Confirm password",
+  passwordChanged: "Password changed.",
+  changePasswordError: "Check the current password and new password.",
 } as const;
 
 const messages: Record<Locale, Partial<typeof enMessages>> = {

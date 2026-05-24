@@ -2,6 +2,17 @@ import { z } from "zod";
 
 export const usernameSchema = z.string().trim().min(1).max(64);
 export const passwordSchema = z.string().min(1).max(256);
+export const newPasswordSchema = z.string().min(8).max(256);
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: passwordSchema,
+    newPassword: newPasswordSchema,
+    confirmPassword: passwordSchema,
+  })
+  .refine((input) => input.newPassword === input.confirmPassword, {
+    path: ["confirmPassword"],
+  });
 
 export const createWorkoutSchema = z.object({
   title: z.string().trim().max(120).optional(),

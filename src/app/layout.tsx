@@ -35,6 +35,7 @@ export default async function RootLayout({
                   {user.role === "ADMIN" ? (
                     <Link href="/admin/users">{t("admin")}</Link>
                   ) : null}
+                  <Link href="/account/password">{t("account")}</Link>
                   <form action={logoutAction}>
                     <button className="link-button" type="submit">
                       {t("signOut")}
