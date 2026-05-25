@@ -204,30 +204,38 @@ export default async function ExercisesPage({
                     <p className="muted">{t("noAliases")}</p>
                   )}
 
-                  <details className="inline-disclosure">
-                    <summary>{t("addAlias")}</summary>
-                    <form
-                      className="form-grid two compact-form"
-                      action={createExerciseAliasAction}
+                  <div className="exercise-actions">
+                    <Link
+                      className="button secondary"
+                      href={`/exercises/${exercise.id}`}
                     >
-                      <input
-                        name="exerciseId"
-                        type="hidden"
-                        value={exercise.id}
-                      />
-                      <label>
-                        {t("locale")}
-                        <input defaultValue="zh-TW" name="locale" required />
-                      </label>
-                      <label>
-                        {t("alias")}
-                        <input name="alias" placeholder="硬舉" required />
-                      </label>
-                      <button className="button secondary" type="submit">
-                        {t("addAlias")}
-                      </button>
-                    </form>
-                  </details>
+                      {t("history")}
+                    </Link>
+                    <details className="inline-disclosure">
+                      <summary>{t("addAlias")}</summary>
+                      <form
+                        className="form-grid two compact-form"
+                        action={createExerciseAliasAction}
+                      >
+                        <input
+                          name="exerciseId"
+                          type="hidden"
+                          value={exercise.id}
+                        />
+                        <label>
+                          {t("locale")}
+                          <input defaultValue="zh-TW" name="locale" required />
+                        </label>
+                        <label>
+                          {t("alias")}
+                          <input name="alias" placeholder="硬舉" required />
+                        </label>
+                        <button className="button secondary" type="submit">
+                          {t("addAlias")}
+                        </button>
+                      </form>
+                    </details>
+                  </div>
                 </article>
               ))}
             </div>

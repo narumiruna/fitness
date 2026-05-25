@@ -251,6 +251,11 @@ textarea {
   background: var(--danger);
 }
 
+.button.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -285,6 +290,27 @@ textarea {
 
 .table-scroll .table {
   min-width: 560px;
+}
+
+.editable-table input,
+.editable-table select {
+  min-width: 92px;
+}
+
+.table-actions,
+.card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.table-link {
+  color: var(--accent-strong);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin-top: 6px;
 }
 
 .desktop-table {
@@ -336,7 +362,8 @@ textarea {
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
 }
 
-.create-workout-card {
+.workouts-sidebar {
+  align-self: start;
   position: sticky;
   top: 88px;
 }
@@ -409,6 +436,68 @@ textarea {
 .workout-card-stats strong {
   color: var(--text);
   font-weight: 800;
+}
+
+.checkbox-label {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.checkbox-label input {
+  min-height: auto;
+  width: auto;
+}
+
+.template-list {
+  display: grid;
+  gap: 12px;
+}
+
+.template-item {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.template-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.template-item strong,
+.template-item small {
+  display: block;
+}
+
+.template-item small {
+  color: var(--muted);
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.template-actions {
+  gap: 8px;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.pagination-status {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.danger-link {
+  color: var(--danger);
+  font-weight: 800;
+  padding: 0;
 }
 
 .alias-list {
@@ -547,6 +636,12 @@ textarea {
 
 .inline-disclosure[open] summary {
   margin-bottom: 12px;
+}
+
+.exercise-actions {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
 }
 
 .compact-form {
@@ -903,7 +998,7 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .create-workout-card {
+  .workouts-sidebar {
     position: static;
   }
 }
@@ -991,6 +1086,17 @@ textarea {
     width: 100%;
   }
 
+  .card-actions,
+  .table-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .card-actions .button,
+  .table-actions .button {
+    width: 100%;
+  }
+
   .agenda-item {
     align-items: start;
     grid-template-columns: 1fr;
@@ -1015,6 +1121,10 @@ textarea {
 
   .inline-disclosure {
     justify-self: stretch;
+  }
+
+  .exercise-actions {
+    justify-items: stretch;
   }
 
   .stats-desktop-table {

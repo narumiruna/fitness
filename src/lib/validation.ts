@@ -20,12 +20,40 @@ export const createWorkoutSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
 });
 
+export const updateWorkoutSchema = createWorkoutSchema.extend({
+  workoutId: z.string().min(1),
+});
+
+export const duplicateWorkoutSchema = z.object({
+  sourceWorkoutId: z.string().min(1),
+  date: z.string().date(),
+});
+
 export const createSetSchema = z.object({
   exerciseId: z.string().min(1),
   weight: z.coerce.number().min(0).max(2000),
   reps: z.coerce.number().int().min(1).max(1000),
   order: z.coerce.number().int().min(1).max(1000),
   notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateSetSchema = createSetSchema.extend({
+  workoutId: z.string().min(1),
+  setId: z.string().min(1),
+});
+
+export const saveWorkoutTemplateSchema = z.object({
+  workoutId: z.string().min(1),
+  title: z.string().trim().min(1).max(120),
+});
+
+export const createWorkoutFromTemplateSchema = z.object({
+  templateId: z.string().min(1),
+  date: z.string().date(),
+});
+
+export const deleteWorkoutTemplateSchema = z.object({
+  templateId: z.string().min(1),
 });
 
 export const createExerciseSchema = z.object({
