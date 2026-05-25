@@ -12,19 +12,62 @@ export default async function WorkoutsPage() {
     include: {
       sets: true,
     },
-    orderBy: { date: "desc" },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const workoutsThisMonth = workouts.filter(
+    (workout) =>
+      workout.date >= currentMonthStart && workout.date < nextMonthStart,
+  ).length;
+  const totalSets = workouts.reduce(
+    (total, workout) => total + workout.sets.length,
+    0,
+  );
+  const latestWorkoutDate = workouts[0]?.date;
 
   return (
-    <section className="stack">
-      <div className="page-header">
+    <section className="stack workouts-page">
+      <div className="page-header workouts-header">
         <div>
           <h1>{t("workouts")}</h1>
+          <p>{t("workoutsIntro")}</p>
         </div>
       </div>
-      <div className="grid">
-        <form className="panel form-grid" action={createWorkoutAction}>
+
+      <section className="workouts-summary-grid" aria-label={t("overview")}>
+        <WorkoutSummaryCard
+          label={t("totalWorkouts")}
+          value={formatInteger(workouts.length)}
+        />
+        <WorkoutSummaryCard
+          label={t("monthWorkouts")}
+          value={formatInteger(workoutsThisMonth)}
+        />
+        <WorkoutSummaryCard
+          label={t("totalSets")}
+          value={formatInteger(totalSets)}
+        />
+        <WorkoutSummaryCard
+          label={t("latestWorkout")}
+          value={
+            latestWorkoutDate
+              ? latestWorkoutDate.toLocaleDateString("en", {
+                  month: "short",
+                  day: "numeric",
+                })
+              : t("noLatestWorkout")
+          }
+        />
+      </section>
+
+      <div className="workouts-layout">
+        <form
+          className="panel form-grid create-workout-card"
+          action={createWorkoutAction}
+        >
           <h2>{t("createWorkout")}</h2>
           <label>
             {t("date")}
@@ -42,44 +85,86 @@ export default async function WorkoutsPage() {
             {t("createWorkout")}
           </button>
         </form>
-        <div className="stack">
-          <div className="section-heading">
-            <h2>{t("workouts")}</h2>
+
+        <section className="workouts-list stack">
+          <div className="section-heading workout-list-heading">
+            <h2>{t("recentWorkouts")}</h2>
             <span>{workouts.length}</span>
           </div>
           {workouts.length === 0 ? (
-            <div className="item muted">{t("noWorkouts")}</div>
+            <div className="empty-state">
+              <strong>{t("noWorkouts")}</strong>
+              <p className="muted">{t("workoutsIntro")}</p>
+            </div>
           ) : (
-            workouts.map((workout) => (
-              <article className="item workout-card" key={workout.id}>
-                <div className="workout-card-body">
-                  <div>
-                    <time
-                      className="meta-pill"
-                      dateTime={workout.date.toISOString()}
-                    >
-                      {workout.date.toLocaleDateString("en")}
-                    </time>
-                    <h2>{workout.title || t("workout")}</h2>
+            workouts.map((workout) => {
+              const exerciseCount = new Set(
+                workout.sets.map((set) => set.exerciseId),
+              ).size;
+
+              return (
+                <article className="item workout-card" key={workout.id}>
+                  <div className="workout-card-body">
+                    <div className="workout-card-main">
+                      <time
+                        className="meta-pill"
+                        dateTime={workout.date.toISOString()}
+                      >
+                        {workout.date.toLocaleDateString("en")}
+                      </time>
+                      <h2>{workout.title || t("workout")}</h2>
+                    </div>
                   </div>
-                  <span className="meta-pill">
-                    {workout.sets.length}{" "}
-                    {workout.sets.length === 1 ? t("set") : t("sets")}
-                  </span>
-                </div>
-                <div className="row">
-                  <Link
-                    className="button secondary"
-                    href={`/workouts/${workout.id}`}
-                  >
-                    {t("view")}
-                  </Link>
-                </div>
-              </article>
-            ))
+                  <div className="workout-card-footer">
+                    <div className="workout-card-stats">
+                      <span>
+                        <strong>{formatInteger(workout.sets.length)}</strong>{" "}
+                        {workout.sets.length === 1 ? t("set") : t("sets")}
+                      </span>
+                      <span>
+                        <strong>{formatInteger(exerciseCount)}</strong>{" "}
+                        {exerciseCount === 1
+                          ? t("exercise")
+                          : t("exercisesMetric")}
+                      </span>
+                      {workout.notes ? (
+                        <span>{t("notesAvailable")}</span>
+                      ) : null}
+                    </div>
+                    <Link
+                      className="button secondary"
+                      href={`/workouts/${workout.id}`}
+                    >
+                      {t("view")}
+                    </Link>
+                  </div>
+                </article>
+              );
+            })
           )}
-        </div>
+        </section>
       </div>
     </section>
   );
+}
+
+function WorkoutSummaryCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <article className="item workout-summary-card">
+      <span className="muted">{label}</span>
+      <strong>{value}</strong>
+    </article>
+  );
+}
+
+function formatInteger(value: number) {
+  return new Intl.NumberFormat("en", {
+    maximumFractionDigits: 0,
+  }).format(value);
 }

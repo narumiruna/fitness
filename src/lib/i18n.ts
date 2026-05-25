@@ -28,6 +28,8 @@ const enMessages = {
   date: "Date",
   notes: "Notes",
   createWorkout: "Create workout",
+  workoutsIntro: "Track training sessions, sets, and progress.",
+  recentWorkouts: "Recent workouts",
   noWorkouts: "No workouts yet.",
   view: "View",
   previous: "Previous",
@@ -107,6 +109,7 @@ const enMessages = {
   trainingDays: "Training days",
   totalSets: "Total sets",
   setsMetric: "Sets",
+  exercisesMetric: "Exercises",
   totalReps: "Total reps",
   totalVolume: "Total volume",
   averageVolumePerWorkout: "Avg volume / workout",
@@ -119,6 +122,8 @@ const enMessages = {
   month: "Month",
   monthWorkouts: "This month",
   noMonthWorkouts: "No workouts this month.",
+  latestWorkout: "Latest workout",
+  noLatestWorkout: "None",
 } as const;
 
 const messages: Record<Locale, Partial<typeof enMessages>> = {

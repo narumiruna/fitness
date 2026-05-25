@@ -94,6 +94,10 @@ button {
   padding: 32px clamp(20px, 5vw, 64px) 64px;
 }
 
+.main:has(.workouts-page) {
+  max-width: 1280px;
+}
+
 .narrow {
   max-width: 560px;
 }
@@ -291,9 +295,77 @@ textarea {
   display: none;
 }
 
+.workouts-page {
+  gap: 20px;
+}
+
+.workouts-header {
+  margin-bottom: 0;
+}
+
+.workouts-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.workouts-header .button {
+  flex: 0 0 auto;
+}
+
+.workouts-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.workout-summary-card {
+  display: grid;
+  gap: 8px;
+  min-height: 104px;
+}
+
+.workout-summary-card strong {
+  font-size: 1.8rem;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.workouts-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+}
+
+.create-workout-card {
+  position: sticky;
+  top: 88px;
+}
+
+.create-workout-card h2 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.workouts-list {
+  gap: 12px;
+  min-width: 0;
+}
+
+.workout-list-heading {
+  padding: 2px 0;
+}
+
 .workout-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.workout-card:hover {
+  background: #fbfcfd;
+  border-color: rgba(15, 118, 110, 0.38);
 }
 
 .workout-card-body {
@@ -304,8 +376,39 @@ textarea {
 }
 
 .workout-card h2 {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  line-height: 1.2;
   margin: 10px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.workout-card-main {
+  min-width: 0;
+}
+
+.workout-card-footer {
+  align-items: end;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.workout-card-stats {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.workout-card-stats span {
+  font-size: 0.9rem;
+}
+
+.workout-card-stats strong {
+  color: var(--text);
+  font-weight: 800;
 }
 
 .alias-list {
@@ -791,6 +894,20 @@ textarea {
   line-height: 1.25;
 }
 
+@media (max-width: 960px) {
+  .workouts-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workouts-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .create-workout-card {
+    position: static;
+  }
+}
+
 @media (max-width: 720px) {
   .page-header,
   .topbar {
@@ -863,6 +980,15 @@ textarea {
   .detail-list-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .workout-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workout-card-footer .button {
+    width: 100%;
   }
 
   .agenda-item {
