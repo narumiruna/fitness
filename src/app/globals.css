@@ -725,10 +725,6 @@ textarea {
   grid-template-columns: minmax(72px, 0.6fr) minmax(0, 1fr) auto;
 }
 
-.agenda-item:hover span {
-  color: var(--accent-strong);
-}
-
 .agenda-item time,
 .agenda-item small {
   color: var(--muted);
@@ -875,6 +871,10 @@ textarea {
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.agenda-item:hover span {
+  color: var(--accent-strong);
 }
 
 .stats-pair strong,
