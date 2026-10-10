@@ -300,7 +300,7 @@ function setVolume(set: Pick<WorkoutSetForStats, "weight" | "reps">) {
   return set.weight * set.reps;
 }
 
-function sumVolume(sets: Array<Pick<WorkoutSetForStats, "weight" | "reps">>) {
+function sumVolume(sets: Pick<WorkoutSetForStats, "weight" | "reps">[]) {
   return sets.reduce((total, set) => total + setVolume(set), 0);
 }
 

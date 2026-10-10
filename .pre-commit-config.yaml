@@ -2,7 +2,7 @@ repos:
   - repo: local
     hooks:
       - id: biome-check
-        name: biome check
+        name: biome ci
         entry: npm run lint
         language: system
         pass_filenames: false

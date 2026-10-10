@@ -18,6 +18,7 @@ export default async function LoginPage({
 
   const t = await getDictionary();
   const params = await searchParams;
+  const isDevelopment = process.env.NODE_ENV === "development";
 
   return (
     <section className="narrow stack">
@@ -30,12 +31,18 @@ export default async function LoginPage({
         {params.error ? <p className="error">{t("loginError")}</p> : null}
         <label>
           {t("username")}
-          <input autoComplete="username" name="username" required />
+          <input
+            autoComplete="username"
+            defaultValue={isDevelopment ? "admin" : ""}
+            name="username"
+            required
+          />
         </label>
         <label>
           {t("password")}
           <input
             autoComplete="current-password"
+            defaultValue={isDevelopment ? "admin" : ""}
             name="password"
             required
             type="password"

@@ -1,28 +1,42 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!src/generated/prisma"]
+    "includes": ["**", "!.agents", "!dist", "!node_modules", "!data"]
   },
   "formatter": {
     "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2
+    "indentStyle": "space"
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
-    }
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "double",
-      "semicolons": "always"
+      "preset": "recommended",
+      "complexity": {
+        "noUselessTypeConstraint": "error"
+      },
+      "performance": {
+        "noReExportAll": "error"
+      },
+      "style": {
+        "useAsConstAssertion": "error",
+        "useConsistentArrayType": "error",
+        "useConst": "error",
+        "useShorthandFunctionType": "error",
+        "useSingleVarDeclarator": "error"
+      },
+      "suspicious": {
+        "noExtraNonNullAssertion": "error"
+      }
     }
   }
 }
