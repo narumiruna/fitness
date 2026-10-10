@@ -25,6 +25,7 @@ Run commands from the repository root.
 ## Code Style
 
 - Use Biome for formatting, linting, and import organization. Do not make manual formatting-only churn outside touched files.
+- Prefer Radix UI Themes for UI components and layout, Primitives for accessible interactions not covered by Themes, Colors for color palettes, and Icons for icons over custom implementations or other UI libraries.
 - Keep TypeScript strict and server-side logic in server actions or `src/lib/*` helpers.
 - Prefer small server actions in `src/app/actions/` and keep validation schemas in `src/lib/validation.ts`.
 - Store passwords only as bcrypt hashes. Session cookies must stay HttpOnly and sessions should store token hashes, not raw tokens.
