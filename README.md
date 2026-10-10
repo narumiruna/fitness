@@ -23,6 +23,10 @@ Development seed credentials:
 - Username: `admin`
 - Password: `admin`
 
+`npm run dev` prefills the login form with these credentials.
+Run `npm run db:seed` to create the development account before signing in.
+Production login fields are empty.
+
 ## Checks
 
 ```bash
