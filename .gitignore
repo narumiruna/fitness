@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 
 # Personal data
 data/
+
+# pi
+.pi/
