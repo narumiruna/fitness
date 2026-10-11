@@ -454,7 +454,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await page.goto(`/exercises/${exercise.id}`);
   const metadata = page
     .locator("form")
-    .filter({ has: page.locator('input[name="exerciseId"]') });
+    .filter({ has: page.getByRole("group", { name: "Primary muscles" }) });
   await metadata
     .getByRole("group", { name: "Primary muscles" })
     .getByLabel("Chest", { exact: true })
@@ -710,7 +710,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await page.goto(`/exercises/${noHistory.id}`);
   const foreignForm = page
     .locator("form")
-    .filter({ has: page.locator('input[name="exerciseId"]') });
+    .filter({ has: page.getByRole("group", { name: "Primary muscles" }) });
   await foreignForm
     .getByRole("group", { name: "Primary muscles" })
     .getByLabel("Back", { exact: true })

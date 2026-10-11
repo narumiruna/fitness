@@ -43,7 +43,7 @@ async function seedExercise(
 ) {
   const exercise = await prisma.exercise.upsert({
     where: { slug: slugifyExerciseName(defaultName) },
-    update: { defaultName },
+    update: {},
     create: {
       slug: slugifyExerciseName(defaultName),
       defaultName,

@@ -1,20 +1,34 @@
-import { Badge, Card, Grid, Heading, Link, Text } from "@radix-ui/themes";
+import {
+  Badge,
+  Callout,
+  Card,
+  Grid,
+  Heading,
+  Link,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
+import { updateExerciseAction } from "@/app/actions/exercises";
 import { ExerciseMetadata } from "@/components/exercise-metadata";
+import { SubmitButton } from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 
 export default async function ExerciseHistoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const user = await requireUser();
   const t = await getDictionary();
   const { id } = await params;
+  const feedback = await searchParams;
   const exercise = await prisma.exercise.findUnique({
     where: { id },
     include: {
@@ -82,6 +96,41 @@ export default async function ExerciseHistoryPage({
           </Text>
         </div>
       </div>
+
+      {user.role === "ADMIN" || exercise.createdByUserId === user.id ? (
+        <Card asChild>
+          <form
+            id="edit-exercise"
+            action={updateExerciseAction}
+            className="form-grid"
+          >
+            <Heading as="h2" size="5">
+              {t("editExercise")}
+            </Heading>
+            <Text as="p" size="2" color="gray">
+              {t("exerciseEditHelp")}
+            </Text>
+            {feedback.error === "duplicate" ? (
+              <Callout.Root color="red" role="alert">
+                <Callout.Text>{t("duplicateExercise")}</Callout.Text>
+              </Callout.Root>
+            ) : feedback.saved === "1" ? (
+              <Text role="status">{t("saved")}</Text>
+            ) : null}
+            <input type="hidden" name="exerciseId" value={id} />
+            <Text as="label" size="2" className="field-label">
+              {t("defaultName")}
+              <TextField.Root
+                name="defaultName"
+                defaultValue={exercise.defaultName}
+                maxLength={120}
+                required
+              />
+            </Text>
+            <SubmitButton>{t("save")}</SubmitButton>
+          </form>
+        </Card>
+      ) : null}
 
       <section className="stats-card-grid" aria-label={t("overview")}>
         <SummaryCard label={t("totalSets")} value={formatInteger(totalSets)} />

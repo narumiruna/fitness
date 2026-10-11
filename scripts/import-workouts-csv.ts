@@ -117,7 +117,7 @@ async function ensureExercises(rows: SetWorkoutCsvRow[]) {
   for (const exercise of exerciseNames.values()) {
     const record = await prisma.exercise.upsert({
       where: { slug: slugifyExerciseName(exercise.exerciseNameEn) },
-      update: { defaultName: exercise.exerciseNameEn },
+      update: {},
       create: {
         slug: slugifyExerciseName(exercise.exerciseNameEn),
         defaultName: exercise.exerciseNameEn,
@@ -132,12 +132,12 @@ async function ensureExercises(rows: SetWorkoutCsvRow[]) {
           name: exercise.exerciseNameEn,
         },
       },
-      update: { isPrimary: true },
+      update: { isPrimary: record.defaultName === exercise.exerciseNameEn },
       create: {
         exerciseId: record.id,
         locale: "en",
         name: exercise.exerciseNameEn,
-        isPrimary: true,
+        isPrimary: record.defaultName === exercise.exerciseNameEn,
       },
     });
 

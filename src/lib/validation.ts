@@ -68,6 +68,10 @@ export const createExerciseSchema = z.object({
   defaultName: z.string().trim().min(1).max(120),
 });
 
+export const updateExerciseSchema = createExerciseSchema.extend({
+  exerciseId: z.string().min(1),
+});
+
 export const importMappingsSchema = z
   .record(z.string().max(120), z.string().min(1).max(128))
   .refine((value) => Object.keys(value).length <= 20000);
