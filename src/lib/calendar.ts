@@ -89,7 +89,11 @@ export function parseDateKey(value: string | undefined): Date | undefined {
 }
 
 export function formatDateKey(date: Date) {
-  const year = date.getFullYear();
+  const fullYear = date.getFullYear();
+  const year =
+    fullYear >= 0 && fullYear <= 9999
+      ? String(fullYear).padStart(4, "0")
+      : `${fullYear < 0 ? "-" : "+"}${String(Math.abs(fullYear)).padStart(6, "0")}`;
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
 

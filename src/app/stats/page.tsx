@@ -56,6 +56,10 @@ export default async function StatsPage({
     return `${colors[index]} ${start}% ${offset}%`;
   });
   const hasStats = stats.overview.totalSets > 0;
+  const hasWorkouts = stats.overview.totalWorkouts > 0;
+  const weeklyLabel = t(
+    stats.weeklyBucketWeeks === 1 ? "workoutsPerWeek" : "workoutsPerPeriod",
+  );
   const maxMonthlyVolume = Math.max(
     ...stats.monthlyTrend.map((month) => month.volume),
     1,
@@ -99,12 +103,14 @@ export default async function StatsPage({
       {!hasStats ? (
         <Card className="stack">
           <Text as="p" size="2" color="gray">
-            {t("noStats")}
+            {t(hasWorkouts ? "noSetStats" : "noStats")}
           </Text>
           <div>
             <Button highContrast variant="soft" asChild>
-              <NextLink href="/workouts#new-workout">
-                {t("newWorkoutAction")}
+              <NextLink
+                href={hasWorkouts ? "/workouts" : "/workouts#new-workout"}
+              >
+                {t(hasWorkouts ? "workouts" : "newWorkoutAction")}
               </NextLink>
             </Button>
           </div>
@@ -140,9 +146,9 @@ export default async function StatsPage({
         </section>
       ) : null}
 
-      {hasStats ? (
-        <>
-          <div className="charts-grid">
+      {hasWorkouts ? (
+        <div className="charts-grid">
+          {hasStats ? (
             <Card asChild>
               <section>
                 <SectionHeader
@@ -157,98 +163,107 @@ export default async function StatsPage({
                 />
               </section>
             </Card>
-            <Card asChild>
-              <section>
-                <SectionHeader
-                  title={t("workoutsPerWeek")}
-                  description={t("recordedWorkouts")}
-                />
-                <TrainingChart
-                  points={stats.weekly}
-                  label={t("workoutsPerWeek")}
-                  kind="bar"
-                  dataLabel={t("chartData")}
-                />
-              </section>
-            </Card>
-          </div>
-          <div className="charts-grid three">
-            <Card asChild>
-              <section>
-                <SectionHeader
-                  title={t("exerciseDistribution")}
-                  description={t("bySets")}
-                />
-                <div className="distribution">
-                  <div
-                    className="donut"
-                    role="img"
-                    aria-label={`${t("totalSets")}: ${stats.overview.totalSets}`}
-                    style={{ background: `conic-gradient(${stops.join(",")})` }}
-                  >
-                    <div>
-                      <strong>{stats.overview.totalSets}</strong>
-                      <span>{t("totalSets")}</span>
-                    </div>
+          ) : null}
+          <Card asChild>
+            <section>
+              <SectionHeader
+                title={weeklyLabel}
+                description={
+                  stats.weeklyBucketWeeks === 1
+                    ? t("recordedWorkouts")
+                    : t("recordedWorkoutPeriods").replace(
+                        "{weeks}",
+                        String(stats.weeklyBucketWeeks),
+                      )
+                }
+              />
+              <TrainingChart
+                points={stats.weekly}
+                label={weeklyLabel}
+                kind="bar"
+                dataLabel={t("chartData")}
+              />
+            </section>
+          </Card>
+        </div>
+      ) : null}
+      {hasStats ? (
+        <div className="charts-grid three">
+          <Card asChild>
+            <section>
+              <SectionHeader
+                title={t("exerciseDistribution")}
+                description={t("bySets")}
+              />
+              <div className="distribution">
+                <div
+                  className="donut"
+                  role="img"
+                  aria-label={`${t("totalSets")}: ${stats.overview.totalSets}`}
+                  style={{ background: `conic-gradient(${stops.join(",")})` }}
+                >
+                  <div>
+                    <strong>{stats.overview.totalSets}</strong>
+                    <span>{t("totalSets")}</span>
                   </div>
-                  <ul className="chart-legend">
-                    {distribution.map((item, index) => (
-                      <li key={item.key}>
-                        <span
-                          className="legend-dot"
-                          style={{ background: colors[index] }}
-                        />
-                        <span>{item.label}</span>
-                        <strong>{item.value}</strong>
-                        <span>
-                          {(
-                            (item.value / stats.overview.totalSets) *
-                            100
-                          ).toFixed(1)}
-                          %
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              </section>
-            </Card>
-            <Card asChild>
-              <section>
-                <SectionHeader
-                  title={t("exerciseVolume")}
-                  description={rangeLabel}
-                />
-                <div className="stats-bars">
-                  {stats.exerciseLeaders.map((item) => (
-                    <div key={item.exerciseId} className="stats-bar-row">
-                      <span>{item.exerciseName}</span>
-                      <span className="stats-bar-track">
-                        <span
-                          className="stats-bar-fill"
-                          style={
-                            {
-                              "--bar-width": `${(item.volume / Math.max(...stats.exerciseLeaders.map((e) => e.volume), 1)) * 100}%`,
-                            } as CSSProperties
-                          }
-                        />
+                <ul className="chart-legend">
+                  {distribution.map((item, index) => (
+                    <li key={item.key}>
+                      <span
+                        className="legend-dot"
+                        style={{ background: colors[index] }}
+                      />
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                      <span>
+                        {(
+                          (item.value / stats.overview.totalSets) *
+                          100
+                        ).toFixed(1)}
+                        %
                       </span>
-                      <span className="stats-bar-value">
-                        {formatNumber(item.volume)}
-                      </span>
-                    </div>
+                    </li>
                   ))}
-                </div>
-              </section>
-            </Card>
-            <RecordSummary
-              records={records}
-              range={range}
-              scope={params.records}
-              t={t}
-            />
-          </div>
-        </>
+                </ul>
+              </div>
+            </section>
+          </Card>
+          <Card asChild>
+            <section>
+              <SectionHeader
+                title={t("exerciseVolume")}
+                description={rangeLabel}
+              />
+              <div className="stats-bars">
+                {stats.exerciseLeaders.map((item) => (
+                  <div key={item.exerciseId} className="stats-bar-row">
+                    <span>{item.exerciseName}</span>
+                    <span className="stats-bar-track">
+                      <span
+                        className="stats-bar-fill"
+                        style={
+                          {
+                            "--bar-width": `${(item.volume / Math.max(...stats.exerciseLeaders.map((e) => e.volume), 1)) * 100}%`,
+                          } as CSSProperties
+                        }
+                      />
+                    </span>
+                    <span className="stats-bar-value">
+                      {formatNumber(item.volume)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </Card>
+          <RecordSummary
+            records={records}
+            range={range}
+            scope={params.records}
+            t={t}
+          />
+        </div>
       ) : stats.allTimeRecords.length ? (
         <RecordSummary
           records={records}

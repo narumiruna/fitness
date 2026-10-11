@@ -180,3 +180,84 @@ test("empty, setless, single-session, zero-weight, fractional-weight, and record
     "2026-10-11",
   );
 });
+
+test("weekly chart stays bounded across extreme dates without dropping recorded workouts", () => {
+  for (const dates of [
+    ["2026-10-11", "9999-12-31"],
+    ["1900-01-01", "2026-10-11", "9999-12-31"],
+    ["0000-01-01", "0050-01-01", "9999-12-31"],
+  ]) {
+    const stats = calculateStats(
+      dates.map((date) => workout(date)),
+      "all",
+      now,
+    );
+    assert.ok(stats.weekly.length <= 52);
+    assert.ok(stats.weeklyBucketWeeks > 1);
+    assert.equal(
+      stats.weekly.reduce((count, point) => count + point.value, 0),
+      dates.length,
+    );
+    assert.equal(stats.overview.totalWorkouts, dates.length);
+    assert.equal(stats.overview.totalVolume, dates.length * 100);
+    assert.equal(
+      stats.daily.reduce((volume, point) => volume + point.value, 0),
+      dates.length * 100,
+    );
+    assert.ok(
+      stats.weekly.every(
+        (point) => new Date(`${point.key}T00:00:00`).getDay() === 0,
+      ),
+    );
+    assert.ok(stats.weekly.some((point) => point.value === 0));
+    assert.match(stats.weekly[0].label, / – /);
+  }
+  assert.equal(
+    calculateStats([workout("9999-12-31")], "all", now).weekly.length,
+    1,
+  );
+  for (const range of ["30", "90", "180"] as const) {
+    const stats = calculateStats(
+      [workout("1900-01-01"), workout("2026-10-11"), workout("9999-12-31")],
+      range,
+      now,
+    );
+    assert.equal(stats.weeklyBucketWeeks, 1);
+    assert.equal(
+      stats.weekly.reduce((count, point) => count + point.value, 0),
+      1,
+    );
+  }
+});
+
+test("weekly period grouping preserves Sunday boundaries across daylight-saving changes", () => {
+  const current = new Date("2026-11-08T12:00:00");
+  const records = [
+    workout("2025-10-01"),
+    workout("2026-03-08"),
+    workout("2026-03-15"),
+    workout("2026-11-01"),
+    workout("2026-11-08"),
+  ];
+  const stats = calculateStats(records, "all", current);
+  assert.ok(stats.weeklyBucketWeeks > 1);
+  assert.ok(stats.weekly.length <= 52);
+  const first = new Date(`${stats.weekly[0].key}T00:00:00`);
+  const counts = stats.weekly.map(() => 0);
+  for (const record of records) {
+    const date = new Date(first);
+    let index = 0;
+    while (true) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + stats.weeklyBucketWeeks * 7);
+      if (record.date < next) break;
+      date.setTime(next.getTime());
+      index++;
+    }
+    counts[index]++;
+  }
+  assert.deepEqual(
+    stats.weekly.map((point) => point.value),
+    counts,
+  );
+});

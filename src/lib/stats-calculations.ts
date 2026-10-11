@@ -103,6 +103,7 @@ export function calculateStats(
   const sets = selected.flatMap((w) =>
     w.sets.map((s) => ({ ...s, workoutDate: w.date })),
   );
+  const weekly = buildWeekly(selected, firstDate, lastDate);
   const allSets = workouts.flatMap((w) =>
     w.sets.map((s) => ({ ...s, workoutDate: w.date })),
   );
@@ -114,7 +115,8 @@ export function calculateStats(
     personalRecords: buildPersonalRecords(sets),
     allTimeRecords: buildPersonalRecords(allSets),
     daily: buildDaily(selected),
-    weekly: buildWeekly(selected, firstDate, lastDate),
+    weekly: weekly.points,
+    weeklyBucketWeeks: weekly.bucketWeeks,
     distribution: buildDistribution(sets),
   };
 }
@@ -139,22 +141,46 @@ function buildDaily(workouts: WorkoutForStats[]) {
 }
 function buildWeekly(workouts: WorkoutForStats[], start: Date, end: Date) {
   const first = addDays(startOfDay(start), -start.getDay());
-  const weeks = new Map<string, number>();
-  for (let date = first; date < end; date = addDays(date, 7))
-    weeks.set(formatDateKey(date), 0);
-  for (const w of workouts) {
-    const key = formatDateKey(addDays(startOfDay(w.date), -w.date.getDay()));
-    weeks.set(key, (weeks.get(key) ?? 0) + 1);
+  // Bound both SVG points and accessible data rows without dropping records.
+  const weekCount = Math.max(
+    1,
+    Math.ceil((calendarDay(end) - calendarDay(first)) / 7),
+  );
+  const bucketWeeks = Math.ceil(weekCount / 52);
+  const daysPerBucket = bucketWeeks * 7;
+  const formatter = new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const points = Array.from(
+    { length: Math.ceil(weekCount / bucketWeeks) },
+    (_, index) => {
+      const date = addDays(first, index * daysPerBucket);
+      const periodEnd = new Date(
+        Math.min(
+          addDays(date, daysPerBucket - 1).getTime(),
+          addDays(end, -1).getTime(),
+        ),
+      );
+      return {
+        key: formatDateKey(date),
+        label:
+          bucketWeeks === 1
+            ? formatter.format(date)
+            : `${formatter.format(date)} – ${formatter.format(periodEnd)}`,
+        axisLabel: formatter.format(date),
+        value: 0,
+      };
+    },
+  );
+  for (const workout of workouts) {
+    const index = Math.floor(
+      (calendarDay(workout.date) - calendarDay(first)) / daysPerBucket,
+    );
+    points[index].value++;
   }
-  return [...weeks].map(([key, value]) => ({
-    key,
-    label: new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(new Date(`${key}T00:00:00`)),
-    value,
-  }));
+  return { points, bucketWeeks };
 }
 function buildDistribution(
   sets: Array<WorkoutSetForStats & { workoutDate: Date }>,
@@ -402,9 +428,20 @@ function formatMonthKey(date: Date) {
 }
 
 function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
 }
 
 function addDays(date: Date, days: number) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+  const result = startOfDay(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+// Count local calendar days, not elapsed hours across daylight-saving changes.
+function calendarDay(date: Date) {
+  const utc = new Date(0);
+  utc.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+  return utc.getTime() / 86_400_000;
 }

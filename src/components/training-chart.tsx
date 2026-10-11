@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-type Point = { key: string; label: string; value: number };
+type Point = {
+  key: string;
+  label: string;
+  axisLabel?: string;
+  value: number;
+};
 export function TrainingChart({
   points,
   label,
@@ -136,7 +141,7 @@ export function TrainingChart({
                 i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"
               }
             >
-              {points[i].label}
+              {points[i].axisLabel ?? points[i].label}
             </text>
           ))}
       </svg>

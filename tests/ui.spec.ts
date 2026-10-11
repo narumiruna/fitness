@@ -850,6 +850,155 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   await page.getByRole("button", { name: "Sign out" }).click();
 });
 
+test("bounded chart periods, setless sessions, and aggregated personal exercise usage", async ({
+  page,
+}, info) => {
+  const user = await prisma.user.create({
+    data: {
+      username: "review-load",
+      passwordHash: await bcrypt.hash("review-load-password", 12),
+    },
+  });
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 1,
+  );
+  await prisma.workout.createMany({
+    data: [
+      { userId: user.id, date: today, title: "Setless today" },
+      {
+        userId: user.id,
+        date: new Date("9999-12-31T00:00:00"),
+        title: "Extreme recorded date",
+      },
+    ],
+  });
+  await login(page, "review-load", "review-load-password");
+  await page.goto("/stats");
+  await expect(
+    page.locator(".stats-card").filter({ hasText: "Total workouts" }),
+  ).toContainText("2");
+  await expect(page.locator(".training-chart")).toHaveCount(1);
+  await expect(
+    page.locator("svg[aria-label='Workouts per period']"),
+  ).toBeVisible();
+  await expect(page.getByText(/Periods cover up to/)).toBeVisible();
+  const values = await page.locator(".chart-data-row dd").allTextContents();
+  expect(values.length).toBeLessThanOrEqual(52);
+  expect(
+    values.reduce((sum, value) => sum + Number(value.replaceAll(",", "")), 0),
+  ).toBe(2);
+  await expect(
+    page.getByText("Training volume over time", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Exercise distribution", { exact: true }),
+  ).toHaveCount(0);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await noOverflow(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .exclude("nextjs-portal")
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: info.outputPath(`aggregated-stats-${width}.png`),
+      fullPage: true,
+    });
+  }
+  await page.goto("/stats?range=30");
+  await expect(page.locator(".training-chart")).toHaveCount(1);
+  await expect(
+    page.locator("svg[aria-label='Workouts per week']"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Add sets to see volume and exercise statistics."),
+  ).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await noOverflow(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .exclude("nextjs-portal")
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      caret: "initial",
+      path: info.outputPath(`setless-stats-${width}.png`),
+      fullPage: true,
+    });
+  }
+  const bench = await prisma.exercise.findUniqueOrThrow({
+    where: { slug: "bench-press" },
+  });
+  const squat = await prisma.exercise.findUniqueOrThrow({
+    where: { slug: "squat" },
+  });
+  for (const [exerciseId, date] of [
+    [bench.id, yesterday],
+    [squat.id, today],
+  ] as const) {
+    await prisma.workout.create({
+      data: {
+        userId: user.id,
+        date,
+        sets: {
+          create: Array.from({ length: 1000 }, (_, i) => ({
+            exerciseId,
+            order: i + 1,
+            weight: 1,
+            reps: 1,
+          })),
+        },
+      },
+    });
+  }
+  await page.goto("/exercises?sort=recent");
+  await expect(
+    page.locator(".stats-card").filter({ hasText: "Used exercises" }),
+  ).toContainText("2");
+  await expect(page.locator(".exercise-row h3").first()).toHaveText("Squat");
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Bench Press" }),
+  ).toContainText("1000 sets");
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Bench Press" }),
+  ).toContainText(formatDateKey(yesterday));
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Squat" }),
+  ).toContainText("1000 sets");
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Plank" }),
+  ).toContainText("Not used yet");
+  await expect(page.locator(".recent-exercise")).toHaveCount(2);
+  await expect(page.locator(".recent-exercise").first()).toContainText("Squat");
+  await page.goto("/exercises?q=Bench&sort=recent");
+  await expect(page.locator(".exercise-row")).toHaveCount(1);
+  await expect(page.locator(".exercise-row")).toContainText("1000 sets");
+  await expect(page.locator(".recent-exercise")).toHaveCount(2);
+  await page.goto("/stats");
+  await expect(page.locator(".training-chart")).toHaveCount(2);
+  await expect(
+    page.locator("svg[aria-label='Workouts per period'] g[role=button]"),
+  ).toHaveCount(values.length);
+  const result = await new AxeBuilder({ page })
+    .exclude("nextjs-portal")
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  expect(result.violations).toEqual([]);
+  await page.getByRole("button", { name: "Sign out" }).click();
+});
+
 test("responsive routes, semantic controls, CSS states, and themed portals", async ({
   page,
 }, info) => {

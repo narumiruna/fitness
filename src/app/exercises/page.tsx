@@ -41,7 +41,7 @@ export default async function ExercisesPage({
   const sort =
     params.sort === "desc" || params.sort === "recent" ? params.sort : "asc";
   const normalizedQuery = normalizeExerciseAlias(query);
-  const [exercises, totalExerciseCount, totalAliasCount, usedSets] =
+  const [exercises, totalExerciseCount, totalAliasCount, usedExercises] =
     await Promise.all([
       prisma.exercise.findMany({
         where: query
@@ -64,27 +64,39 @@ export default async function ExercisesPage({
       }),
       prisma.exercise.count(),
       prisma.exerciseAlias.count(),
-      prisma.workoutSet.findMany({
-        where: { workout: { userId: user.id } },
-        select: {
-          exerciseId: true,
-          exercise: { select: { defaultName: true } },
-          workout: { select: { date: true } },
-        },
-        orderBy: { workout: { date: "desc" } },
-      }),
+      prisma.$queryRaw<
+        {
+          exerciseId: string;
+          name: string;
+          date: string | number | bigint | Date;
+          count: bigint | number;
+        }[]
+      >`
+        SELECT s."exerciseId", e."defaultName" AS name,
+               MAX(w.date) AS date, COUNT(*) AS count
+        FROM "WorkoutSet" AS s
+        JOIN "Workout" AS w ON w.id = s."workoutId"
+        JOIN "Exercise" AS e ON e.id = s."exerciseId"
+        WHERE w."userId" = ${user.id}
+        GROUP BY s."exerciseId", e."defaultName"
+        ORDER BY MAX(w.date) DESC, e."defaultName" ASC, s."exerciseId" ASC
+      `,
     ]);
-  const usage = new Map<string, { name: string; date: Date; count: number }>();
-  for (const set of usedSets) {
-    const existing = usage.get(set.exerciseId);
-    if (existing) existing.count++;
-    else
-      usage.set(set.exerciseId, {
-        name: set.exercise.defaultName,
-        date: set.workout.date,
-        count: 1,
-      });
-  }
+  const usage = new Map(
+    usedExercises.map((item) => [
+      item.exerciseId,
+      {
+        name: item.name,
+        date:
+          item.date instanceof Date
+            ? item.date
+            : new Date(
+                typeof item.date === "bigint" ? Number(item.date) : item.date,
+              ),
+        count: Number(item.count),
+      },
+    ]),
+  );
   if (sort === "recent")
     exercises.sort(
       (a, b) =>

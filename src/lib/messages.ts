@@ -30,6 +30,10 @@ export const englishMessages = {
   last180Days: "Last 180 days",
   volumeHistory: "Training volume over time",
   workoutsPerWeek: "Workouts per week",
+  workoutsPerPeriod: "Workouts per period",
+  recordedWorkoutPeriods:
+    "Recorded workouts. Periods cover up to {weeks} weeks and start on Sunday.",
+  noSetStats: "Add sets to see volume and exercise statistics.",
   recordedWorkouts: "Recorded workouts. Weeks start on Sunday.",
   exerciseDistribution: "Exercise distribution",
   bySets: "By number of recorded sets.",
