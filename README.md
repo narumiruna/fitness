@@ -44,11 +44,11 @@ docker compose logs -f fitness
 docker compose down
 ```
 
-The app port `8783` is published only on the local host. Open
-`http://localhost:8783` and create the first admin account at `/setup`. For remote
-access, use an HTTPS reverse proxy on the host that connects to
-`http://127.0.0.1:8783`. Production session cookies require a secure connection.
-Keep the direct HTTP port private so it cannot bypass the proxy's access controls.
+The app port `8783` is published on all host interfaces. Other devices can reach
+it at `http://<server-ip>:8783` if the host firewall permits access. Production
+session cookies require HTTPS, so use an HTTPS reverse proxy that connects to
+`http://127.0.0.1:8783` for login and account setup at `/setup`. Restrict port
+`8783` with the host firewall so it cannot bypass the proxy's access controls.
 
 The app container runs as a non-root user. Compose waits for PostgreSQL to be
 healthy, then the app applies existing Prisma migrations before startup. A

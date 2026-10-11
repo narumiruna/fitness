@@ -4,7 +4,7 @@ services:
     environment:
       DATABASE_URL: postgresql://fitness:${POSTGRES_PASSWORD:-fitness}@db:5432/fitness
     ports:
-      - "127.0.0.1:8783:8783"
+      - "8783:8783"
     depends_on:
       db:
         condition: service_healthy
