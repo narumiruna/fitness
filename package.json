@@ -15,7 +15,7 @@
     "format": "npm run biome:format -- --write",
     "typecheck": "tsc --noEmit",
     "check": "npm run biome:ci && npm run typecheck",
-    "test:db-init": "node --test tests/dev-database.test.mjs",
+    "test:db-init": "node --test tests/dev-database.test.mjs tests/postgres-cleanup.test.mjs",
     "test:dashboard": "node --import tsx --test tests/dashboard.test.ts",
     "test:ui": "node tests/run-ui.mjs",
     "test:ui:production": "npm run build && node tests/run-ui.mjs --production",

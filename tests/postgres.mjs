@@ -15,7 +15,8 @@ function docker(args) {
 }
 
 // Each test run owns its container. Never connect to a developer's database.
-export async function startPostgres() {
+export async function startPostgres({ signal } = {}) {
+  signal?.throwIfAborted();
   const name = `fitness-test-${randomUUID()}`;
   docker([
     "run",
@@ -42,14 +43,16 @@ export async function startPostgres() {
       connectionTimeoutMillis: 1000,
     });
     for (let attempt = 0; ; attempt++) {
+      signal?.throwIfAborted();
       try {
         await pool.query("SELECT 1");
         break;
       } catch (error) {
         if (attempt === 59) throw error;
-        await setTimeout(500);
+        await setTimeout(500, undefined, { signal });
       }
     }
+    signal?.throwIfAborted();
     return {
       url,
       pool,
