@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+src/generated/prisma
+.env
+.env.*
+*.db
+*.db-*
+*.tsbuildinfo
+data
+test-results
+playwright-report
+.pi
+.codex
