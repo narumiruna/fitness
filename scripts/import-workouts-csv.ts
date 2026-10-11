@@ -6,12 +6,17 @@ import {
   normalizeExerciseAlias,
   slugifyExerciseName,
 } from "../src/lib/exercises";
+import { logger } from "../src/lib/logger";
 import { prisma } from "../src/lib/prisma";
 import { parseWorkoutCsv, type WorkoutCsvRow } from "./workout-csv";
 
 const inputPath = path.join(process.cwd(), "data", "workouts.csv");
 
 async function main() {
+  logger.info(
+    { event: "workouts.import_started" },
+    "Workout CSV import started",
+  );
   const user = await prisma.user.findFirst({
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: { id: true, username: true },
@@ -69,8 +74,14 @@ async function main() {
     setCount += setRows.length;
   }
 
-  console.log(
-    `Imported ${workoutCount} workouts and ${setCount} sets for ${user.username}.`,
+  logger.info(
+    {
+      event: "workouts.import_completed",
+      workoutCount,
+      setCount,
+      userId: user.id,
+    },
+    "Workout CSV import completed",
   );
 }
 
@@ -207,7 +218,10 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (error) => {
-    console.error(error);
+    logger.error(
+      { event: "workouts.import_failed", err: error },
+      "Workout CSV import failed",
+    );
     await prisma.$disconnect();
     process.exit(1);
   });

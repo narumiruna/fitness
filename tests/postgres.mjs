@@ -54,6 +54,7 @@ export async function startPostgres({ signal } = {}) {
     }
     signal?.throwIfAborted();
     return {
+      name,
       url,
       pool,
       async stop() {

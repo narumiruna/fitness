@@ -70,6 +70,49 @@ are not imported or modified.
 Local environment files, databases, and workout data are excluded from the build
 context.
 
+## Logging
+
+Application logs use Pino and write one JSON object per line to stdout at
+`info` level. Docker captures these records:
+
+```bash
+docker compose logs --tail=100 fitness
+docker compose logs --since=5m fitness
+npm run test:logging
+# Build the app image, then run diagnostics against disposable containers.
+docker compose build fitness
+npm run test:logging:docker
+```
+
+Each page or action request gets a server-generated `requestId`, also returned
+in the `x-request-id` response header. Static assets are excluded. Request logs
+record receipt, not final response status. Server actions record their name,
+duration, completion, framework control flow (including redirects), or failure.
+Authentication and action database logs share the request ID. Other database
+operations record their model, operation, duration, and failure without SQL or
+parameters. Server startup, request errors, seed, and CSV scripts also use Pino.
+Next.js startup output and Prisma CLI migration output remain in their native
+format.
+
+For a login loop, find `auth.login_succeeded`, then `session.cookie_set`.
+Check the cookie's `secure` field and the request's `protocol` and
+`originProtocol`. `session.secure_cookie_over_http` warns about HTTP access
+with a Secure cookie; some browsers permit Secure cookies on loopback hosts.
+Forwarded protocol headers are diagnostic hints, not trusted security inputs.
+On the next request, `session.missing_cookie` means no session cookie arrived.
+`session.not_found` means the cookie did not match a stored session.
+`session.expired` means the session expired. `auth.required` records the
+redirect back to login. `session.authenticated` records a valid session.
+A missing cookie alone does not prove why the browser omitted it.
+
+Logs do not record passwords, token values or hashes, raw headers, form data,
+query strings, workout content, database URLs, or SQL parameters. Error logs
+keep the error type, code, and stack frames but omit messages and causes because
+these can contain private data. User IDs and database session IDs are diagnostic
+identifiers, not authentication credentials. Restrict access to Docker logs and
+set retention through the deployment's logging system. No logging transport,
+log files, or new environment variables are required.
+
 ## Checks
 
 ```bash

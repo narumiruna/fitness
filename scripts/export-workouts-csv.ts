@@ -1,5 +1,6 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { logger } from "../src/lib/logger";
 import {
   parseWorkoutLine,
   stringifyWorkoutCsv,
@@ -10,6 +11,10 @@ const workoutsDirectory = path.join(process.cwd(), "data", "workouts");
 const outputPath = path.join(process.cwd(), "data", "workouts.csv");
 
 async function main() {
+  logger.info(
+    { event: "workouts.export_started" },
+    "Workout CSV export started",
+  );
   const files = (await readdir(workoutsDirectory))
     .filter((file) => file.endsWith(".md"))
     .sort((a, b) => a.localeCompare(b));
@@ -66,8 +71,14 @@ async function main() {
   }
 
   await writeFile(outputPath, `${stringifyWorkoutCsv(rows)}\n`, "utf8");
-  console.log(
-    `Wrote ${rows.length} rows to data/workouts.csv (${setCount} sets, ${noteCount} notes).`,
+  logger.info(
+    {
+      event: "workouts.export_completed",
+      rowCount: rows.length,
+      setCount,
+      noteCount,
+    },
+    "Workout CSV export completed",
   );
 }
 
@@ -119,6 +130,9 @@ function parseWorkoutMarkdown(content: string, file: string) {
 }
 
 main().catch((error) => {
-  console.error(error);
+  logger.error(
+    { event: "workouts.export_failed", err: error },
+    "Workout CSV export failed",
+  );
   process.exit(1);
 });

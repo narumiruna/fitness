@@ -196,6 +196,7 @@ test("setup, login failures, password validation, and session replacement", asyn
   expect(newSession?.value).not.toBe(oldSession?.value);
   expect(await prisma.session.count()).toBe(1);
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
   await page.goto("/workouts");
   await expect(page).toHaveURL(/\/login$/);
   await login(page);

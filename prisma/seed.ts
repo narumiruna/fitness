@@ -2,10 +2,12 @@ import {
   normalizeExerciseAlias,
   slugifyExerciseName,
 } from "../src/lib/exercises";
+import { logger } from "../src/lib/logger";
 import { hashPassword } from "../src/lib/password";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
+  logger.info({ event: "seed.started" }, "Development seed started");
   const adminPasswordHash = await hashPassword("admin");
 
   await prisma.user.upsert({
@@ -79,10 +81,14 @@ async function seedExercise(
 
 main()
   .then(async () => {
+    logger.info({ event: "seed.completed" }, "Development seed completed");
     await prisma.$disconnect();
   })
   .catch(async (error) => {
-    console.error(error);
+    logger.error(
+      { event: "seed.failed", err: error },
+      "Development seed failed",
+    );
     await prisma.$disconnect();
     process.exit(1);
   });
