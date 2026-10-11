@@ -22,6 +22,11 @@ export default async function MeasurementsPage() {
   const user = await requireUser();
   const t = await getDictionary();
   const locale = await getLocale();
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
   const [records, goal] = await Promise.all([
     prisma.bodyMeasurement.findMany({
       where: { userId: user.id },
@@ -112,7 +117,7 @@ export default async function MeasurementsPage() {
                 .filter((r) => r[metric] !== null)
                 .map((r) => ({
                   key: formatDateKey(r.date),
-                  label: formatDateKey(r.date),
+                  label: dateFormatter.format(r.date),
                   value: r[metric] as number,
                 }))}
               target={
@@ -138,7 +143,11 @@ export default async function MeasurementsPage() {
         <Table.Body>
           {records.map((r) => (
             <Table.Row key={`${r.id}-${r.updatedAt.toISOString()}`}>
-              <Table.Cell>{formatDateKey(r.date)}</Table.Cell>
+              <Table.Cell>
+                <time dateTime={formatDateKey(r.date)}>
+                  {dateFormatter.format(r.date)}
+                </time>
+              </Table.Cell>
               <Table.Cell>{r.weight ?? "—"}</Table.Cell>
               <Table.Cell>{r.waist ?? "—"}</Table.Cell>
               <Table.Cell>

@@ -9,6 +9,7 @@ import { dictionary, translations } from "../src/lib/translations";
 test("saved language overrides browser preferences", () => {
   assert.equal(resolveLocale("en", "zh-TW"), "en");
   assert.equal(resolveLocale("zh-TW", "en-US"), "zh-TW");
+  assert.equal(resolveLocale("zh-TW", "zh-CN"), "zh-TW");
   assert.equal(isSupportedLocale("fr"), false);
   assert.equal(isSupportedLocale(null), false);
 });
@@ -16,6 +17,17 @@ test("saved language overrides browser preferences", () => {
 test("browser language matching respects quality and falls back to English", () => {
   for (const [header, expected] of [
     ["zh-Hant-TW,en;q=0.8", "zh-TW"],
+    ["zh-Hant", "zh-TW"],
+    ["ZH-tw", "zh-TW"],
+    ["zh-MO", "zh-TW"],
+    ["zh-CN", "en"],
+    ["zh-SG", "en"],
+    ["zh-Hans", "en"],
+    ["zh-Hans-TW", "en"],
+    ["zh", "en"],
+    ["zh-CN,zh-Hant;q=0.8", "zh-TW"],
+    ["zh-Hans,en-US;q=0.9,zh-TW;q=0.8", "en"],
+    ["zh-Hans,zh-HK;q=0.9,en;q=0.8", "zh-TW"],
     ["fr,zh-HK;q=0.9,en;q=0.8", "zh-TW"],
     ["zh-TW;q=0.2,en-US;q=0.9", "en"],
     ["zh-TW;q=0,en;q=0.1", "en"],

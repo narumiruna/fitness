@@ -81,6 +81,57 @@ test("language detection, switching, persistence, and authenticated routes", asy
         page.getByRole("heading", { name: heading, exact: true, level: 1 }),
       ).toBeVisible();
     }
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { username: "i18n-admin" },
+    });
+    const measurementDate = new Date(2026, 9, 12);
+    await prisma.bodyMeasurement.create({
+      data: { userId: user.id, date: measurementDate, weight: 72.5, waist: 80 },
+    });
+    await page.goto("/measurements");
+    for (const locale of ["zh-TW", "en", "zh-TW"] as const) {
+      if (locale !== (await page.locator("html").getAttribute("lang"))) {
+        await page
+          .getByRole("combobox", {
+            name: locale === "en" ? "語言" : "Language",
+          })
+          .click();
+        await page
+          .getByRole("option", {
+            name: locale === "en" ? "English" : "正體中文",
+            exact: true,
+          })
+          .click();
+      }
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      const expectedDate = new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(measurementDate);
+      await expect(page.locator("tbody time")).toHaveText(expectedDate);
+      await expect(page.locator("tbody time")).toHaveAttribute(
+        "datetime",
+        "2026-10-12",
+      );
+      for (const chart of await page.locator(".training-chart").all()) {
+        await expect(chart.locator(".chart-data-row dt")).toHaveText(
+          expectedDate,
+        );
+        await expect(chart.locator("g[role=button]")).toHaveAttribute(
+          "aria-label",
+          new RegExp(`^${expectedDate}:`),
+        );
+      }
+      await expect(
+        page.locator('input[type="hidden"][name="date"]'),
+      ).toHaveValue("2026-10-12");
+    }
+    const stored = await prisma.bodyMeasurement.findUniqueOrThrow({
+      where: { userId_date: { userId: user.id, date: measurementDate } },
+    });
+    expect(stored.date.getTime()).toBe(measurementDate.getTime());
+    expect(stored.weight).toBe(72.5);
     await page.goto("/calendar?year=2026&month=10&day=2026-10-12");
     await expect(
       page.getByRole("heading", { name: "2026年10月", exact: true }),
@@ -125,6 +176,28 @@ test("language detection, switching, persistence, and authenticated routes", asy
     ).toBeVisible();
   } finally {
     await context.close();
+  }
+});
+
+test("unsupported Chinese preferences fall back without preventing an explicit choice", async ({
+  browser,
+}) => {
+  for (const language of ["zh-CN", "zh-Hans", "zh-Hans-TW"]) {
+    const context = await browser.newContext({
+      extraHTTPHeaders: { "Accept-Language": `${language},en;q=0.8` },
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto("/login");
+      await expect(page.locator("html")).toHaveAttribute("lang", "en");
+      await page.getByRole("combobox", { name: "Language" }).click();
+      await page.getByRole("option", { name: "正體中文" }).click();
+      await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
+    } finally {
+      await context.close();
+    }
   }
 });
 

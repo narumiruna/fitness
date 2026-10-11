@@ -9,7 +9,9 @@ Use the language selector in the header to switch between English and Traditiona
 Chinese. It is available before and after sign-in. The selected language is saved
 in a cookie for one year and takes priority over the browser language. Without a
 valid saved choice, the app uses the browser's supported language preference,
-then falls back to English. Dates, numbers, and document language use the same
+then falls back to English. Traditional Chinese tags (`zh-TW`, `zh-Hant`,
+`zh-HK`, and `zh-MO`) match `zh-TW`; Simplified Chinese tags and an unspecified
+`zh` preference do not. Dates, numbers, and document language use the same
 locale. Language changes do not translate user-entered data or change stored
 workout dates, values, or exercise names.
 

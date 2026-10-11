@@ -32,7 +32,7 @@ export function resolveLocale(
     .sort((a, b) => b.quality - a.quality);
   for (const { language } of preferences) {
     const base = language.split("-")[0];
-    if (base === "zh") return "zh-TW";
+    if (/^zh-(?:hant|tw|hk|mo)(?:-|$)/.test(language)) return "zh-TW";
     if (base === "en") return "en";
   }
   return defaultLocale;
