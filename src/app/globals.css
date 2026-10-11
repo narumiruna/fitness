@@ -751,7 +751,11 @@ body {
   display: inline-flex;
   text-decoration: none;
 }
-.shell .rt-Button.rt-variant-solid {
+.shell
+  .rt-Button.rt-variant-solid:where(
+    :not([data-accent-color]),
+    [data-accent-color=""]
+  ) {
   background: var(--dashboard-accent);
   color: white;
 }
@@ -1237,6 +1241,14 @@ body {
   padding: 10px 14px;
   gap: 16px;
 }
+.exercise-row .alias-list {
+  min-width: 0;
+}
+.exercise-row .alias-list .rt-Badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .exercise-actions {
   gap: 10px;
 }
@@ -1387,7 +1399,20 @@ body {
     grid-row: 1 / 4;
   }
   .exercises-page > [role="alert"] {
-    grid-column: 1 / -1;
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .exercises-page:has(> [role="alert"]) {
+    grid-template-rows: auto auto auto 1fr;
+  }
+  .exercises-page:has(> [role="alert"]) > .stats-card-grid {
+    grid-row: 3;
+  }
+  .exercises-page:has(> [role="alert"]) .dashboard-columns > .rt-Card {
+    grid-row: 4;
+  }
+  .exercises-page:has(> [role="alert"]) .exercise-sidebar {
+    grid-row: 1 / 5;
   }
   .exercises-page .stats-card {
     padding: 16px 14px;

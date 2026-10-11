@@ -309,6 +309,8 @@ export const traditionalChineseMessages = {
   estimatedOneRepMax: "估計單次最大重量（1RM）",
   month: "月份",
   monthWorkouts: "本月",
+  workoutsThisMonthOne: "本月 {count} 次訓練",
+  workoutsThisMonthOther: "本月 {count} 次訓練",
   noMonthWorkouts: "本月尚無訓練。",
   latestWorkout: "最近一次訓練",
   noLatestWorkout: "無",

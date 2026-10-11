@@ -84,7 +84,14 @@ export async function WorkoutCalendar({ userId }: { userId: string }) {
           ))}
         </div>
         <Text size="2" color="teal">
-          {workouts.length} {t("monthWorkouts")}
+          {t(
+            workouts.length === 1
+              ? "workoutsThisMonthOne"
+              : "workoutsThisMonthOther",
+          ).replace(
+            "{count}",
+            new Intl.NumberFormat(locale).format(workouts.length),
+          )}
         </Text>
       </section>
     </Card>

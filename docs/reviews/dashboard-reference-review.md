@@ -47,3 +47,18 @@ Each final filename is `<route>-<width>.png` or `<route>-<width>-viewport.png`. 
 - Port 8784 has no listening development server after testing.
 
 No production services or databases were changed.
+
+## Review follow-up
+
+All three review findings on PR #14 were independently reproduced and classified as in-scope P2 regressions:
+
+| Item | Evidence before the fix | Implemented outcome |
+| --- | --- | --- |
+| `4243051148`: explicit button accents | The actual passkey delete button rendered teal instead of Radix's red high-contrast color. | Default/empty-accent solid buttons remain teal; explicit accent colors retain Radix styling. |
+| `4243051152`: monthly count translation | The sidebar rendered `0 This month`. | Whole-message count templates handle zero, one, and multiple workouts in English and Traditional Chinese, with locale-formatted numbers. |
+| `4243051156`: visible exercise errors | A duplicate-exercise alert ended at y=3773, below a library heading at y=358. | Error states reserve the row immediately after the header; metrics and library move down without overlapping the sidebar. |
+| Additional finding: long aliases | The narrower exercise alias column allowed a long badge to overlap action buttons. | Alias badges wrap within their column; a bounds assertion protects the actions. |
+
+`tests/dashboard-review.spec.ts` covers computed button colors, six count/language combinations, actual duplicate exercise and alias submissions, error placement at 1440/1024/768/390 pixels, and alias/action separation. Review screenshots are saved in the corresponding `test-results/dashboard-review-*` directories. The submitted review wrapper and automated summary contain no additional requests. No items require deferral, clarification, or external action.
+
+Follow-up validation: `npm run check`, `npm run build`, `npm run test:i18n` (4 tests), `prek run -a`, and `npm run test:ui` (22 tests) passed. The browser runner uses disposable SQLite and leaves port 8784 free.

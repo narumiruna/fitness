@@ -317,6 +317,8 @@ export const englishMessages = {
   estimatedOneRepMax: "Estimated 1RM",
   month: "Month",
   monthWorkouts: "This month",
+  workoutsThisMonthOne: "{count} workout this month",
+  workoutsThisMonthOther: "{count} workouts this month",
   noMonthWorkouts: "No workouts this month.",
   latestWorkout: "Latest workout",
   noLatestWorkout: "None",
