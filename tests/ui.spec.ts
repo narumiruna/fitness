@@ -196,6 +196,7 @@ test("setup, login failures, password validation, and session replacement", asyn
   expect(newSession?.value).not.toBe(oldSession?.value);
   expect(await prisma.session.count()).toBe(1);
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
   await page.goto("/workouts");
   await expect(page).toHaveURL(/\/login$/);
   await login(page);
@@ -786,7 +787,7 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   await page
     .context()
     .addCookies([
-      { name: "locale", value: "zh-TW", url: "http://localhost:8783" },
+      { name: "locale", value: "zh-TW", url: "http://localhost:8784" },
     ]);
   await page.reload();
   const benchRow = page

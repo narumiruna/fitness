@@ -36,6 +36,13 @@ Run commands from the repository root.
 - Prisma 7 uses a generated client output under `src/generated/prisma/`; import the client through `src/lib/prisma.ts`.
 - If auth or seed behavior changes, keep `prisma/seed.ts` aligned with the documented development credentials unless the user changes that contract.
 
+## Environment Boundaries
+
+- [UNREVIEWED] Use `npm run dev` for local checks on port `8784` with SQLite at `.cache/dev.db`; this development setup supersedes the earlier port `8783` references in this file.
+- [UNREVIEWED] Treat `compose.yaml`, the `fitness` Compose project, and `.github/workflows/deploy.yml` as production PostgreSQL; do not stop, rebuild, recreate, reset, or deploy those services without explicit production authorization.
+- [UNREVIEWED] Keep `prisma/schema.prisma` as the canonical production schema; do not edit generated SQLite schemas or clients under `prisma/.dev/` or `src/generated/prisma-sqlite/`.
+- [UNREVIEWED] Use disposable SQLite files for development browser tests and separate PostgreSQL test containers for production-mode tests; never free a test port by stopping production.
+
 ## Verification
 
 - For most code changes, run `npm run check`.

@@ -43,13 +43,17 @@ process.exit(result.status ?? 1);
 `,
       { mode: 0o755 },
     );
-    const child = spawn(process.execPath, ["tests/run-ui.mjs"], {
-      env: {
-        ...process.env,
-        PATH: `${directory}${delimiter}${process.env.PATH}`,
+    const child = spawn(
+      process.execPath,
+      ["tests/run-ui.mjs", "--production"],
+      {
+        env: {
+          ...process.env,
+          PATH: `${directory}${delimiter}${process.env.PATH}`,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
       },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    );
     let output = "";
     child.stdout.on("data", (chunk) => {
       output += chunk;
