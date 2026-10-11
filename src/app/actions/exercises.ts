@@ -7,7 +7,11 @@ import { requireUser } from "@/lib/auth";
 import { normalizeExerciseAlias, slugifyExerciseName } from "@/lib/exercises";
 import { loggedAction } from "@/lib/logged-action";
 import { prisma } from "@/lib/prisma";
-import { createAliasSchema, createExerciseSchema } from "@/lib/validation";
+import {
+  createAliasSchema,
+  createExerciseSchema,
+  updateExerciseSchema,
+} from "@/lib/validation";
 
 export async function createExerciseAction(formData: FormData) {
   return loggedAction("createExerciseAction", async () => {
@@ -50,6 +54,81 @@ export async function createExerciseAction(formData: FormData) {
 
     revalidatePath("/exercises");
     redirect(`/exercises?created=${exercise.id}`);
+  });
+}
+
+export async function updateExerciseAction(formData: FormData) {
+  return loggedAction("updateExerciseAction", async () => {
+    const user = await requireUser();
+    const input = updateExerciseSchema.parse({
+      exerciseId: formData.get("exerciseId"),
+      defaultName: formData.get("defaultName"),
+    });
+    const path = `/exercises/${encodeURIComponent(input.exerciseId)}`;
+    const normalizedAlias = normalizeExerciseAlias(input.defaultName);
+
+    await prisma
+      .$transaction(async (tx) => {
+        const exercise = await tx.exercise.findFirst({
+          where: {
+            id: input.exerciseId,
+            ...(user.role === "ADMIN" ? {} : { createdByUserId: user.id }),
+          },
+        });
+        if (!exercise) throw new Error("Not permitted.");
+
+        await tx.exercise.update({
+          where: { id: exercise.id },
+          data: {
+            defaultName: input.defaultName,
+            slug: slugifyExerciseName(input.defaultName),
+          },
+        });
+        await tx.exerciseName.updateMany({
+          where: { exerciseId: exercise.id, locale: "en", isPrimary: true },
+          data: { isPrimary: false },
+        });
+        await tx.exerciseName.upsert({
+          where: {
+            exerciseId_locale_name: {
+              exerciseId: exercise.id,
+              locale: "en",
+              name: input.defaultName,
+            },
+          },
+          create: {
+            exerciseId: exercise.id,
+            locale: "en",
+            name: input.defaultName,
+            isPrimary: true,
+          },
+          update: { isPrimary: true },
+        });
+        // Keep earlier aliases so searches and imports still find this exercise.
+        const alias = await tx.exerciseAlias.findFirst({
+          where: { exerciseId: exercise.id, locale: "en", normalizedAlias },
+        });
+        if (!alias)
+          await tx.exerciseAlias.create({
+            data: {
+              exerciseId: exercise.id,
+              locale: "en",
+              alias: input.defaultName,
+              normalizedAlias,
+            },
+          });
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        )
+          redirect(`${path}?error=duplicate#edit-exercise`);
+        throw error;
+      });
+
+    revalidatePath("/", "layout");
+    redirect(`${path}?saved=1#edit-exercise`);
   });
 }
 

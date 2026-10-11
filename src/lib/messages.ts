@@ -112,6 +112,9 @@ export const englishMessages = {
 
   newWorkoutAction: "New workout",
   newExerciseAction: "New exercise",
+  editExercise: "Edit exercise",
+  exerciseEditHelp:
+    "Only the creator or an administrator can edit this shared exercise. Earlier names remain searchable. Workout records stay linked.",
   duplicateExercise:
     "This exercise name already exists. Use the existing exercise or choose another name.",
   duplicateAlias:

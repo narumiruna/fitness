@@ -286,6 +286,16 @@ export default async function ExercisesPage({
                       )}
                     </div>
                     <div className="exercise-actions">
+                      {user.role === "ADMIN" ||
+                      exercise.createdByUserId === user.id ? (
+                        <Button highContrast asChild size="1" variant="soft">
+                          <NextLink
+                            href={`/exercises/${exercise.id}#edit-exercise`}
+                          >
+                            {t("editExercise")}
+                          </NextLink>
+                        </Button>
+                      ) : null}
                       <Button highContrast asChild size="1" variant="soft">
                         <NextLink href={`/exercises/${exercise.id}`}>
                           {t("history")}
