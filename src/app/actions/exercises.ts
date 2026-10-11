@@ -77,17 +77,36 @@ export async function updateExerciseAction(formData: FormData) {
         });
         if (!exercise) throw new Error("Not permitted.");
 
-        const duplicate = await tx.exercise.findFirst({
-          where: {
-            id: { not: exercise.id },
-            OR: [
-              { defaultName: input.defaultName },
-              { names: { some: { name: input.defaultName } } },
-            ],
-          },
-          select: { id: true },
+        const otherExercises = await tx.exercise.findMany({
+          where: { id: { not: exercise.id } },
+          select: { defaultName: true, names: { select: { name: true } } },
         });
-        if (duplicate) redirect(`${path}?error=duplicate#edit-exercise`);
+        if (
+          otherExercises.some((other) =>
+            [other.defaultName, ...other.names.map((name) => name.name)].some(
+              (name) => normalizeExerciseAlias(name) === normalizedAlias,
+            ),
+          )
+        )
+          redirect(`${path}?error=duplicate#edit-exercise`);
+
+        // Imported exercises can have no name or alias records yet.
+        await tx.exerciseName.upsert({
+          where: {
+            exerciseId_locale_name: {
+              exerciseId: exercise.id,
+              locale: "en",
+              name: exercise.defaultName,
+            },
+          },
+          create: {
+            exerciseId: exercise.id,
+            locale: "en",
+            name: exercise.defaultName,
+            isPrimary: false,
+          },
+          update: {},
+        });
 
         await tx.exercise.update({
           where: { id: exercise.id },

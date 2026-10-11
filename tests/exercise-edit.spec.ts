@@ -108,11 +108,14 @@ test("exercise renaming preserves records and checks duplicates and permissions"
   await page.goto("/exercises?q=Edit%20Original");
   await expect(page.locator(".exercise-row")).toContainText("Edit Renamed");
   await page.goto(`/exercises/${exercise.id}`);
-  await form.getByLabel("Default name").fill("Edit Protected");
-  await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(form.getByRole("alert")).toContainText(
-    "This exercise name already exists.",
-  );
+  for (const name of ["Edit Protected", "edit protected", "EDIT   PROTECTED"]) {
+    await page.goto(`/exercises/${exercise.id}`);
+    await form.getByLabel("Default name").fill(name);
+    await form.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(form.getByRole("alert")).toContainText(
+      "This exercise name already exists.",
+    );
+  }
   expect(
     await prisma.exercise.findUnique({ where: { id: exercise.id } }),
   ).toMatchObject({ defaultName: "Edit Renamed", slug: "edit-original" });
@@ -125,6 +128,7 @@ test("exercise renaming preserves records and checks duplicates and permissions"
       normalizedAlias: "reserved alias",
     },
   });
+  await page.goto(`/exercises/${exercise.id}`);
   await form.getByLabel("Default name").fill("Reserved Alias");
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByRole("alert")).toContainText(
@@ -159,5 +163,17 @@ test("exercise renaming preserves records and checks duplicates and permissions"
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Admin Renamed",
+  );
+  await page.goto("/exercises?q=Edit%20Protected");
+  await expect(page.locator(".exercise-row")).toContainText("Admin Renamed");
+  expect(
+    await prisma.exerciseName.findMany({
+      where: { exerciseId: protectedExercise.id },
+    }),
+  ).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: "Edit Protected", isPrimary: false }),
+      expect.objectContaining({ name: "Admin Renamed", isPrimary: true }),
+    ]),
   );
 });
