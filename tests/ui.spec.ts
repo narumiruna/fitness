@@ -116,7 +116,7 @@ test("setup, login failures, password validation, and session replacement", asyn
     .click();
   await expect(page).toHaveURL(/\/workouts\/[^/?]+$/);
   const emptySelectForm = formWith(page, "Add set");
-  await emptySelectForm.getByLabel("Weight", { exact: true }).fill("10");
+  await emptySelectForm.getByLabel("Weight (kg)", { exact: true }).fill("10");
   await emptySelectForm.getByLabel("Reps", { exact: true }).fill("2");
   expect((await formData(emptySelectForm)).exerciseId).toBe("");
   expect(
@@ -294,24 +294,28 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   ).not.toBe("");
   await page.keyboard.press("Escape");
   await expect(exercise).toBeFocused();
-  await add.getByLabel("Weight", { exact: true }).fill("50.25");
+  await add.getByLabel("Weight (kg)", { exact: true }).fill("50.25");
   expect(
     await add
-      .getByLabel("Weight", { exact: true })
+      .getByLabel("Weight (kg)", { exact: true })
       .evaluate((el) => (el as HTMLInputElement).validity.stepMismatch),
   ).toBe(true);
-  await add.getByLabel("Weight", { exact: true }).fill("50");
+  await add.getByLabel("Weight (kg)", { exact: true }).fill("50");
   await add.getByLabel("Reps", { exact: true }).fill("5");
   await add.getByLabel("Notes", { exact: true }).fill("First set");
   await add.getByRole("button", { name: "Add set", exact: true }).click();
   await expect(page.locator(".desktop-table tbody tr")).toHaveCount(1);
-  await add.getByLabel("Weight", { exact: true }).fill("60");
+  await add.getByLabel("Weight (kg)", { exact: true }).fill("60");
   await add.getByLabel("Reps", { exact: true }).fill("3");
   await add.getByRole("button", { name: "Add set", exact: true }).click();
   await expect(page.locator(".desktop-table tbody tr")).toHaveCount(2);
   const rows = page.locator(".desktop-table tbody tr");
   const first = rows.first();
-  await choose(page, first.getByRole("combobox"), "Squat");
+  await choose(
+    page,
+    first.getByRole("combobox", { name: "Exercise", exact: true }),
+    "Squat",
+  );
   await first.locator('input[name="weight"]').fill("70");
   await first.locator('input[name="reps"]').fill("4");
   await first.locator('input[name="notes"]').fill("Desktop edit");
@@ -343,8 +347,10 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = page.locator(".mobile-list article").first();
-  await expect(mobile.getByLabel("Weight", { exact: true })).toHaveValue("70");
-  await mobile.getByLabel("Weight", { exact: true }).fill("75");
+  await expect(mobile.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
+    "70",
+  );
+  await mobile.getByLabel("Weight (kg)", { exact: true }).fill("75");
   await mobile.getByLabel("Notes", { exact: true }).fill("Mobile edit");
   await mobile.getByRole("button", { name: "Update set", exact: true }).click();
   await expect
@@ -439,6 +445,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await page.getByRole("link", { name: "Next", exact: true }).click();
   await expect(page.locator(".workout-card")).toHaveCount(3);
   await page.getByRole("link", { name: "Previous", exact: true }).click();
+  await expect(page.locator(".workout-card")).toHaveCount(20);
   const filters = formWith(page, "Apply filters");
   await expect(filters.getByRole("combobox")).toHaveText("All exercises");
   expect((await formData(filters)).exercise).toBe("");
@@ -1115,7 +1122,10 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
     "",
   );
   await expect(first.locator('input[name="reps"]')).toHaveAttribute("min", "1");
-  const trigger = first.getByRole("combobox");
+  const trigger = first.getByRole("combobox", {
+    name: "Exercise",
+    exact: true,
+  });
   await trigger.focus();
   await expect(trigger).toBeFocused();
   expect(

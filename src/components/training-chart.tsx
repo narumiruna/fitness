@@ -13,18 +13,20 @@ export function TrainingChart({
   label,
   kind,
   dataLabel,
+  target,
 }: {
   points: Point[];
   label: string;
   kind: "line" | "bar";
   dataLabel: string;
+  target?: { value: number; label: string };
 }) {
   const [active, setActive] = useState<Point>();
   const activePoint =
     active && points.find((point) => point.key === active.key);
   const maximum = points.reduce(
     (value, point) => Math.max(value, point.value),
-    1,
+    Math.max(1, target?.value ?? 0),
   );
   const max = kind === "bar" ? Math.ceil(maximum / 4) * 4 : maximum;
   const width = 600;
@@ -74,6 +76,21 @@ export function TrainingChart({
             </text>
           </g>
         ))}
+        {target ? (
+          <g>
+            <line
+              x1={left}
+              x2={width - right}
+              y1={y(target.value)}
+              y2={y(target.value)}
+              stroke="var(--red-9)"
+              strokeDasharray="5 5"
+            />
+            <text x={left} y={y(target.value) - 4} className="chart-axis">
+              {target.label}: {target.value}
+            </text>
+          </g>
+        ) : null}
         {kind === "line" && points.length ? (
           <>
             <polygon

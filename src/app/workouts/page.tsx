@@ -21,6 +21,7 @@ import { EmptyState, MetricCard, PageHeader } from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { NotesCheckbox } from "@/components/notes-checkbox";
 import { SubmitButton } from "@/components/submit-button";
+import { TemplatePlanning } from "@/components/template-planning";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey, parseDateKey } from "@/lib/calendar";
@@ -60,10 +61,11 @@ export default async function WorkoutsPage({
   const [filteredWorkoutCount, totalWorkoutCount, workoutsThisMonth, totals] =
     await Promise.all([
       prisma.workout.count({ where: workoutWhere }),
-      prisma.workout.count({ where: { userId: user.id } }),
+      prisma.workout.count({ where: { userId: user.id, state: "COMPLETED" } }),
       prisma.workout.count({
         where: {
           userId: user.id,
+          state: "COMPLETED",
           date: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),
             lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
@@ -74,7 +76,7 @@ export default async function WorkoutsPage({
         SELECT COUNT(*) AS count, COALESCE(SUM(s.weight * s.reps), 0) AS volume
         FROM "WorkoutSet" AS s
         JOIN "Workout" AS w ON w.id = s."workoutId"
-        WHERE w."userId" = ${user.id}
+        WHERE w."userId" = ${user.id} AND w.state = 'COMPLETED' AND s.completed = true
       `,
     ]);
   const totalPages = Math.max(1, Math.ceil(filteredWorkoutCount / pageSize));
@@ -83,7 +85,11 @@ export default async function WorkoutsPage({
     prisma.workout.findMany({
       where: workoutWhere,
       include: {
-        sets: { include: { exercise: true }, orderBy: { order: "asc" } },
+        sets: {
+          where: { completed: true, workout: { state: "COMPLETED" } },
+          include: { exercise: true },
+          orderBy: { order: "asc" },
+        },
       },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       skip: (currentPage - 1) * pageSize,
@@ -102,6 +108,7 @@ export default async function WorkoutsPage({
   ]);
   return (
     <section className="stack workouts-page">
+      <TemplatePlanning userId={user.id} />
       <PageHeader title={t("workouts")} description={t("workoutsIntro")}>
         <Button highContrast asChild>
           <a href="#new-workout">

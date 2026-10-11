@@ -1,8 +1,10 @@
 import { Button, Card, Grid, Heading, Table, Text } from "@radix-ui/themes";
 import NextLink from "next/link";
 import type { CSSProperties } from "react";
+import { ConsistencyReport } from "@/components/consistency-report";
 import { MetricCard, PageHeader } from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
+import { MuscleReport } from "@/components/muscle-report";
 import { TrainingChart } from "@/components/training-chart";
 import { requireUser } from "@/lib/auth";
 import type { MessageKey } from "@/lib/i18n";
@@ -16,7 +18,7 @@ import {
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; records?: string }>;
+  searchParams: Promise<{ range?: string; records?: string; year?: string }>;
 }) {
   const user = await requireUser();
   const t = await getDictionary();
@@ -73,6 +75,11 @@ export default async function StatsPage({
 
   return (
     <section className="stack stats-page">
+      <ConsistencyReport userId={user.id} year={params.year} />
+      <MuscleReport userId={user.id} />
+      <Text>
+        {t("workingVolume")}: {stats.workingVolume}
+      </Text>
       <PageHeader title={t("stats")} description={t("statsIntro")}>
         <form className="range-filter" action="/stats" key={range}>
           <FormSelect

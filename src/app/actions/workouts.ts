@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { formatDateKey, parseDateKey } from "@/lib/calendar";
 import { loggedAction } from "@/lib/logged-action";
 import { prisma } from "@/lib/prisma";
+import {
+  createRecordedSet,
+  deleteRecordedSet,
+  updateRecordedSet,
+} from "@/lib/recorded-sets";
+import { addCalendarDays } from "@/lib/training";
 import {
   createSetSchema,
   createWorkoutFromTemplateSchema,
@@ -55,10 +62,11 @@ export async function updateWorkoutAction(formData: FormData) {
         title: input.title,
         date: dateFromKey(input.date),
         notes: input.notes,
+        version: { increment: 1 },
       },
     });
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     revalidatePath(`/workouts/${input.workoutId}`);
   });
 }
@@ -74,6 +82,7 @@ export async function duplicateWorkoutAction(formData: FormData) {
       where: {
         id: input.sourceWorkoutId,
         userId: user.id,
+        state: "COMPLETED",
       },
       include: {
         sets: {
@@ -93,18 +102,21 @@ export async function duplicateWorkoutAction(formData: FormData) {
         date: dateFromKey(input.date),
         notes: sourceWorkout.notes,
         sets: {
-          create: sourceWorkout.sets.map((set) => ({
-            exerciseId: set.exerciseId,
-            order: set.order,
-            weight: set.weight,
-            reps: set.reps,
-            notes: set.notes,
-          })),
+          create: sourceWorkout.sets
+            .filter((set) => set.completed)
+            .map((set) => ({
+              exerciseId: set.exerciseId,
+              order: set.order,
+              weight: set.weight,
+              reps: set.reps,
+              notes: set.notes,
+              type: set.type,
+            })),
         },
       },
     });
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     redirect(`/workouts/${workout.id}`);
   });
 }
@@ -118,23 +130,14 @@ export async function createWorkoutSetAction(formData: FormData) {
       weight: formData.get("weight"),
       reps: formData.get("reps"),
       order: formData.get("order"),
+      type: formData.get("type") ?? undefined,
+      rir: formData.get("rir"),
       notes: optionalFormString(formData.get("notes")),
     });
 
-    await assertOwnsWorkout(workoutId, user.id);
+    await createRecordedSet(user.id, workoutId, input);
 
-    await prisma.workoutSet.create({
-      data: {
-        workoutId,
-        exerciseId: input.exerciseId,
-        weight: input.weight,
-        reps: input.reps,
-        order: input.order,
-        notes: input.notes,
-      },
-    });
-
-    revalidatePath(`/workouts/${workoutId}`);
+    revalidatePath("/", "layout");
   });
 }
 
@@ -148,29 +151,21 @@ export async function updateWorkoutSetAction(formData: FormData) {
       weight: formData.get("weight"),
       reps: formData.get("reps"),
       order: formData.get("order"),
+      type: formData.get("type") ?? undefined,
+      rir: formData.get("rir"),
       notes: optionalFormString(formData.get("notes")),
     });
 
-    await assertOwnsWorkout(input.workoutId, user.id);
-    const result = await prisma.workoutSet.updateMany({
-      where: {
-        id: input.setId,
-        workoutId: input.workoutId,
-      },
-      data: {
-        exerciseId: input.exerciseId,
-        weight: input.weight,
-        reps: input.reps,
-        order: input.order,
-        notes: input.notes,
-      },
+    const result = await updateRecordedSet(user.id, input, {
+      type: formData.has("type"),
+      rir: formData.has("rir"),
     });
 
     if (result.count === 0) {
       redirect(`/workouts/${input.workoutId}`);
     }
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     revalidatePath(`/workouts/${input.workoutId}`);
   });
 }
@@ -181,10 +176,9 @@ export async function deleteWorkoutSetAction(formData: FormData) {
     const setId = String(formData.get("setId") ?? "");
     const workoutId = String(formData.get("workoutId") ?? "");
 
-    await assertOwnsWorkout(workoutId, user.id);
-    await prisma.workoutSet.deleteMany({ where: { id: setId, workoutId } });
+    await deleteRecordedSet(user.id, workoutId, setId);
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     revalidatePath(`/workouts/${workoutId}`);
   });
 }
@@ -212,6 +206,7 @@ export async function saveWorkoutTemplateAction(formData: FormData) {
       where: {
         id: input.workoutId,
         userId: user.id,
+        state: "COMPLETED",
       },
       include: {
         sets: {
@@ -230,18 +225,21 @@ export async function saveWorkoutTemplateAction(formData: FormData) {
         title: input.title,
         notes: workout.notes,
         sets: {
-          create: workout.sets.map((set) => ({
-            exerciseId: set.exerciseId,
-            order: set.order,
-            weight: set.weight,
-            reps: set.reps,
-            notes: set.notes,
-          })),
+          create: workout.sets
+            .filter((set) => set.completed)
+            .map((set) => ({
+              exerciseId: set.exerciseId,
+              order: set.order,
+              weight: set.weight,
+              reps: set.reps,
+              notes: set.notes,
+              type: set.type,
+            })),
         },
       },
     });
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     revalidatePath(`/workouts/${input.workoutId}`);
   });
 }
@@ -282,12 +280,13 @@ export async function createWorkoutFromTemplateAction(formData: FormData) {
             weight: set.weight,
             reps: set.reps,
             notes: set.notes,
+            type: set.type,
           })),
         },
       },
     });
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
     redirect(`/workouts/${workout.id}`);
   });
 }
@@ -299,14 +298,35 @@ export async function deleteWorkoutTemplateAction(formData: FormData) {
       templateId: formData.get("templateId"),
     });
 
-    await prisma.workoutTemplate.deleteMany({
-      where: {
-        id: input.templateId,
-        userId: user.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { updatedAt: new Date() },
+      });
+      const cutoff = parseDateKey(
+        addCalendarDays(formatDateKey(new Date()), 1),
+      ) as Date;
+      await tx.templateSchedule.deleteMany({
+        where: {
+          userId: user.id,
+          templateId: input.templateId,
+          effectiveFrom: { gte: cutoff },
+        },
+      });
+      await tx.templateSchedule.updateMany({
+        where: {
+          userId: user.id,
+          templateId: input.templateId,
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: cutoff } }],
+        },
+        data: { effectiveTo: cutoff },
+      });
+      await tx.workoutTemplate.deleteMany({
+        where: { id: input.templateId, userId: user.id },
+      });
     });
 
-    revalidatePath("/workouts");
+    revalidatePath("/", "layout");
   });
 }
 
@@ -316,12 +336,13 @@ async function assertOwnsWorkout(workoutId: string, userId: string) {
       id: workoutId,
       userId,
     },
-    select: { id: true },
+    select: { id: true, state: true, version: true },
   });
 
   if (!workout) {
     redirect("/workouts");
   }
+  return workout;
 }
 
 function dateFromKey(date: string) {

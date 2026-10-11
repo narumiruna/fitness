@@ -2,6 +2,7 @@ import { Badge, Card, Grid, Heading, Link, Text } from "@radix-ui/themes";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
+import { ExerciseMetadata } from "@/components/exercise-metadata";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
@@ -30,13 +31,14 @@ export default async function ExerciseHistoryPage({
   const workouts = await prisma.workout.findMany({
     where: {
       userId: user.id,
+      state: "COMPLETED",
       sets: {
-        some: { exerciseId: id },
+        some: { exerciseId: id, completed: true },
       },
     },
     include: {
       sets: {
-        where: { exerciseId: id },
+        where: { exerciseId: id, completed: true },
         orderBy: { order: "asc" },
       },
     },
@@ -51,8 +53,9 @@ export default async function ExerciseHistoryPage({
     (total, set) => total + set.weight * set.reps,
     0,
   );
-  const maxWeight = maxBy(setEntries, (set) => set.weight);
-  const maxReps = maxBy(setEntries, (set) => set.reps);
+  const workingEntries = setEntries.filter((s) => s.type === "WORKING");
+  const maxWeight = maxBy(workingEntries, (set) => set.weight);
+  const maxReps = maxBy(workingEntries, (set) => set.reps);
   const monthlyTrend = buildMonthlyTrend(setEntries);
   const maxMonthlyVolume = Math.max(
     ...monthlyTrend.map((month) => month.volume),
@@ -61,6 +64,14 @@ export default async function ExerciseHistoryPage({
 
   return (
     <section className="stack">
+      <ExerciseMetadata
+        id={id}
+        canEdit={user.role === "ADMIN" || exercise.createdByUserId === user.id}
+      />
+      <Text>
+        {t("workingVolume")}:{" "}
+        {workingEntries.reduce((n, s) => n + s.weight * s.reps, 0)}
+      </Text>
       <div className="page-header">
         <div>
           <Heading as="h1" size="8">

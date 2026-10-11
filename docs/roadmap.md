@@ -6,13 +6,13 @@ Updated: 2026-10-11
 
 Improve strength-training entry, execution, and analysis before expanding into broader health tracking.
 
-This roadmap covers nine drafted feature plans. It defines delivery order and release conditions, not delivery dates or authorization to implement. All nine features are planned; none is marked delivered here.
+All nine features are implemented and verified for pull-request delivery. Production deployment is not included. [Delivery evidence](training-verification.md) records tests, review results, and release limits. [Training features](training-features.md) defines the supported contracts.
 
 ## Current Baseline
 
 The app supports workout and set logging, correction, duplication, templates, exercise aliases and history, a calendar, volume statistics, personal records, and estimated one-rep maximum (1RM).
 
-Local scripts convert Markdown to CSV and import CSV. They do not provide authenticated database export or safe web import. The current importer replaces the first user's workouts on matching dates and must not become the web import path.
+The delivered app also supports previous-session copying, weekly consistency, set types and RIR, active sessions, exercise metadata, progression suggestions, dated scheduling, private measurements, and authenticated workout CSV transfer. The separate local importer still replaces the first user's workouts on matching dates and is not the web import path.
 
 ## Delivery Phases
 
@@ -20,8 +20,8 @@ Local scripts convert Markdown to CSV and import CSV. They do not provide authen
 
 | Feature plan | Outcome | Dependency |
 | --- | --- | --- |
-| [Last-session values](plans/2026-10-11_last-session-values-plan.md) | Show earlier exercise values and copy them into editable set fields. | None |
-| [Weekly training consistency](plans/2026-10-11_weekly-training-consistency-plan.md) | Show weekly training days, weekly streaks, and a yearly activity heatmap. | None |
+| [Delivered: Last-session values](training-verification.md) | Show earlier exercise values and copy them into editable set fields. | None |
+| [Delivered: Weekly training consistency](training-verification.md) | Show weekly training days, weekly streaks, and a yearly activity heatmap. | None |
 
 Deliver these features first because they use existing records without a schema migration. They can be implemented independently, but both touch workout-history behavior.
 
@@ -31,8 +31,8 @@ Deliver these features first because they use existing records without a schema 
 
 | Feature plan | Outcome | Dependency |
 | --- | --- | --- |
-| [Set types and RIR](plans/2026-10-11_set-types-and-rir-plan.md) | Distinguish warm-up and working sets; record optional reps in reserve (RIR). | None |
-| [Active workout mode](plans/2026-10-11_active-workout-mode-plan.md) | Start, pause, resume, and finish training with completed sets and a rest timer. | Set types and RIR |
+| [Delivered: Set types and RIR](training-verification.md) | Distinguish warm-up and working sets; record optional reps in reserve (RIR). | None |
+| [Delivered: Active workout mode](training-verification.md) | Start, pause, resume, and finish training with completed sets and a rest timer. | Set types and RIR |
 
 Implement set classification before session state. Preserve existing records as completed working sets with unknown RIR. Separate planned targets from performed values.
 
@@ -42,9 +42,9 @@ Implement set classification before session state. Preserve existing records as 
 
 | Feature plan | Outcome | Dependency |
 | --- | --- | --- |
-| [Exercise tags and muscle reports](plans/2026-10-11_exercise-tags-and-muscle-reports-plan.md) | Filter by muscle and equipment; show weekly working sets by muscle. | Set types and RIR; integrate active-mode completion rules |
-| [Progression suggestions](plans/2026-10-11_progression-suggestions-plan.md) | Explain and suggest one weight increment after all prescribed working sets meet their targets. | Set types and RIR, active workout mode, and last-session display integration |
-| [Template scheduling](plans/2026-10-11_template-scheduling-plan.md) | Assign templates to weekdays and compare planned sessions with completed training. | Active workout mode |
+| [Delivered: Exercise tags and muscle reports](training-verification.md) | Filter by muscle and equipment; show weekly working sets by muscle. | Set types and RIR; integrate active-mode completion rules |
+| [Delivered: Progression suggestions](training-verification.md) | Explain and suggest one weight increment after all prescribed working sets meet their targets. | Set types and RIR, active workout mode, and last-session display integration |
+| [Delivered: Template scheduling](training-verification.md) | Assign templates to weekdays and compare planned sessions with completed training. | Active workout mode |
 
 Complete Phase 2 before releasing these features. Metadata discovery can start earlier. Progression and scheduling do not require muscle tags, but both need stable template lineage and session targets.
 
@@ -54,8 +54,8 @@ Complete Phase 2 before releasing these features. Metadata discovery can start e
 
 | Feature plan | Outcome | Dependency |
 | --- | --- | --- |
-| [Body measurements and goals](plans/2026-10-11_body-measurements-and-goals-plan.md) | Track daily body weight and waist measurements with trends and a target-weight line. | None; scheduled here to keep training work first |
-| [Workout import and export](plans/2026-10-11_workout-import-export-plan.md) | Export database workouts and import a versioned app CSV through preview and confirmation. | Stable set and session fields from Phase 2 |
+| [Delivered: Body measurements and goals](training-verification.md) | Track daily body weight and waist measurements with trends and a target-weight line. | None; scheduled here to keep training work first |
+| [Delivered: Workout import and export](training-verification.md) | Export database workouts and import a versioned app CSV through preview and confirmation. | Stable set and session fields from Phase 2 |
 
 Measurements can be implemented independently. Deliver the transfer UI after session fields are stable so its first format preserves targets, completion state, set type, and RIR.
 
@@ -91,18 +91,18 @@ The completion-filter recheck is part of active-mode delivery and later report i
 | Date interpretation | Verify existing date storage and use one documented calendar-date convention. Keep Sunday-start weeks; do not add time-zone preferences in this scope. |
 | Planned versus performed work | Centralize eligibility rules during Phase 2 and verify all workout readers against them. |
 | Template lineage | Establish stable template/exercise links and immutable targets before progression; scheduling adds dated occurrence links without rewriting history. |
-| Weight units | Resolve the meaning of existing weight values before progression increments or CSV interchange; do not silently reinterpret historical values. |
+| Weight units | The owner confirmed kilograms. Existing numbers are not converted. |
 | Schema overlap | Sequence migrations that change the same models. Coordinate target, completion, template-link, and export fields before implementation. |
-| Tests | The package has no test script at drafting time. Establish focused TypeScript tests and disposable SQLite integration tests in the first applicable feature. |
+| Tests | Focused TypeScript tests, disposable SQLite/PostgreSQL integration tests, and development/production browser suites pass. See delivery evidence for exact commands. |
 | Migration recovery | Test upgrades and backup restoration on disposable databases before changing existing data. Prefer forward corrections over destructive resets. |
 | Reference licenses | Adapt behavior within this stack. Check licenses before copying code, data, or media from openGym, SparkyFitness, or wger. |
 
 ## Verification and Release
 
-Each feature must pass its linked plan's completion checklist before it is marked delivered.
+All feature completion checks are recorded in the delivery evidence. Completed temporary plans are removed; this roadmap remains.
 
 - Run feature tests, `npm run check`, and `npm run build`.
-- Smoke-test UI workflows at `http://localhost:8783`, including empty states, keyboard interaction, and user isolation; stop the dev server afterward.
+- Smoke-test UI workflows at `http://localhost:8784`, including empty states, keyboard interaction, and user isolation; stop the test server afterward. Port 8783 belongs to production.
 - For migrations, verify legacy data preservation and the documented recovery procedure.
 - For commits, run `prek run -a` and stage only intended paths.
 - Record verification results and accepted limits in the handoff. Unavailable or failed checks remain open.

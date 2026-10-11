@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  passwordHash String
+  role         String     @default("USER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  exercises    Exercise[]
+  sessions     Session[]
+  templates    WorkoutTemplate[]
+  workouts     Workout[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model Exercise {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  defaultName     String
+  createdByUserId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  aliases         ExerciseAlias[]
+  createdBy       User?           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  names           ExerciseName[]
+  sets            WorkoutSet[]
+  templateSets    WorkoutTemplateSet[]
+
+  @@index([defaultName])
+}
+
+model ExerciseName {
+  id         String   @id @default(cuid())
+  exerciseId String
+  locale     String
+  name       String
+  isPrimary  Boolean  @default(false)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, locale, name])
+  @@index([locale, name])
+}
+
+model ExerciseAlias {
+  id              String   @id @default(cuid())
+  exerciseId      String
+  locale          String
+  alias           String
+  normalizedAlias String
+  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([locale, normalizedAlias])
+  @@index([exerciseId])
+}
+
+model Workout {
+  id        String       @id @default(cuid())
+  userId    String
+  date      DateTime
+  title     String?
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  sets      WorkoutSet[]
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model WorkoutSet {
+  id         String   @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  order      Int
+  weight     Float
+  reps       Int
+  notes      String?
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+  @@index([workoutId, order])
+}
+
+model WorkoutTemplate {
+  id        String               @id @default(cuid())
+  userId    String
+  title     String
+  notes     String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  sets      WorkoutTemplateSet[]
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model WorkoutTemplateSet {
+  id         String          @id @default(cuid())
+  templateId String
+  exerciseId String
+  order      Int
+  weight     Float
+  reps       Int
+  notes      String?
+  exercise   Exercise        @relation(fields: [exerciseId], references: [id])
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+  @@index([templateId, order])
+}

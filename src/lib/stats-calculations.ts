@@ -60,7 +60,10 @@ export type UserStats = {
 
 export type WorkoutForStats = {
   date: Date;
+  state?: string;
   sets: {
+    completed?: boolean;
+    type?: string;
     exerciseId: string;
     weight: number;
     reps: number;
@@ -86,6 +89,9 @@ export function calculateStats(
   range: StatsRange = "all",
   now = new Date(),
 ) {
+  workouts = workouts
+    .filter((w) => w.state === undefined || w.state === "COMPLETED")
+    .map((w) => ({ ...w, sets: w.sets.filter((s) => s.completed !== false) }));
   const start = rangeStart(range, now);
   const end = addDays(startOfDay(now), 1);
   // All time preserves every recorded date, including future-dated records.
@@ -112,8 +118,13 @@ export function calculateStats(
     ...buildRecentPeriods(workouts, now),
     monthlyTrend: buildMonthlyTrend(selected, now),
     exerciseLeaders: buildExerciseLeaders(sets),
-    personalRecords: buildPersonalRecords(sets),
-    allTimeRecords: buildPersonalRecords(allSets),
+    personalRecords: buildPersonalRecords(
+      sets.filter((s) => s.type !== "WARMUP"),
+    ),
+    allTimeRecords: buildPersonalRecords(
+      allSets.filter((s) => s.type !== "WARMUP"),
+    ),
+    workingVolume: sumVolume(sets.filter((s) => s.type !== "WARMUP")),
     daily: buildDaily(selected),
     weekly: weekly.points,
     weeklyBucketWeeks: weekly.bucketWeeks,
@@ -218,7 +229,9 @@ function buildOverview(
   sets: Array<WorkoutSetForStats & { workoutDate: Date }>,
 ): StatsOverview {
   const trainingDays = new Set(
-    workouts.map((workout) => formatDateKey(workout.date)),
+    workouts
+      .filter((w) => w.sets.length > 0)
+      .map((workout) => formatDateKey(workout.date)),
   );
   const totalVolume = sumVolume(sets);
 
