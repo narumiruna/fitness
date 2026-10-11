@@ -242,6 +242,15 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .click();
   await expect(page).toHaveURL(/\/workouts\/[^/]+$/);
   const activeId = page.url().split("/").at(-1) as string;
+  await page.goto("/workouts");
+  const activeCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(activeCard).toBeVisible();
+  await expect(
+    activeCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(`/workouts/${activeId}`);
   await expect(
     page.getByText("All prescribed working sets met their targets.", {
       exact: false,
@@ -280,6 +289,18 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .locator("form")
     .filter({ has: page.locator('input[name="weight"]') })
     .first();
+  await expect(actual.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
+    "",
+  );
+  await actual
+    .getByRole("button", { name: "Complete set", exact: true })
+    .click();
+  expect(
+    await prisma.workoutSet.count({
+      where: { workoutId: activeId, completed: true },
+    }),
+  ).toBe(0);
+  await actual.getByLabel("Reps", { exact: true }).fill("8");
   await actual.getByLabel("Weight (kg)", { exact: true }).fill("84");
   await actual
     .locator('input[name="version"]')
@@ -308,10 +329,20 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
         .then((s) => s?.weight),
     )
     .toBe(82.5);
-  await page
+  // Complete must save the current draft, not the previously saved actuals.
+  await actual.getByLabel("Weight (kg)", { exact: true }).fill("83");
+  await actual
     .getByRole("button", { name: "Complete set", exact: true })
-    .first()
     .click();
+  await expect
+    .poll(() =>
+      prisma.workoutSet
+        .findFirstOrThrow({
+          where: { workoutId: activeId, type: "WORKING" },
+        })
+        .then((s) => s.weight),
+    )
+    .toBe(83);
   await expect
     .poll(() =>
       prisma.workoutSet.count({
@@ -326,6 +357,15 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     page.getByRole("button", { name: "Resume", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Rest remaining (seconds): 0")).toBeVisible();
+  await page.goto("/workouts");
+  const pausedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(pausedCard).toBeVisible();
+  await expect(
+    pausedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(`/workouts/${activeId}`);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await page.getByRole("button", { name: "Finish", exact: true }).click();
   await expect(page.getByText("Not saved.", { exact: false })).toBeVisible();
@@ -371,7 +411,28 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
         .then((w) => w?.state),
     )
     .toBe("ABANDONED");
+  await page.goto("/calendar");
+  const abandoned = page
+    .locator(`a[href="/workouts/${scheduledId}"]`)
+    .locator("..");
+  await expect(abandoned.getByText("Abandoned", { exact: true })).toBeVisible();
+  await expect(
+    abandoned.getByRole("button", { name: "Start training", exact: true }),
+  ).toHaveCount(0);
   await page.goto("/workouts");
+  const abandonedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${scheduledId}"]`),
+  });
+  await expect(abandonedCard).toBeVisible();
+  await expect(
+    abandonedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  const completedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(
+    completedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toBeVisible();
   const removeSchedule = page.locator("form").filter({
     has: page.locator(`input[name="weekday"][value="${tomorrow.getDay()}"]`),
   });

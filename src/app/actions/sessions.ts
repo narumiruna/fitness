@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { changeSession, startSession } from "@/lib/session-service";
-import { updateSetSchema } from "@/lib/validation";
+import { sessionActualsSchema, updateSetSchema } from "@/lib/validation";
 
 export async function startSessionAction(data: FormData) {
   const user = await requireUser();
@@ -21,10 +21,22 @@ export async function startSessionAction(data: FormData) {
 }
 export async function editSessionSetAction(data: FormData) {
   const user = await requireUser();
+  const actuals = sessionActualsSchema.parse(Object.fromEntries(data));
   const input = updateSetSchema.parse(Object.fromEntries(data));
   const version = Number(data.get("version"));
   if (!Number.isSafeInteger(version) || version < 0)
     throw new Error("Invalid version.");
+  if (data.get("command") === "complete") {
+    await changeSession(user.id, {
+      workoutId: input.workoutId,
+      setId: input.setId,
+      version,
+      command: "complete",
+      actuals,
+    });
+    revalidatePath("/", "layout");
+    return;
+  }
   await prisma.$transaction(async (tx) => {
     const result = await tx.workout.updateMany({
       where: {

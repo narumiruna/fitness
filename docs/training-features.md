@@ -29,7 +29,7 @@ stateDiagram-v2
     PAUSED --> ABANDONED: Abandon
 ```
 
-Targets are snapshots. Template changes do not rewrite session targets. Actual values are saved separately. Complete a set only after saving its actual values. Finishing with skipped sets requires an explicit checkbox. Completed and abandoned sessions cannot be reopened.
+Targets are snapshots. Template changes do not rewrite session targets. Actual values can be saved without completion. Complete submits the current actual values and saves them with completion in one transaction. Completion without actual values is rejected. Finishing with skipped sets requires an explicit checkbox. Completed and abandoned sessions cannot be reopened.
 
 The server stores state, active duration, the current resume timestamp, and the rest deadline. Rest display uses a wall-clock deadline and survives reloads. Pause and terminal transitions clear the rest deadline. Version checks reject stale edits from another tab. Repeating a confirmed completion or transition is a no-op. Start tokens and user-row transaction locks prevent duplicate starts; scheduled starts also have a unique user/date constraint. Failed writes retain drafts and show an error; refresh loads the confirmed state.
 
@@ -51,7 +51,7 @@ The preview states the source date, reason, and kg increment. Acceptance is expl
 
 One template can be assigned to each Sunday-first weekday. An edit or removal starts at tomorrow's local midnight. Revisions have half-open effective intervals: `[effectiveFrom, effectiveTo)`. Repeated edits before tomorrow replace only the pending revision. Closed intervals preserve past planned occurrences.
 
-Calendar occurrences are derived, not pre-created workouts. Starting an occurrence saves its date, template link, and title snapshot. Repeated or concurrent starts return the same linked session. Manual workouts never satisfy a scheduled occurrence. A completed linked session with completed sets qualifies; active or paused work is in progress; an uncompleted past occurrence is missed. Template deletion closes future assignments and nulls links without deleting workouts or title snapshots. Already-started occurrences remain visible after schedule changes.
+Calendar occurrences are derived, not pre-created workouts. Starting an occurrence saves its date, template link, and title snapshot. Repeated or concurrent starts return the same linked session. Manual workouts never satisfy a scheduled occurrence. A completed linked session with completed sets qualifies; active or paused work is in progress; an abandoned session is labelled Abandoned; an uncompleted past occurrence is missed. New scheduled starts cannot use past dates. Retries can still return an already-started occurrence. Template deletion closes future assignments and nulls links without deleting workouts or title snapshots. Already-started occurrences remain visible after schedule changes.
 
 ## Measurements
 

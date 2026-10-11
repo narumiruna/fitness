@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
-import { parseDateKey } from "../src/lib/calendar";
+import { formatDateKey, parseDateKey } from "../src/lib/calendar";
 import {
   confirmImport,
   exportWorkouts,
@@ -284,15 +284,39 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       });
       const s = w.sets.find((s) => s.type === "WORKING");
       assert.ok(s);
-      await prisma.workoutSet.update({
-        where: { id: s.id },
-        data: { weight: 100, reps: 5, rir: 0 },
+      const missingActuals = {
+        workoutId: w.id,
+        version: w.version,
+        command: "complete",
+        setId: s.id,
+      };
+      for (const actuals of [
+        undefined,
+        { weight: "", reps: 5 },
+        { weight: null, reps: 5 },
+        { weight: 100, reps: 0 },
+        { weight: Infinity, reps: 5 },
+      ]) {
+        await assert.rejects(
+          changeSession(user.id, { ...missingActuals, actuals }),
+        );
+      }
+      const unchanged = await prisma.workout.findUniqueOrThrow({
+        where: { id: w.id },
+        include: { sets: true },
       });
+      assert.equal(unchanged.version, w.version);
+      assert.equal(unchanged.restDeadline, null);
+      assert.equal(
+        unchanged.sets.find((set) => set.id === s.id)?.completed,
+        false,
+      );
       const complete = {
         workoutId: w.id,
         version: w.version,
         command: "complete",
         setId: s.id,
+        actuals: { weight: 100, reps: 5, rir: 0 },
       };
       await assert.rejects(changeSession(other.id, complete));
       const concurrent = await Promise.allSettled([
@@ -304,6 +328,8 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       const confirmed = await prisma.workoutSet.findUniqueOrThrow({
         where: { id: s.id },
       });
+      assert.equal(confirmed.weight, 100);
+      assert.equal(confirmed.reps, 5);
       assert.equal(confirmed.completed, true);
       assert.equal(confirmed.rir, 0);
       await assert.rejects(
@@ -395,7 +421,59 @@ test("owner-scoped training services, retries, correction, scheduling and data r
   await t.test(
     "dated scheduled starts are atomic and template deletion retains snapshot history",
     async () => {
-      const d = date("2026-10-14");
+      const today = date(formatDateKey(new Date()));
+      const d = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 3,
+      );
+      const past = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() - 7,
+      );
+      await prisma.templateSchedule.create({
+        data: {
+          userId: user.id,
+          templateId: template.id,
+          title: "Past routine",
+          weekday: past.getDay(),
+          effectiveFrom: past,
+        },
+      });
+      const pastInput = {
+        source: "template",
+        sourceId: template.id,
+        date: formatDateKey(past),
+        key: randomUUID(),
+        restSeconds: 30,
+        scheduled: true,
+      };
+      const before = await prisma.workout.count({ where: { userId: user.id } });
+      await assert.rejects(
+        startSession(user.id, pastInput),
+        /past scheduled occurrence/,
+      );
+      assert.equal(
+        await prisma.workout.count({ where: { userId: user.id } }),
+        before,
+      );
+      // Existing occurrences remain retrievable after their calendar date passes.
+      const existing = await prisma.workout.create({
+        data: {
+          userId: user.id,
+          date: past,
+          plannedDate: past,
+          state: "ACTIVE",
+        },
+      });
+      assert.equal((await startSession(user.id, pastInput)).id, existing.id);
+      const todayInput = {
+        ...pastInput,
+        date: formatDateKey(today),
+        key: randomUUID(),
+      };
+      assert.ok((await startSession(user.id, todayInput)).id);
       await prisma.templateSchedule.create({
         data: {
           userId: user.id,
@@ -408,7 +486,7 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       const input = {
         source: "template",
         sourceId: template.id,
-        date: "2026-10-14",
+        date: formatDateKey(d),
         key: randomUUID(),
         restSeconds: 30,
         scheduled: true,
@@ -530,6 +608,24 @@ test("owner-scoped training services, retries, correction, scheduling and data r
         { ...workout, key: "identical-two" },
       ]);
       assert.equal((await confirmImport(other.id, file, {})).imported, 2);
+      const aliasFile = serializeWorkouts([
+        {
+          ...workout,
+          sets: [{ ...workout.sets[0], exercise: "Roadmap Alias" }],
+        },
+        {
+          ...workout,
+          key: "identical-two",
+          sets: [{ ...workout.sets[0], exercise: "roadmap alias" }],
+        },
+      ]);
+      const preview = await previewImport(other.id, aliasFile);
+      assert.equal(preview.duplicates, 2);
+      assert.deepEqual(preview.unknown, []);
+      assert.deepEqual(await confirmImport(other.id, aliasFile, {}), {
+        imported: 0,
+        skipped: 2,
+      });
       const changedKeys = file
         .replace("identical-one", "first-key")
         .replace("identical-two", "second-key");

@@ -20,6 +20,7 @@ import {
   goalSchema,
   measurementSchema,
   metadataSchema,
+  sessionActualsSchema,
 } from "../src/lib/validation";
 import {
   csvColumns,
@@ -229,6 +230,19 @@ test("reports exclude all unfinished work, retain total volume and restrict work
     calculateStats([{ date: new Date(), sets: [] }]).overview.trainingDays,
     0,
   );
+});
+test("session actuals require explicit values and allow zero-weight single reps", () => {
+  assert.deepEqual(sessionActualsSchema.parse({ weight: "0", reps: "1" }), {
+    weight: 0,
+    reps: 1,
+    rir: null,
+  });
+  for (const weight of ["", " ", null, undefined, Infinity, -1, 2001]) {
+    assert.equal(
+      sessionActualsSchema.safeParse({ weight, reps: 1 }).success,
+      false,
+    );
+  }
 });
 test("session transition table rejects reopening and invalid transitions", () => {
   assert.equal(transition("ACTIVE", "pause"), "PAUSED");
