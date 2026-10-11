@@ -1,4 +1,13 @@
-import Link from "next/link";
+import {
+  Badge,
+  Button,
+  Card,
+  Heading,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
+import NextLink from "next/link";
+import { Collapsible } from "radix-ui";
 import {
   createExerciseAction,
   createExerciseAliasAction,
@@ -72,8 +81,12 @@ export default async function ExercisesPage({
     <section className="stack exercises-page">
       <div className="page-header">
         <div>
-          <h1>{t("exercises")}</h1>
-          <p>{t("exercisePageIntro")}</p>
+          <Heading as="h1" size="8">
+            {t("exercises")}
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            {t("exercisePageIntro")}
+          </Text>
         </div>
       </div>
 
@@ -97,161 +110,220 @@ export default async function ExercisesPage({
       </section>
 
       <div className="exercise-toolbar">
-        <div className="panel stack">
-          <div className="section-heading">
-            <h2>{t("searchExercises")}</h2>
-          </div>
-          <form className="form-grid" action="/exercises">
-            <label>
-              {t("search")}
-              <input
-                defaultValue={query}
-                name="q"
-                placeholder="deadlift or 硬舉"
-              />
-            </label>
-            <div className="toolbar-actions">
-              <button className="button" type="submit">
-                {t("search")}
-              </button>
-              {query ? (
-                <Link className="button secondary" href="/exercises">
-                  {t("clearSearch")}
-                </Link>
-              ) : null}
+        <Card asChild>
+          <div className="stack">
+            <div className="section-heading">
+              <Heading as="h2" size="5">
+                {t("searchExercises")}
+              </Heading>
             </div>
-          </form>
-        </div>
-
-        <form className="panel form-grid" action={createExerciseAction}>
-          <div className="section-heading">
-            <h2>{t("createExercise")}</h2>
+            <form className="form-grid" action="/exercises">
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("search")}
+                <TextField.Root
+                  defaultValue={query}
+                  name="q"
+                  placeholder={t("exerciseSearchPlaceholder")}
+                />
+              </Text>
+              <div className="toolbar-actions">
+                <Button highContrast type="submit">
+                  {t("search")}
+                </Button>
+                {query ? (
+                  <Button highContrast asChild variant="soft">
+                    <NextLink href="/exercises">{t("clearSearch")}</NextLink>
+                  </Button>
+                ) : null}
+              </div>
+            </form>
           </div>
-          <label>
-            {t("defaultName")}
-            <input name="defaultName" placeholder="Overhead Press" required />
-          </label>
-          <button className="button" type="submit">
-            {t("createExercise")}
-          </button>
-        </form>
+        </Card>
+
+        <Card asChild>
+          <form action={createExerciseAction} className="form-grid">
+            <div className="section-heading">
+              <Heading as="h2" size="5">
+                {t("createExercise")}
+              </Heading>
+            </div>
+            <Text as="label" size="2" weight="medium" className="field-label">
+              {t("defaultName")}
+              <TextField.Root
+                name="defaultName"
+                placeholder={t("exerciseNamePlaceholder")}
+                required
+              />
+            </Text>
+            <Button highContrast type="submit">
+              {t("createExercise")}
+            </Button>
+          </form>
+        </Card>
       </div>
 
-      <section className="panel stack">
-        <div className="section-heading">
-          <div>
-            <h2>{query ? t("exerciseResults") : t("exerciseLibrary")}</h2>
-            <p className="muted">
-              {query ? `${t("search")}: ${query}` : t("exerciseLibraryIntro")}
-            </p>
-          </div>
-          <span>{exercises.length}</span>
-        </div>
-
-        {exercises.length === 0 ? (
-          <div className="empty-state">
-            <strong>{t("noExerciseResults")}</strong>
-            <p className="muted">{t("noExerciseResultsHint")}</p>
-          </div>
-        ) : (
-          <>
-            <div className="exercise-list-header">
-              <span>{t("exercise")}</span>
-              <span>{t("aliases")}</span>
-              <span>{t("actions")}</span>
+      <Card asChild>
+        <section className="stack">
+          <div className="section-heading">
+            <div>
+              <Heading as="h2" size="5">
+                {query ? t("exerciseResults") : t("exerciseLibrary")}
+              </Heading>
+              <Text as="p" size="2" color="gray">
+                {query ? `${t("search")}: ${query}` : t("exerciseLibraryIntro")}
+              </Text>
             </div>
-            <div className="exercise-list">
-              {exercises.map((exercise) => (
-                <article
-                  className={[
-                    "exercise-row",
-                    exercise.id === createdExerciseId ? "highlight" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  key={exercise.id}
-                >
-                  <div className="exercise-row-main">
-                    <div className="exercise-title-row">
-                      <div>
-                        <h3>{exercise.defaultName}</h3>
-                        <div className="meta-row">
-                          <span className="meta-pill">
-                            {exercise._count.sets}{" "}
-                            {exercise._count.sets === 1 ? t("set") : t("sets")}
-                          </span>
-                          <span className="meta-pill">
-                            {exercise._count.aliases} {t("aliases")}
-                          </span>
+            <Badge color="gray">{exercises.length}</Badge>
+          </div>
+
+          {exercises.length === 0 ? (
+            <Card asChild>
+              <div className="empty-state">
+                <Text weight="bold">{t("noExerciseResults")}</Text>
+                <Text as="p" size="2" color="gray">
+                  {t("noExerciseResultsHint")}
+                </Text>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <div className="exercise-list-header">
+                <span>{t("exercise")}</span>
+                <span>{t("aliases")}</span>
+                <span>{t("actions")}</span>
+              </div>
+              <div className="exercise-list">
+                {exercises.map((exercise) => (
+                  <article
+                    className={[
+                      "exercise-row",
+                      exercise.id === createdExerciseId ? "highlight" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    key={exercise.id}
+                  >
+                    <div className="exercise-row-main">
+                      <div className="exercise-title-row">
+                        <div>
+                          <Heading as="h3" size="4">
+                            {exercise.defaultName}
+                          </Heading>
+                          <div className="meta-row">
+                            <Badge color="gray" variant="soft">
+                              {exercise._count.sets}{" "}
+                              {exercise._count.sets === 1
+                                ? t("set")
+                                : t("sets")}
+                            </Badge>
+                            <Badge color="gray" variant="soft">
+                              {exercise._count.aliases} {t("aliases")}
+                            </Badge>
+                          </div>
                         </div>
+                        {exercise.id === createdExerciseId ? (
+                          <Badge color="gray" variant="soft">
+                            {t("newExercise")}
+                          </Badge>
+                        ) : null}
                       </div>
-                      {exercise.id === createdExerciseId ? (
-                        <span className="meta-pill">{t("newExercise")}</span>
-                      ) : null}
                     </div>
-                  </div>
 
-                  {exercise.aliases.length > 0 ? (
-                    <div className="alias-list">
-                      {exercise.aliases.map((alias) => (
-                        <span className="alias-chip" key={alias.id}>
-                          {alias.alias}
-                          <small>{alias.locale}</small>
-                        </span>
-                      ))}
+                    {exercise.aliases.length > 0 ? (
+                      <div className="alias-list">
+                        {exercise.aliases.map((alias) => (
+                          <Badge color="gray" variant="soft" key={alias.id}>
+                            {alias.alias}
+                            <Text size="1" color="gray">
+                              {alias.locale}
+                            </Text>
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <Text as="p" size="2" color="gray">
+                        {t("noAliases")}
+                      </Text>
+                    )}
+
+                    <div className="exercise-actions">
+                      <Button highContrast asChild variant="soft">
+                        <NextLink href={`/exercises/${exercise.id}`}>
+                          {t("history")}
+                        </NextLink>
+                      </Button>
+                      <Collapsible.Root className="inline-disclosure">
+                        <Collapsible.Trigger asChild>
+                          <Button highContrast variant="ghost" type="button">
+                            {t("addAlias")}
+                          </Button>
+                        </Collapsible.Trigger>
+                        <Collapsible.Content>
+                          <form
+                            className="form-grid two compact-form"
+                            action={createExerciseAliasAction}
+                          >
+                            <input
+                              name="exerciseId"
+                              type="hidden"
+                              value={exercise.id}
+                            />
+                            <Text
+                              as="label"
+                              size="2"
+                              weight="medium"
+                              className="field-label"
+                            >
+                              {t("locale")}
+                              <TextField.Root
+                                defaultValue="zh-TW"
+                                name="locale"
+                                required
+                              />
+                            </Text>
+                            <Text
+                              as="label"
+                              size="2"
+                              weight="medium"
+                              className="field-label"
+                            >
+                              {t("alias")}
+                              <TextField.Root
+                                name="alias"
+                                placeholder={t("aliasPlaceholder")}
+                                required
+                              />
+                            </Text>
+                            <Button highContrast variant="soft" type="submit">
+                              {t("addAlias")}
+                            </Button>
+                          </form>
+                        </Collapsible.Content>
+                      </Collapsible.Root>
                     </div>
-                  ) : (
-                    <p className="muted">{t("noAliases")}</p>
-                  )}
-
-                  <div className="exercise-actions">
-                    <Link
-                      className="button secondary"
-                      href={`/exercises/${exercise.id}`}
-                    >
-                      {t("history")}
-                    </Link>
-                    <details className="inline-disclosure">
-                      <summary>{t("addAlias")}</summary>
-                      <form
-                        className="form-grid two compact-form"
-                        action={createExerciseAliasAction}
-                      >
-                        <input
-                          name="exerciseId"
-                          type="hidden"
-                          value={exercise.id}
-                        />
-                        <label>
-                          {t("locale")}
-                          <input defaultValue="zh-TW" name="locale" required />
-                        </label>
-                        <label>
-                          {t("alias")}
-                          <input name="alias" placeholder="硬舉" required />
-                        </label>
-                        <button className="button secondary" type="submit">
-                          {t("addAlias")}
-                        </button>
-                      </form>
-                    </details>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      </Card>
     </section>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="item stats-card">
-      <span className="muted">{label}</span>
-      <strong>{value}</strong>
-    </article>
+    <Card asChild>
+      <article className="stats-card">
+        <Text size="2" color="gray">
+          {label}
+        </Text>
+        <Text size="7" weight="bold">
+          {value}
+        </Text>
+      </article>
+    </Card>
   );
 }
 

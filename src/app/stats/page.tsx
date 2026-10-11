@@ -1,3 +1,4 @@
+import { Card, Grid, Heading, Table, Text } from "@radix-ui/themes";
 import type { CSSProperties } from "react";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
@@ -23,12 +24,22 @@ export default async function StatsPage() {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>{t("stats")}</h1>
-          <p>{t("statsIntro")}</p>
+          <Heading as="h1" size="8">
+            {t("stats")}
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            {t("statsIntro")}
+          </Text>
         </div>
       </div>
 
-      {!hasStats ? <div className="item muted">{t("noStats")}</div> : null}
+      {!hasStats ? (
+        <Card>
+          <Text as="p" size="2" color="gray">
+            {t("noStats")}
+          </Text>
+        </Card>
+      ) : null}
 
       <section className="stats-card-grid" aria-label={t("overview")}>
         <StatCard
@@ -57,198 +68,230 @@ export default async function StatsPage() {
         />
       </section>
 
-      <div className="grid">
-        <section className="panel">
+      <Grid columns={{ initial: "1", md: "2" }} gap="4">
+        <Card asChild>
+          <section>
+            <SectionHeader
+              title={t("recentActivity")}
+              description={t("recentActivityIntro")}
+            />
+            <div className="stats-mobile-list">
+              {periodRows.map((row) => (
+                <PeriodCard
+                  current={stats.currentPeriod}
+                  currentLabel={t("current")}
+                  key={row.metric}
+                  previous={stats.previousPeriod}
+                  previousLabel={t("previousPeriod")}
+                  row={row}
+                />
+              ))}
+            </div>
+            <div className="table-scroll stats-desktop-table">
+              <Table.Root variant="surface">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeaderCell>
+                      {t("metric")}
+                    </Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>
+                      {t("current30Days")}
+                    </Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>
+                      {t("previous30Days")}
+                    </Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>
+                      {t("change")}
+                    </Table.ColumnHeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {periodRows.map((row) => (
+                    <PeriodRow
+                      current={stats.currentPeriod}
+                      key={row.metric}
+                      previous={stats.previousPeriod}
+                      row={row}
+                    />
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </div>
+          </section>
+        </Card>
+
+        <Card asChild>
+          <section className="stack">
+            <SectionHeader
+              title={t("monthlyTrend")}
+              description={t("monthlyTrendIntro")}
+            />
+            <div className="stats-bars">
+              {stats.monthlyTrend.map((month) => (
+                <div className="stats-bar-row" key={month.key}>
+                  <span className="stats-bar-label">{month.label}</span>
+                  <span className="stats-bar-track">
+                    <span
+                      className="stats-bar-fill"
+                      style={
+                        {
+                          "--bar-width": `${(month.volume / maxMonthlyVolume) * 100}%`,
+                        } as CSSProperties
+                      }
+                    />
+                  </span>
+                  <span className="stats-bar-value">
+                    {formatNumber(month.volume)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Card>
+      </Grid>
+
+      <Card asChild>
+        <section>
           <SectionHeader
-            title={t("recentActivity")}
-            description={t("recentActivityIntro")}
+            title={t("topExercises")}
+            description={t("topExercisesIntro")}
           />
           <div className="stats-mobile-list">
-            {periodRows.map((row) => (
-              <PeriodCard
-                current={stats.currentPeriod}
-                currentLabel={t("current")}
-                key={row.metric}
-                previous={stats.previousPeriod}
-                previousLabel={t("previousPeriod")}
-                row={row}
-              />
+            {stats.exerciseLeaders.map((exercise) => (
+              <Card asChild key={exercise.exerciseId}>
+                <article className="stack">
+                  <div className="stats-list-card-header">
+                    <Text weight="bold">{exercise.exerciseName}</Text>
+                    <Text>{formatNumber(exercise.volume)}</Text>
+                  </div>
+                  <div className="stats-pairs three">
+                    <MetricPair
+                      label={t("volume")}
+                      value={formatNumber(exercise.volume)}
+                    />
+                    <MetricPair
+                      label={t("setsMetric")}
+                      value={formatInteger(exercise.sets)}
+                    />
+                    <MetricPair
+                      label={t("reps")}
+                      value={formatInteger(exercise.reps)}
+                    />
+                  </div>
+                </article>
+              </Card>
             ))}
           </div>
           <div className="table-scroll stats-desktop-table">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("metric")}</th>
-                  <th>{t("current30Days")}</th>
-                  <th>{t("previous30Days")}</th>
-                  <th>{t("change")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodRows.map((row) => (
-                  <PeriodRow
-                    current={stats.currentPeriod}
-                    key={row.metric}
-                    previous={stats.previousPeriod}
-                    row={row}
-                  />
+            <Table.Root variant="surface">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeaderCell>
+                    {t("exercise")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{t("sets")}</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{t("reps")}</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{t("volume")}</Table.ColumnHeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {stats.exerciseLeaders.map((exercise) => (
+                  <Table.Row key={exercise.exerciseId}>
+                    <Table.Cell>{exercise.exerciseName}</Table.Cell>
+                    <Table.Cell>{formatInteger(exercise.sets)}</Table.Cell>
+                    <Table.Cell>{formatInteger(exercise.reps)}</Table.Cell>
+                    <Table.Cell>{formatNumber(exercise.volume)}</Table.Cell>
+                  </Table.Row>
                 ))}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table.Root>
           </div>
         </section>
+      </Card>
 
-        <section className="panel stack">
+      <Card asChild>
+        <section>
           <SectionHeader
-            title={t("monthlyTrend")}
-            description={t("monthlyTrendIntro")}
+            title={t("personalRecords")}
+            description={t("personalRecordsIntro")}
           />
-          <div className="stats-bars">
-            {stats.monthlyTrend.map((month) => (
-              <div className="stats-bar-row" key={month.key}>
-                <span className="stats-bar-label">{month.label}</span>
-                <span className="stats-bar-track">
-                  <span
-                    className="stats-bar-fill"
-                    style={
-                      {
-                        "--bar-width": `${(month.volume / maxMonthlyVolume) * 100}%`,
-                      } as CSSProperties
-                    }
-                  />
-                </span>
-                <span className="stats-bar-value">
-                  {formatNumber(month.volume)}
-                </span>
-              </div>
+          <div className="stats-mobile-list">
+            {stats.personalRecords.map((record) => (
+              <Card asChild key={record.exerciseId}>
+                <article className="stack">
+                  <div className="stats-list-card-header">
+                    <Text weight="bold">{record.exerciseName}</Text>
+                  </div>
+                  <div className="stats-pairs two">
+                    <MetricPair
+                      label={t("maxWeight")}
+                      value={formatNumber(record.maxWeight.value)}
+                      detail={formatSetDetail(record.maxWeight)}
+                    />
+                    <MetricPair
+                      label={t("maxReps")}
+                      value={formatInteger(record.maxReps.value)}
+                      detail={formatSetDetail(record.maxReps)}
+                    />
+                    <MetricPair
+                      label={t("bestVolumeSet")}
+                      value={formatNumber(record.maxVolume.value)}
+                      detail={formatSetDetail(record.maxVolume)}
+                    />
+                    <MetricPair
+                      label={t("estimatedOneRepMax")}
+                      value={formatNumber(record.estimatedOneRepMax.value)}
+                      detail={formatSetDetail(record.estimatedOneRepMax)}
+                    />
+                  </div>
+                </article>
+              </Card>
             ))}
           </div>
+          <div className="table-scroll stats-desktop-table">
+            <Table.Root variant="surface">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeaderCell>
+                    {t("exercise")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>
+                    {t("maxWeight")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>
+                    {t("maxReps")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>
+                    {t("bestVolumeSet")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>
+                    {t("estimatedOneRepMax")}
+                  </Table.ColumnHeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {stats.personalRecords.map((record) => (
+                  <Table.Row key={record.exerciseId}>
+                    <Table.Cell>{record.exerciseName}</Table.Cell>
+                    <Table.Cell>
+                      <RecordValue record={record.maxWeight} />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <RecordValue record={record.maxReps} />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <RecordValue record={record.maxVolume} />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <RecordValue record={record.estimatedOneRepMax} />
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </div>
         </section>
-      </div>
-
-      <section className="panel">
-        <SectionHeader
-          title={t("topExercises")}
-          description={t("topExercisesIntro")}
-        />
-        <div className="stats-mobile-list">
-          {stats.exerciseLeaders.map((exercise) => (
-            <article className="stats-list-card" key={exercise.exerciseId}>
-              <div className="stats-list-card-header">
-                <strong>{exercise.exerciseName}</strong>
-                <span>{formatNumber(exercise.volume)}</span>
-              </div>
-              <div className="stats-pairs three">
-                <MetricPair
-                  label={t("volume")}
-                  value={formatNumber(exercise.volume)}
-                />
-                <MetricPair
-                  label={t("setsMetric")}
-                  value={formatInteger(exercise.sets)}
-                />
-                <MetricPair
-                  label={t("reps")}
-                  value={formatInteger(exercise.reps)}
-                />
-              </div>
-            </article>
-          ))}
-        </div>
-        <div className="table-scroll stats-desktop-table">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("exercise")}</th>
-                <th>{t("sets")}</th>
-                <th>{t("reps")}</th>
-                <th>{t("volume")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.exerciseLeaders.map((exercise) => (
-                <tr key={exercise.exerciseId}>
-                  <td>{exercise.exerciseName}</td>
-                  <td>{formatInteger(exercise.sets)}</td>
-                  <td>{formatInteger(exercise.reps)}</td>
-                  <td>{formatNumber(exercise.volume)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="panel">
-        <SectionHeader
-          title={t("personalRecords")}
-          description={t("personalRecordsIntro")}
-        />
-        <div className="stats-mobile-list">
-          {stats.personalRecords.map((record) => (
-            <article className="stats-list-card" key={record.exerciseId}>
-              <div className="stats-list-card-header">
-                <strong>{record.exerciseName}</strong>
-              </div>
-              <div className="stats-pairs two">
-                <MetricPair
-                  label={t("maxWeight")}
-                  value={formatNumber(record.maxWeight.value)}
-                  detail={formatSetDetail(record.maxWeight)}
-                />
-                <MetricPair
-                  label={t("maxReps")}
-                  value={formatInteger(record.maxReps.value)}
-                  detail={formatSetDetail(record.maxReps)}
-                />
-                <MetricPair
-                  label={t("bestVolumeSet")}
-                  value={formatNumber(record.maxVolume.value)}
-                  detail={formatSetDetail(record.maxVolume)}
-                />
-                <MetricPair
-                  label={t("estimatedOneRepMax")}
-                  value={formatNumber(record.estimatedOneRepMax.value)}
-                  detail={formatSetDetail(record.estimatedOneRepMax)}
-                />
-              </div>
-            </article>
-          ))}
-        </div>
-        <div className="table-scroll stats-desktop-table">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("exercise")}</th>
-                <th>{t("maxWeight")}</th>
-                <th>{t("maxReps")}</th>
-                <th>{t("bestVolumeSet")}</th>
-                <th>{t("estimatedOneRepMax")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.personalRecords.map((record) => (
-                <tr key={record.exerciseId}>
-                  <td>{record.exerciseName}</td>
-                  <td>
-                    <RecordValue record={record.maxWeight} />
-                  </td>
-                  <td>
-                    <RecordValue record={record.maxReps} />
-                  </td>
-                  <td>
-                    <RecordValue record={record.maxVolume} />
-                  </td>
-                  <td>
-                    <RecordValue record={record.estimatedOneRepMax} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </Card>
     </section>
   );
 }
@@ -268,18 +311,28 @@ function SectionHeader({
 }) {
   return (
     <div className="stats-section-header">
-      <h2>{title}</h2>
-      <p>{description}</p>
+      <Heading as="h2" size="5">
+        {title}
+      </Heading>
+      <Text as="p" size="2" color="gray">
+        {description}
+      </Text>
     </div>
   );
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="item stats-card">
-      <span className="muted">{label}</span>
-      <strong>{value}</strong>
-    </article>
+    <Card asChild>
+      <article className="stats-card">
+        <Text size="2" color="gray">
+          {label}
+        </Text>
+        <Text size="7" weight="bold">
+          {value}
+        </Text>
+      </article>
+    </Card>
   );
 }
 
@@ -293,14 +346,14 @@ function PeriodRow({
   row: PeriodRowData;
 }) {
   return (
-    <tr>
-      <td>{row.label}</td>
-      <td>{row.formatter(current[row.metric])}</td>
-      <td>{row.formatter(previous[row.metric])}</td>
-      <td>
+    <Table.Row>
+      <Table.Cell>{row.label}</Table.Cell>
+      <Table.Cell>{row.formatter(current[row.metric])}</Table.Cell>
+      <Table.Cell>{row.formatter(previous[row.metric])}</Table.Cell>
+      <Table.Cell>
         {formatChange(current[row.metric], previous[row.metric], row.formatter)}
-      </td>
-    </tr>
+      </Table.Cell>
+    </Table.Row>
   );
 }
 
@@ -318,28 +371,30 @@ function PeriodCard({
   row: PeriodRowData;
 }) {
   return (
-    <article className="stats-list-card">
-      <div className="stats-list-card-header">
-        <strong>{row.label}</strong>
-        <span>
-          {formatChange(
-            current[row.metric],
-            previous[row.metric],
-            row.formatter,
-          )}
-        </span>
-      </div>
-      <div className="stats-pairs two">
-        <MetricPair
-          label={currentLabel}
-          value={row.formatter(current[row.metric])}
-        />
-        <MetricPair
-          label={previousLabel}
-          value={row.formatter(previous[row.metric])}
-        />
-      </div>
-    </article>
+    <Card asChild>
+      <article className="stack">
+        <div className="stats-list-card-header">
+          <Text weight="bold">{row.label}</Text>
+          <Text>
+            {formatChange(
+              current[row.metric],
+              previous[row.metric],
+              row.formatter,
+            )}
+          </Text>
+        </div>
+        <div className="stats-pairs two">
+          <MetricPair
+            label={currentLabel}
+            value={row.formatter(current[row.metric])}
+          />
+          <MetricPair
+            label={previousLabel}
+            value={row.formatter(previous[row.metric])}
+          />
+        </div>
+      </article>
+    </Card>
   );
 }
 
@@ -354,9 +409,17 @@ function MetricPair({
 }) {
   return (
     <span className="stats-pair">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {detail ? <small>{detail}</small> : null}
+      <Text size="1" color="gray">
+        {label}
+      </Text>
+      <Text size="3" weight="bold">
+        {value}
+      </Text>
+      {detail ? (
+        <Text size="1" color="gray">
+          {detail}
+        </Text>
+      ) : null}
     </span>
   );
 }
@@ -364,8 +427,10 @@ function MetricPair({
 function RecordValue({ record }: { record: SetRecord }) {
   return (
     <span className="stats-record-value">
-      <strong>{formatNumber(record.value)}</strong>
-      <small>{formatSetDetail(record)}</small>
+      <Text weight="bold">{formatNumber(record.value)}</Text>
+      <Text size="1" color="gray">
+        {formatSetDetail(record)}
+      </Text>
     </span>
   );
 }

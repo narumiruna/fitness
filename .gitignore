@@ -146,6 +146,10 @@ vite.config.ts.timestamp-*
 *.db
 *.db-journal
 
+# Browser test artifacts
+/test-results/
+/playwright-report/
+
 # Personal data
 data/
 

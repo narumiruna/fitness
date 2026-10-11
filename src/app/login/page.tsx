@@ -1,3 +1,11 @@
+import {
+  Button,
+  Callout,
+  Card,
+  Heading,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
 import { redirect } from "next/navigation";
 import { loginAction } from "@/app/actions/auth";
 import { getCurrentUser, hasUsers } from "@/lib/auth";
@@ -18,40 +26,41 @@ export default async function LoginPage({
 
   const t = await getDictionary();
   const params = await searchParams;
-  const isDevelopment = process.env.NODE_ENV === "development";
 
   return (
     <section className="narrow stack">
       <div className="page-header">
         <div>
-          <h1>{t("loginTitle")}</h1>
+          <Heading as="h1" size="8">
+            {t("loginTitle")}
+          </Heading>
         </div>
       </div>
-      <form className="panel form-grid" action={loginAction}>
-        {params.error ? <p className="error">{t("loginError")}</p> : null}
-        <label>
-          {t("username")}
-          <input
-            autoComplete="username"
-            defaultValue={isDevelopment ? "admin" : ""}
-            name="username"
-            required
-          />
-        </label>
-        <label>
-          {t("password")}
-          <input
-            autoComplete="current-password"
-            defaultValue={isDevelopment ? "admin" : ""}
-            name="password"
-            required
-            type="password"
-          />
-        </label>
-        <button className="button" type="submit">
-          {t("signIn")}
-        </button>
-      </form>
+      <Card asChild>
+        <form action={loginAction} className="form-grid">
+          {params.error ? (
+            <Callout.Root color="red" role="alert">
+              <Callout.Text>{t("loginError")}</Callout.Text>
+            </Callout.Root>
+          ) : null}
+          <Text as="label" size="2" weight="medium" className="field-label">
+            {t("username")}
+            <TextField.Root autoComplete="username" name="username" required />
+          </Text>
+          <Text as="label" size="2" weight="medium" className="field-label">
+            {t("password")}
+            <TextField.Root
+              autoComplete="current-password"
+              name="password"
+              required
+              type="password"
+            />
+          </Text>
+          <Button highContrast type="submit">
+            {t("signIn")}
+          </Button>
+        </form>
+      </Card>
     </section>
   );
 }
