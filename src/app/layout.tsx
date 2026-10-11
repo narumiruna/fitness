@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { Navigation } from "@/components/navigation";
+import { PageErrorMessagesProvider } from "@/components/page-error";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
@@ -89,7 +90,14 @@ export default async function RootLayout({
               </header>
             </Flex>
             <Box asChild className="main">
-              <main>{children}</main>
+              <main>
+                <PageErrorMessagesProvider
+                  message={t("pageError")}
+                  retry={t("tryAgain")}
+                >
+                  {children}
+                </PageErrorMessagesProvider>
+              </main>
             </Box>
           </Box>
         </Theme>

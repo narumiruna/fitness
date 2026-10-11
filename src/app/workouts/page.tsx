@@ -57,7 +57,7 @@ export default async function WorkoutsPage({
   const now = new Date();
   const today = formatDateKey(parseDateKey(firstParam(params.date)) ?? now);
   const workoutWhere = buildWorkoutWhere(user.id, filters);
-  const [filteredWorkoutCount, totalWorkoutCount, workoutsThisMonth, allSets] =
+  const [filteredWorkoutCount, totalWorkoutCount, workoutsThisMonth, totals] =
     await Promise.all([
       prisma.workout.count({ where: workoutWhere }),
       prisma.workout.count({ where: { userId: user.id } }),
@@ -70,10 +70,12 @@ export default async function WorkoutsPage({
           },
         },
       }),
-      prisma.workoutSet.findMany({
-        where: { workout: { userId: user.id } },
-        select: { weight: true, reps: true },
-      }),
+      prisma.$queryRaw<{ count: bigint | number; volume: number }[]>`
+        SELECT COUNT(*) AS count, COALESCE(SUM(s.weight * s.reps), 0) AS volume
+        FROM "WorkoutSet" AS s
+        JOIN "Workout" AS w ON w.id = s."workoutId"
+        WHERE w."userId" = ${user.id}
+      `,
     ]);
   const totalPages = Math.max(1, Math.ceil(filteredWorkoutCount / pageSize));
   const currentPage = Math.min(filters.page, totalPages);
@@ -116,11 +118,11 @@ export default async function WorkoutsPage({
           />
           <MetricCard
             label={t("totalVolume")}
-            value={formatNumber(sumVolume(allSets))}
+            value={formatNumber(totals[0].volume)}
           />
           <MetricCard
             label={t("totalSets")}
-            value={formatInteger(allSets.length)}
+            value={formatInteger(Number(totals[0].count))}
           />
           <MetricCard
             label={t("monthWorkouts")}

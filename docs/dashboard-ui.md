@@ -2,7 +2,7 @@
 
 ## Structure
 
-- Workouts: month-grouped history, filters, real totals, exercise previews, creation, and templates. Keep 20-row pagination and existing title/notes search semantics.
+- Workouts: month-grouped history, filters, real totals, exercise previews, creation, and templates. Keep 20-row pagination and existing title/notes search semantics. SQLite computes the user-scoped all-time set count and volume; filters and pagination affect history, not these summary totals.
 - Calendar: Sunday-first, 42-cell month grid, local-date selection, all selected-day workouts, selected-date creation, and month agenda. On narrow screens, show the selected date before the agenda. Small workout markers retain accessible names and detail links.
 - Stats: URL-based ranges, six supported metrics, daily volume, Sunday-start weekly counts, exercise distribution, exercise volume, and personal records. Expand detailed totals, records, and period comparisons when needed.
 - Exercises: shared library, name/localized-name/normalized-alias search, name sorting, personal recent-use sorting, aliases, creation, and personal recent-use dates. Usage counts and dates exclude other users' workouts. SQLite computes each used exercise's count and latest date; the page does not fetch individual historical sets.
@@ -13,7 +13,7 @@ Shared components live in `src/components/`: page headers and metrics in `dashbo
 
 `src/app/globals.css` defines neutral background `#f7f8f7`, white surfaces, teal accent `#0f766e`, text `#17212b`, muted text `#52637a`, and border `#e2e8e5`. Surfaces use approximately 12px corners; controls use 8px corners. Content is centered with narrow secondary panels. Primary navigation marks active and nested routes with `aria-current`.
 
-English strings remain available through `src/lib/i18n.ts`. The pure dictionary in `src/lib/messages.ts` also supplies client error boundaries without importing server-only cookie APIs. Existing locale fallback behavior is unchanged.
+English strings remain available through `src/lib/i18n.ts`. The pure dictionary in `src/lib/messages.ts` supplies `getDictionary`. The server layout resolves error text through that locale-aware function and passes only the two strings through `PageErrorMessagesProvider` to all four client error boundaries. Client code does not import server-only cookie APIs. Existing locale selection and English fallback behavior are unchanged.
 
 ## Data rules and reference adaptations
 
@@ -34,7 +34,7 @@ Run from the repository root:
 | Command | Result |
 | --- | --- |
 | `npm run check` | Biome and TypeScript pass |
-| `npm run test:dashboard` | 7 calculation/date tests pass; also checked in America/New_York and Pacific/Auckland |
+| `npm run test:dashboard` | 8 calculation/date/error-message tests pass; also checked in America/New_York and Pacific/Auckland |
 | `npm run test:db-init` | 6 database initialization tests pass |
 | `npm run test:ui` | 6 development browser tests pass |
 | `npm run test:ui:production` | Production build and 6 browser tests pass |
@@ -42,7 +42,7 @@ Run from the repository root:
 
 Browser tests use disposable SQLite records on port `8783` and stop the server afterward. They cover existing auth, account, administration, workout, set, template, alias, filtering, and pagination workflows. Additional checks cover repeated notes-checkbox form-value changes, active nested routes, selected-date creation, range scope, user isolation, keyboard chart values, delete cancellation/confirmation, pending buttons, duplicate submissions, failure recovery with Next.js `retry`, axe, reduced motion, focus, and horizontal overflow.
 
-The review regression test covers setless workout counts, an all-time span ending in year 9999, bounded chart points and data rows, and personal usage from 2,000 sets. Calculation tests also cover year 0000, preserved totals, empty periods, and daylight-saving transitions.
+The review regression test covers setless workout counts, an all-time span ending in year 9999, bounded chart points and data rows, and personal usage from 2,000 sets. Workouts summary tests cover zero sets, fractional/zero weights, user isolation, filtered/no-result history, and pagination. Error tests cover supplied translated text in all four boundaries and browser recovery with a zh-TW cookie and English fallback. Calculation tests also cover year 0000, preserved totals, empty periods, and daylight-saving transitions.
 
 The recovery test deliberately submits an alias with a missing exercise ID. Its expected `P2003` server log is not a regression; the test verifies the fallback, unchanged alias count, and successful retry.
 

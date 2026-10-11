@@ -783,6 +783,12 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   );
   expect(await prisma.exercise.count()).toBe(countBefore);
   await page.unroute("**/exercises*");
+  await page
+    .context()
+    .addCookies([
+      { name: "locale", value: "zh-TW", url: "http://localhost:8783" },
+    ]);
+  await page.reload();
   const benchRow = page
     .locator(".exercise-row")
     .filter({ hasText: "Bench Press" });
@@ -824,6 +830,7 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
       .locator("main")
       .getByRole("heading", { name: "Exercise library", exact: true }),
   ).toBeVisible();
+  await page.context().clearCookies({ name: "locale" });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await captureDashboard(page, info, "populated");
   await page.getByRole("button", { name: "Sign out" }).click();
@@ -877,6 +884,13 @@ test("bounded chart periods, setless sessions, and aggregated personal exercise 
     ],
   });
   await login(page, "review-load", "review-load-password");
+  await page.goto("/workouts");
+  await expect(
+    page.locator(".stats-card").filter({ hasText: "Total sets" }),
+  ).toContainText("0");
+  await expect(
+    page.locator(".stats-card").filter({ hasText: "Total volume" }),
+  ).toContainText("0");
   await page.goto("/stats");
   await expect(
     page.locator(".stats-card").filter({ hasText: "Total workouts" }),
@@ -956,12 +970,42 @@ test("bounded chart periods, setless sessions, and aggregated personal exercise 
           create: Array.from({ length: 1000 }, (_, i) => ({
             exerciseId,
             order: i + 1,
-            weight: 1,
-            reps: 1,
+            weight: i % 2 === 0 ? 0 : 2.5,
+            reps: 3,
           })),
         },
       },
     });
+  }
+  await prisma.workout.createMany({
+    data: Array.from({ length: 21 }, (_, i) => ({
+      userId: user.id,
+      date: yesterday,
+      title: `Pagination fixture ${i}`,
+    })),
+  });
+  for (const path of [
+    "/workouts",
+    "/workouts?page=2",
+    "/workouts?q=Setless",
+    "/workouts?q=NoMatchingTitle",
+  ]) {
+    await page.goto(path);
+    await expect(
+      page.locator(".stats-card").filter({ hasText: "Total sets" }),
+    ).toContainText("2,000");
+    await expect(
+      page.locator(".stats-card").filter({ hasText: "Total volume" }),
+    ).toContainText("7,500");
+    await expect(page.locator(".workout-card")).toHaveCount(
+      path === "/workouts"
+        ? 20
+        : path.includes("page=2")
+          ? 5
+          : path.includes("NoMatchingTitle")
+            ? 0
+            : 1,
+    );
   }
   await page.goto("/exercises?sort=recent");
   await expect(
