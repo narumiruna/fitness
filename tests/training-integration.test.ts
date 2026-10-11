@@ -28,6 +28,7 @@ test("legacy upgrade retains performed values and defaults", async () => {
   });
   assert.equal(w.state, "COMPLETED");
   assert.equal(w.sets[0].completed, true);
+  assert.equal(w.sets[0].actualsEntered, true);
   assert.equal(w.sets[0].type, "WORKING");
   assert.equal(w.sets[0].rir, null);
   assert.equal(w.sets[0].weight, 42.5);
@@ -61,6 +62,15 @@ test("legacy upgrade retains performed values and defaults", async () => {
   assert.equal(stats.overview.totalVolume, 297.5);
   assert.equal(stats.overview.trainingDays, 1);
   assert.equal(stats.allTimeRecords[0].maxWeight.value, 42.5);
+});
+test("actual-entry migration preserves saved uncompleted zero-weight single-rep values", async () => {
+  const set = await prisma.workoutSet.findUniqueOrThrow({
+    where: { id: "saved-zero-set" },
+  });
+  assert.equal(set.weight, 0);
+  assert.equal(set.reps, 1);
+  assert.equal(set.completed, false);
+  assert.equal(set.actualsEntered, true);
 });
 test("owner-scoped training services, retries, correction, scheduling and data round trip", async (t) => {
   const user = await prisma.user.create({
@@ -252,6 +262,7 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       });
       assert.equal(w.state, "ACTIVE");
       assert.equal(w.sets[0].completed, false);
+      assert.equal(w.sets[0].actualsEntered, false);
       assert.equal(w.sets[0].targetWeight, 100);
       const stats = calculateStats([w]);
       assert.equal(stats.overview.totalVolume, 0);
@@ -328,6 +339,7 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       const confirmed = await prisma.workoutSet.findUniqueOrThrow({
         where: { id: s.id },
       });
+      assert.equal(confirmed.actualsEntered, true);
       assert.equal(confirmed.weight, 100);
       assert.equal(confirmed.reps, 5);
       assert.equal(confirmed.completed, true);
@@ -571,6 +583,10 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       assert.ok(
         imported.every((w) => w.restDeadline === null && w.resumedAt === null),
       );
+      const importedSets = await prisma.workoutSet.findMany({
+        where: { workout: { userId: other.id, importBatchId: { not: null } } },
+      });
+      assert.ok(importedSets.every((s) => s.actualsEntered));
       assert.equal(
         await prisma.workout.count({ where: { userId: user.id } }),
         source.length,

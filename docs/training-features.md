@@ -29,7 +29,7 @@ stateDiagram-v2
     PAUSED --> ABANDONED: Abandon
 ```
 
-Targets are snapshots. Template changes do not rewrite session targets. Actual values can be saved without completion. Complete submits the current actual values and saves them with completion in one transaction. Completion without actual values is rejected. Finishing with skipped sets requires an explicit checkbox. Completed and abandoned sessions cannot be reopened.
+Targets are snapshots. Template changes do not rewrite session targets. Actual values can be saved without completion. New live sets have `actualsEntered: false` and blank actual-value inputs. Saving or completing sets this flag to true, so valid 0 kg × 1 values remain visible after reload. The flag is independent of completion. Complete submits the current actual values and saves them with completion in one transaction. Completion without actual values is rejected. Finishing with skipped sets requires an explicit checkbox. Completed and abandoned sessions cannot be reopened.
 
 The server stores state, active duration, the current resume timestamp, and the rest deadline. Rest display uses a wall-clock deadline and survives reloads. Pause and terminal transitions clear the rest deadline. Version checks reject stale edits from another tab. Repeating a confirmed completion or transition is a no-op. Start tokens and user-row transaction locks prevent duplicate starts; scheduled starts also have a unique user/date constraint. Failed writes retain drafts and show an error; refresh loads the confirmed state.
 
@@ -74,11 +74,11 @@ version,workout_key,date,title,workout_notes,state,active_seconds,template_title
 - Preview writes nothing and shows counts, row errors, unknown/ambiguous names, and duplicate candidates. Existing names and aliases can match. Unknown names require explicit mapping or creation; new exercises belong to the importer. No shared aliases are changed.
 - Confirmation parses and validates the submitted file again. Exercise mappings and duplicates are rechecked inside a transaction. It never deletes or overwrites existing workouts. A failed row or write rolls back the complete batch.
 - Canonical fingerprints omit export IDs and include supported workout/set content. An occurrence ordinal preserves multiple identical same-day sessions with separate keys. Fingerprints and batch digests are user-scoped. Exact retries and rekeyed duplicate files skip existing content. Accepted fingerprints remain receipts even if imported records are later corrected.
-- Imported session states and targets are retained, but no rest deadline or resume timestamp is started. Export/import does not reconnect template IDs or scheduling definitions.
+- Imported numeric actual values are explicit input and set `actualsEntered` to true. CSV version 1 does not transfer this input-entry flag. Imported session states and targets are retained, but no rest deadline or resume timestamp is started. Export/import does not reconnect template IDs or scheduling definitions.
 
 ## Migration and recovery
 
-Production uses PostgreSQL; development uses the generated SQLite schema. The canonical migration is `20261011120000_training_roadmap`. Its columns and tables are additive. PostgreSQL migration SQL must not be executed against SQLite. The test runner derives the SQLite upgrade from a tracked legacy schema fixture and applies it only to a disposable database.
+Production uses PostgreSQL; development uses the generated SQLite schema. The canonical migration is `20261011120000_training_roadmap`. Its columns and tables are additive. The additive follow-up migration `20261011161830_session_actuals_entered` adds the actual-entry flag with a true default. Existing values stay visible, including uncompleted 0 kg × 1 values; the migration does not guess whether old values were placeholders. New live starts explicitly use false. PostgreSQL migration SQL must not be executed against SQLite. The test runner derives the SQLite upgrade from a tracked legacy schema fixture and applies it only to a disposable database.
 
 Before an authorized production migration, stop application writes, make a PostgreSQL backup with `pg_dump`, and restore it into a separate disposable database. Verify record counts and legacy weights/reps before running `prisma migrate deploy` against the authorized target. SQLite backups use the database backup API, not a file copy while writes are active. The tests exercise backup restoration, empty upgrades, and upgrades containing legacy data on both providers.
 

@@ -40,6 +40,12 @@ try {
     "prisma/migrations/20261011120000_training_roadmap/migration.sql",
     "utf8",
   );
+  const actualsMigration = await readFile(
+    "prisma/migrations/20261011161830_session_actuals_entered/migration.sql",
+    "utf8",
+  );
+  const actualsFixture = `INSERT INTO "Workout" (id,"userId",date,state,"updatedAt") VALUES ('saved-zero-workout','legacy-user',${production ? "'2026-10-10 00:00:00'" : "1791590400000"},'ACTIVE',CURRENT_TIMESTAMP);
+INSERT INTO "WorkoutSet" (id,"workoutId","exerciseId","order",weight,reps,completed) VALUES ('saved-zero-set','saved-zero-workout','legacy-exercise',1,0,1,false);`;
   let databaseUrl;
   const fixture = `INSERT INTO "User" (id,username,"passwordHash","updatedAt") VALUES ('legacy-user','legacy','hash',CURRENT_TIMESTAMP); INSERT INTO "Exercise" (id,slug,"defaultName","updatedAt") VALUES ('legacy-exercise','legacy','Legacy',CURRENT_TIMESTAMP); INSERT INTO "Workout" (id,"userId",date,"updatedAt") VALUES ('legacy-workout','legacy-user',${production ? "'2026-10-10 00:00:00'" : "1791590400000"},CURRENT_TIMESTAMP); INSERT INTO "WorkoutSet" (id,"workoutId","exerciseId","order",weight,reps) VALUES ('legacy-set','legacy-workout','legacy-exercise',1,42.5,7);
 INSERT INTO "ExerciseAlias" (id,"exerciseId",locale,alias,"normalizedAlias") VALUES ('legacy-alias','legacy-exercise','en','Legacy alias','legacy alias');
@@ -62,6 +68,8 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
       "fitness",
     ]);
     await container.pool.query(migration);
+    await container.pool.query(actualsFixture);
+    await container.pool.query(actualsMigration);
     await container.pool.query("CREATE DATABASE recovery");
     const restore = new pg.Pool({
       connectionString: databaseUrl.replace(/\/fitness$/, "/recovery"),
@@ -88,6 +96,7 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
     try {
       await empty.query(initial);
       await empty.query(migration);
+      await empty.query(actualsMigration);
     } finally {
       await empty.end();
     }
@@ -106,14 +115,33 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
       oldSchema,
       "--script",
     ]);
-    const upgrade = exec(process.execPath, [
+    const currentSchema = "prisma/.dev/schema.prisma";
+    const roadmapSchema = join(directory, "roadmap.prisma");
+    await writeFile(
+      roadmapSchema,
+      (await readFile(currentSchema, "utf8")).replace(
+        /^\s+actualsEntered\s+Boolean[^\n]*\n/m,
+        "",
+      ),
+    );
+    const roadmapUpgrade = exec(process.execPath, [
       "node_modules/prisma/build/index.js",
       "migrate",
       "diff",
       "--from-schema",
       oldSchema,
       "--to-schema",
-      "prisma/.dev/schema.prisma",
+      roadmapSchema,
+      "--script",
+    ]);
+    const upgrade = exec(process.execPath, [
+      "node_modules/prisma/build/index.js",
+      "migrate",
+      "diff",
+      "--from-schema",
+      roadmapSchema,
+      "--to-schema",
+      currentSchema,
       "--script",
     ]);
     const file = join(directory, "test.db");
@@ -123,6 +151,8 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
       db.exec(sql);
       db.exec(fixture);
       await db.backup(join(directory, "backup.db"));
+      db.exec(roadmapUpgrade);
+      db.exec(actualsFixture);
       db.exec(upgrade);
       const restored = new Database(join(directory, "backup.db"));
       try {
@@ -142,6 +172,7 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
       const empty = new Database(join(directory, "empty.db"));
       try {
         empty.exec(sql);
+        empty.exec(roadmapUpgrade);
         empty.exec(upgrade);
       } finally {
         empty.close();

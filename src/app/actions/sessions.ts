@@ -57,6 +57,7 @@ export async function editSessionSetAction(data: FormData) {
         type: input.type,
       },
       data: {
+        actualsEntered: true,
         weight: input.weight,
         reps: input.reps,
         rir: input.rir,

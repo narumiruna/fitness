@@ -206,11 +206,7 @@ export async function SessionPanel({
                   min={0}
                   max={2000}
                   step="0.001"
-                  defaultValue={
-                    !s.completed && s.weight === 0 && s.reps === 1
-                      ? ""
-                      : s.weight
-                  }
+                  defaultValue={s.actualsEntered ? s.weight : ""}
                   required
                 />
               </Text>
@@ -221,9 +217,7 @@ export async function SessionPanel({
                   type="number"
                   min={1}
                   max={1000}
-                  defaultValue={
-                    !s.completed && s.weight === 0 && s.reps === 1 ? "" : s.reps
-                  }
+                  defaultValue={s.actualsEntered ? s.reps : ""}
                   required
                 />
               </Text>

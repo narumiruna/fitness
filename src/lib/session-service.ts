@@ -81,6 +81,7 @@ export async function startSession(userId: string, raw: unknown) {
             reps: 1,
             notes: s.notes,
             completed: false,
+            actualsEntered: false,
           })),
         },
       },
@@ -133,7 +134,7 @@ export async function changeSession(userId: string, raw: unknown) {
         throw new Error("Session changed. Refresh before saving.");
       await tx.workoutSet.update({
         where: { id: input.setId },
-        data: { ...input.actuals, completed: true },
+        data: { ...input.actuals, actualsEntered: true, completed: true },
       });
       return;
     }
