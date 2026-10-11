@@ -73,8 +73,23 @@ export async function previewImport(userId: string, text: string) {
       occurrenceFingerprint(w, existingCounts),
     ),
   );
+  const names = new Map(exercises.map((e) => [e.id, e.defaultName]));
   const duplicates = parsed.workouts.filter((w) =>
-    existing.has(occurrenceFingerprint(w, incomingCounts)),
+    existing.has(
+      occurrenceFingerprint(
+        {
+          ...w,
+          sets: w.sets.map((s) => ({
+            ...s,
+            exercise:
+              names.get(
+                matches.get(normalizeExerciseAlias(s.exercise)) ?? "",
+              ) ?? s.exercise,
+          })),
+        },
+        incomingCounts,
+      ),
+    ),
   ).length;
   return {
     ...parsed,

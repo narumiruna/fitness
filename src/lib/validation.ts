@@ -110,11 +110,24 @@ export const sessionStartSchema = z.object({
   restSeconds: z.coerce.number().int().min(0).max(3600),
   scheduled: z.boolean().default(false),
 });
+export const sessionActualsSchema = createSetSchema
+  .pick({
+    weight: true,
+    reps: true,
+    rir: true,
+    notes: true,
+  })
+  .extend({
+    weight: z
+      .union([z.number(), z.string().trim().min(1)])
+      .pipe(z.coerce.number<string | number>().finite().min(0).max(2000)),
+  });
 export const sessionChangeSchema = z.object({
   workoutId: z.string().min(1),
   version: z.coerce.number().int().min(0),
   command: z.enum(["pause", "resume", "finish", "abandon", "complete"]),
   setId: z.string().optional(),
+  actuals: sessionActualsSchema.optional(),
   partial: z.boolean().default(false),
 });
 export const progressionRuleSchema = z.object({

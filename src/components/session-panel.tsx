@@ -187,76 +187,69 @@ export async function SessionPanel({
             {s.completed ? t("COMPLETED") : t("planned")}
           </Text>
           {live ? (
-            <>
-              <SafeForm
-                action={editSessionSetAction}
-                error={t("saveFailed")}
-                success={t("saved")}
-              >
-                <input type="hidden" name="workoutId" value={workout.id} />
-                <input type="hidden" name="setId" value={s.id} />
-                <input type="hidden" name="version" value={workout.version} />
-                <input type="hidden" name="exerciseId" value={s.exerciseId} />
-                <input type="hidden" name="order" value={s.order} />
-                <input type="hidden" name="type" value={s.type} />
-                <Text as="label">
-                  {t("weight")}
-                  <TextField.Root
-                    name="weight"
-                    type="number"
-                    min={0}
-                    max={2000}
-                    step="0.001"
-                    defaultValue={s.weight}
-                    required
-                  />
-                </Text>
-                <Text as="label">
-                  {t("reps")}
-                  <TextField.Root
-                    name="reps"
-                    type="number"
-                    min={1}
-                    max={1000}
-                    defaultValue={s.reps}
-                    required
-                  />
-                </Text>
-                <Text as="label">
-                  {t("rir")}
-                  <TextField.Root
-                    name="rir"
-                    type="number"
-                    min={0}
-                    max={10}
-                    step="0.5"
-                    defaultValue={s.rir ?? ""}
-                  />
-                </Text>
-                <Text as="label">
-                  {t("notes")}
-                  <TextField.Root name="notes" defaultValue={s.notes ?? ""} />
-                </Text>
-                <Button highContrast type="submit">
-                  {t("save")}
-                </Button>
-              </SafeForm>
+            <SafeForm
+              action={editSessionSetAction}
+              error={t("saveFailed")}
+              success={t("saved")}
+            >
+              <input type="hidden" name="workoutId" value={workout.id} />
+              <input type="hidden" name="setId" value={s.id} />
+              <input type="hidden" name="version" value={workout.version} />
+              <input type="hidden" name="exerciseId" value={s.exerciseId} />
+              <input type="hidden" name="order" value={s.order} />
+              <input type="hidden" name="type" value={s.type} />
+              <Text as="label">
+                {t("weight")}
+                <TextField.Root
+                  name="weight"
+                  type="number"
+                  min={0}
+                  max={2000}
+                  step="0.001"
+                  defaultValue={s.actualsEntered ? s.weight : ""}
+                  required
+                />
+              </Text>
+              <Text as="label">
+                {t("reps")}
+                <TextField.Root
+                  name="reps"
+                  type="number"
+                  min={1}
+                  max={1000}
+                  defaultValue={s.actualsEntered ? s.reps : ""}
+                  required
+                />
+              </Text>
+              <Text as="label">
+                {t("rir")}
+                <TextField.Root
+                  name="rir"
+                  type="number"
+                  min={0}
+                  max={10}
+                  step="0.5"
+                  defaultValue={s.rir ?? ""}
+                />
+              </Text>
+              <Text as="label">
+                {t("notes")}
+                <TextField.Root name="notes" defaultValue={s.notes ?? ""} />
+              </Text>
+              <Button highContrast type="submit">
+                {t("save")}
+              </Button>
               {!s.completed && workout.state === "ACTIVE" ? (
-                <SafeForm
-                  action={changeSessionAction}
-                  error={t("saveFailed")}
-                  success={t("saved")}
+                <Button
+                  highContrast
+                  type="submit"
+                  name="command"
+                  value="complete"
                 >
-                  <input type="hidden" name="workoutId" value={workout.id} />
-                  <input type="hidden" name="version" value={workout.version} />
-                  <input type="hidden" name="setId" value={s.id} />
-                  <input type="hidden" name="command" value="complete" />
-                  <Button highContrast type="submit">
-                    {t("complete")}
-                  </Button>
-                </SafeForm>
+                  {t("complete")}
+                </Button>
               ) : null}
-            </>
+            </SafeForm>
           ) : null}
         </Card>
       ))}

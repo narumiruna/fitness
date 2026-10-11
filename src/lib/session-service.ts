@@ -1,4 +1,4 @@
-import { parseDateKey } from "./calendar";
+import { formatDateKey, parseDateKey } from "./calendar";
 import { prisma } from "./prisma";
 import { transition } from "./training";
 import { sessionChangeSchema, sessionStartSchema } from "./validation";
@@ -25,6 +25,8 @@ export async function startSession(userId: string, raw: unknown) {
     });
     if (existing) return existing;
     if (input.scheduled) {
+      if (input.date < formatDateKey(new Date()))
+        throw new Error("Cannot start a past scheduled occurrence.");
       const assignment = await tx.templateSchedule.findFirst({
         where: {
           userId,
@@ -79,6 +81,7 @@ export async function startSession(userId: string, raw: unknown) {
             reps: 1,
             notes: s.notes,
             completed: false,
+            actualsEntered: false,
           })),
         },
       },
@@ -116,6 +119,7 @@ export async function changeSession(userId: string, raw: unknown) {
       if (
         w.state !== "ACTIVE" ||
         !input.setId ||
+        !input.actuals ||
         !w.sets.some((s) => s.id === input.setId)
       )
         throw new Error("Cannot complete this set.");
@@ -130,7 +134,7 @@ export async function changeSession(userId: string, raw: unknown) {
         throw new Error("Session changed. Refresh before saving.");
       await tx.workoutSet.update({
         where: { id: input.setId },
-        data: { completed: true },
+        data: { ...input.actuals, actualsEntered: true, completed: true },
       });
       return;
     }

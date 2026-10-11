@@ -269,21 +269,23 @@ export default async function WorkoutsPage({
                         </span>
                       </div>
                       <div className="card-actions">
-                        <form action={duplicateWorkoutAction}>
-                          <input
-                            name="sourceWorkoutId"
-                            type="hidden"
-                            value={workout.id}
-                          />
-                          <input
-                            name="date"
-                            type="hidden"
-                            value={formatDateKey(now)}
-                          />
-                          <SubmitButton size="1" variant="soft">
-                            {t("repeatWorkout")}
-                          </SubmitButton>
-                        </form>
+                        {workout.state === "COMPLETED" ? (
+                          <form action={duplicateWorkoutAction}>
+                            <input
+                              name="sourceWorkoutId"
+                              type="hidden"
+                              value={workout.id}
+                            />
+                            <input
+                              name="date"
+                              type="hidden"
+                              value={formatDateKey(now)}
+                            />
+                            <SubmitButton size="1" variant="soft">
+                              {t("repeatWorkout")}
+                            </SubmitButton>
+                          </form>
+                        ) : null}
                         <Button highContrast asChild size="1" variant="ghost">
                           <NextLink href={`/workouts/${workout.id}`}>
                             {t("view")}

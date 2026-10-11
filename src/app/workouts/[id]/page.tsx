@@ -58,15 +58,6 @@ export default async function WorkoutPage({
     notFound();
   }
 
-  const exercises = await prisma.exercise.findMany({
-    orderBy: { defaultName: "asc" },
-  });
-  const history = await priorSessions(
-    user.id,
-    workout.id,
-    workout.date,
-    exercises.map((e) => e.id),
-  );
   const today = formatDateInput(new Date());
   const workoutDate = formatDateInput(workout.date);
   const nextOrder =
@@ -89,6 +80,16 @@ export default async function WorkoutPage({
         <SessionPanel workout={workout} userId={user.id} />
       </section>
     );
+
+  const exercises = await prisma.exercise.findMany({
+    orderBy: { defaultName: "asc" },
+  });
+  const history = await priorSessions(
+    user.id,
+    workout.id,
+    workout.date,
+    exercises.map((e) => e.id),
+  );
 
   return (
     <section className="stack">

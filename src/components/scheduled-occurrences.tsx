@@ -44,13 +44,15 @@ export async function ScheduledOccurrences({
     );
     if (!plan && !session) continue;
     const status =
-      session?.state === "COMPLETED" && session.sets.length > 0
-        ? "COMPLETED"
-        : session && ["ACTIVE", "PAUSED"].includes(session.state)
-          ? "inProgress"
-          : date < today
-            ? "missed"
-            : "planned";
+      session?.state === "ABANDONED"
+        ? "ABANDONED"
+        : session?.state === "COMPLETED" && session.sets.length > 0
+          ? "COMPLETED"
+          : session && ["ACTIVE", "PAUSED"].includes(session.state)
+            ? "inProgress"
+            : date < today
+              ? "missed"
+              : "planned";
     rows.push(
       <Card key={date} className="stack">
         <Text>

@@ -242,6 +242,15 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .click();
   await expect(page).toHaveURL(/\/workouts\/[^/]+$/);
   const activeId = page.url().split("/").at(-1) as string;
+  await page.goto("/workouts");
+  const activeCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(activeCard).toBeVisible();
+  await expect(
+    activeCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(`/workouts/${activeId}`);
   await expect(
     page.getByText("All prescribed working sets met their targets.", {
       exact: false,
@@ -280,6 +289,18 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .locator("form")
     .filter({ has: page.locator('input[name="weight"]') })
     .first();
+  await expect(actual.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
+    "",
+  );
+  await actual
+    .getByRole("button", { name: "Complete set", exact: true })
+    .click();
+  expect(
+    await prisma.workoutSet.count({
+      where: { workoutId: activeId, completed: true },
+    }),
+  ).toBe(0);
+  await actual.getByLabel("Reps", { exact: true }).fill("8");
   await actual.getByLabel("Weight (kg)", { exact: true }).fill("84");
   await actual
     .locator('input[name="version"]')
@@ -308,10 +329,20 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
         .then((s) => s?.weight),
     )
     .toBe(82.5);
-  await page
+  // Complete must save the current draft, not the previously saved actuals.
+  await actual.getByLabel("Weight (kg)", { exact: true }).fill("83");
+  await actual
     .getByRole("button", { name: "Complete set", exact: true })
-    .first()
     .click();
+  await expect
+    .poll(() =>
+      prisma.workoutSet
+        .findFirstOrThrow({
+          where: { workoutId: activeId, type: "WORKING" },
+        })
+        .then((s) => s.weight),
+    )
+    .toBe(83);
   await expect
     .poll(() =>
       prisma.workoutSet.count({
@@ -326,6 +357,15 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     page.getByRole("button", { name: "Resume", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Rest remaining (seconds): 0")).toBeVisible();
+  await page.goto("/workouts");
+  const pausedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(pausedCard).toBeVisible();
+  await expect(
+    pausedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(`/workouts/${activeId}`);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await page.getByRole("button", { name: "Finish", exact: true }).click();
   await expect(page.getByText("Not saved.", { exact: false })).toBeVisible();
@@ -371,7 +411,28 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
         .then((w) => w?.state),
     )
     .toBe("ABANDONED");
+  await page.goto("/calendar");
+  const abandoned = page
+    .locator(`a[href="/workouts/${scheduledId}"]`)
+    .locator("..");
+  await expect(abandoned.getByText("Abandoned", { exact: true })).toBeVisible();
+  await expect(
+    abandoned.getByRole("button", { name: "Start training", exact: true }),
+  ).toHaveCount(0);
   await page.goto("/workouts");
+  const abandonedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${scheduledId}"]`),
+  });
+  await expect(abandonedCard).toBeVisible();
+  await expect(
+    abandonedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toHaveCount(0);
+  const completedCard = page.locator("article.workout-card").filter({
+    has: page.locator(`a[href="/workouts/${activeId}"]`),
+  });
+  await expect(
+    completedCard.getByRole("button", { name: "Repeat", exact: true }),
+  ).toBeVisible();
   const removeSchedule = page.locator("form").filter({
     has: page.locator(`input[name="weekday"][value="${tomorrow.getDay()}"]`),
   });
@@ -667,4 +728,105 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   ).toBe(2);
   const ownExport = await context.request.get("/data/export");
   expect(await ownExport.text()).not.toContain("Roadmap entry");
+});
+
+test("saved zero-weight single-rep actuals survive revalidation, reload, and completion", async ({
+  page,
+}) => {
+  const user = await prisma.user.create({
+    data: {
+      username: `zero-actuals-${randomUUID()}`,
+      passwordHash: await bcrypt.hash("roadmap-test", 4),
+    },
+  });
+  ids.push(user.id);
+  const exercise = await prisma.exercise.create({
+    data: {
+      slug: randomUUID(),
+      defaultName: "Zero-weight movement",
+      createdByUserId: user.id,
+    },
+  });
+  exerciseIds.push(exercise.id);
+  const template = await prisma.workoutTemplate.create({
+    data: {
+      userId: user.id,
+      title: "Zero-weight routine",
+      sets: {
+        create: { exerciseId: exercise.id, order: 1, weight: 0, reps: 1 },
+      },
+    },
+  });
+  await login(page, user.username);
+  const start = page.locator("form").filter({
+    has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
+  });
+  await start
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/workouts\/[^/]+$/);
+  const workoutId = page.url().split("/").at(-1) as string;
+  const actual = page.locator("form").filter({
+    has: page.locator('input[name="weight"]'),
+  });
+  const weight = actual.getByLabel("Weight (kg)", { exact: true });
+  const reps = actual.getByLabel("Reps", { exact: true });
+  await expect(weight).toHaveValue("");
+  await expect(reps).toHaveValue("");
+  await actual.evaluate((el) => {
+    (el as HTMLFormElement).noValidate = true;
+  });
+  await actual.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(actual.getByText("Not saved.", { exact: false })).toBeVisible();
+  expect(
+    (await prisma.workoutSet.findFirstOrThrow({ where: { workoutId } }))
+      .actualsEntered,
+  ).toBe(false);
+  await weight.fill("0");
+  await reps.fill("1");
+  await actual.getByRole("button", { name: "Save", exact: true }).click();
+  await expect
+    .poll(async () => {
+      const set = await prisma.workoutSet.findFirstOrThrow({
+        where: { workoutId },
+      });
+      return {
+        weight: set.weight,
+        reps: set.reps,
+        entered: set.actualsEntered,
+        completed: set.completed,
+      };
+    })
+    .toEqual({ weight: 0, reps: 1, entered: true, completed: false });
+  await expect(weight).toHaveValue("0");
+  await expect(reps).toHaveValue("1");
+  await page.reload();
+  await expect(weight).toHaveValue("0");
+  await expect(reps).toHaveValue("1");
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toBeVisible();
+  await expect(weight).toHaveValue("0");
+  await expect(reps).toHaveValue("1");
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await actual
+    .getByRole("button", { name: "Complete set", exact: true })
+    .click();
+  await expect
+    .poll(async () => {
+      const set = await prisma.workoutSet.findFirstOrThrow({
+        where: { workoutId },
+      });
+      return {
+        weight: set.weight,
+        reps: set.reps,
+        entered: set.actualsEntered,
+        completed: set.completed,
+      };
+    })
+    .toEqual({ weight: 0, reps: 1, entered: true, completed: true });
+  await expect(
+    actual.getByRole("button", { name: "Complete set", exact: true }),
+  ).toHaveCount(0);
 });
