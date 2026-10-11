@@ -209,6 +209,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     },
   });
   await page.goto("/workouts");
+  await page.locator(".dashboard-tools > summary").click();
   const rule = page
     .locator("form")
     .filter({ has: page.locator('input[name="templateId"]') })
@@ -433,6 +434,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await expect(
     completedCard.getByRole("button", { name: "Repeat", exact: true }),
   ).toBeVisible();
+  await page.locator(".dashboard-tools > summary").click();
   const removeSchedule = page.locator("form").filter({
     has: page.locator(`input[name="weekday"][value="${tomorrow.getDay()}"]`),
   });
@@ -478,6 +480,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     page.getByRole("link", { name: "Roadmap Row", exact: true }),
   ).toHaveCount(0);
   await page.goto("/stats");
+  await page.locator(".dashboard-tools > summary").click();
   await expect(
     page.getByRole("heading", { name: "Training consistency", exact: true }),
   ).toBeVisible();
@@ -758,6 +761,7 @@ test("saved zero-weight single-rep actuals survive revalidation, reload, and com
     },
   });
   await login(page, user.username);
+  await page.locator(".dashboard-tools > summary").click();
   const start = page.locator("form").filter({
     has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
   });

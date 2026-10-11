@@ -1,13 +1,9 @@
 "use client";
 
-import {
-  BarChartIcon,
-  CalendarIcon,
-  ReaderIcon,
-  RowsIcon,
-} from "@radix-ui/react-icons";
+import { BarChartIcon, CalendarIcon, ReaderIcon } from "@radix-ui/react-icons";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
+import { StrengthIcon } from "@/components/dashboard";
 
 export function Navigation({
   labels,
@@ -18,7 +14,7 @@ export function Navigation({
 }) {
   const pathname = usePathname();
   const items = [
-    { href: "/workouts", Icon: RowsIcon },
+    { href: "/workouts", Icon: StrengthIcon },
     { href: "/calendar", Icon: CalendarIcon },
     { href: "/stats", Icon: BarChartIcon },
     { href: "/exercises", Icon: ReaderIcon },
@@ -31,6 +27,7 @@ export function Navigation({
         <NextLink
           key={href}
           href={href}
+          className={index > 3 ? "utility-nav-link" : undefined}
           aria-current={
             pathname === href || pathname.startsWith(`${href}/`)
               ? "page"

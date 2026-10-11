@@ -1,9 +1,10 @@
-import { ActivityLogIcon, ExitIcon, PersonIcon } from "@radix-ui/react-icons";
+import { ExitIcon, PersonIcon } from "@radix-ui/react-icons";
 import { Box, Button, Flex, Link, Theme } from "@radix-ui/themes";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { StrengthIcon } from "@/components/dashboard";
 import { LanguageSelect } from "@/components/language-select";
 import { Navigation } from "@/components/navigation";
 import { PageErrorMessagesProvider } from "@/components/page-error";
@@ -44,7 +45,7 @@ export default async function RootLayout({
               <header>
                 <Link highContrast asChild weight="bold" size="4">
                   <NextLink className="brand" href="/">
-                    <ActivityLogIcon aria-hidden="true" />
+                    <StrengthIcon />
                     {t("appName")}
                   </NextLink>
                 </Link>
