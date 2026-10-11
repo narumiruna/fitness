@@ -22,6 +22,7 @@ import {
   updateWorkoutAction,
   updateWorkoutSetAction,
 } from "@/app/actions/workouts";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormSelect } from "@/components/form-select";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
@@ -87,12 +88,14 @@ export default async function WorkoutPage({
               {t("repeatWorkout")}
             </Button>
           </form>
-          <form action={deleteWorkoutAction}>
-            <input name="workoutId" type="hidden" value={workout.id} />
-            <Button highContrast color="red" variant="soft" type="submit">
-              {t("delete")}
-            </Button>
-          </form>
+          <ConfirmDelete
+            action={deleteWorkoutAction}
+            fields={{ workoutId: workout.id }}
+            title={t("confirmDelete")}
+            description={t("deleteDescription")}
+            cancel={t("cancel")}
+            confirm={t("delete")}
+          />
         </div>
       </div>
 
@@ -394,22 +397,14 @@ export default async function WorkoutPage({
                             {t("updateSet")}
                           </Button>
                         </form>
-                        <form action={deleteWorkoutSetAction}>
-                          <input
-                            name="workoutId"
-                            type="hidden"
-                            value={workout.id}
-                          />
-                          <input name="setId" type="hidden" value={set.id} />
-                          <Button
-                            highContrast
-                            color="red"
-                            variant="soft"
-                            type="submit"
-                          >
-                            {t("delete")}
-                          </Button>
-                        </form>
+                        <ConfirmDelete
+                          action={deleteWorkoutSetAction}
+                          fields={{ workoutId: workout.id, setId: set.id }}
+                          title={t("confirmDelete")}
+                          description={t("deleteDescription")}
+                          cancel={t("cancel")}
+                          confirm={t("delete")}
+                        />
                       </article>
                     </Card>
                   ))}
@@ -533,26 +528,17 @@ export default async function WorkoutPage({
                                     {t("save")}
                                   </Button>
                                 </form>
-                                <form action={deleteWorkoutSetAction}>
-                                  <input
-                                    name="workoutId"
-                                    type="hidden"
-                                    value={workout.id}
-                                  />
-                                  <input
-                                    name="setId"
-                                    type="hidden"
-                                    value={set.id}
-                                  />
-                                  <Button
-                                    highContrast
-                                    color="red"
-                                    variant="soft"
-                                    type="submit"
-                                  >
-                                    {t("delete")}
-                                  </Button>
-                                </form>
+                                <ConfirmDelete
+                                  action={deleteWorkoutSetAction}
+                                  fields={{
+                                    workoutId: workout.id,
+                                    setId: set.id,
+                                  }}
+                                  title={t("confirmDelete")}
+                                  description={t("deleteDescription")}
+                                  cancel={t("cancel")}
+                                  confirm={t("delete")}
+                                />
                               </div>
                             </Table.Cell>
                           </Table.Row>
