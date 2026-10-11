@@ -42,16 +42,15 @@ export function PasskeyForm({
           startTransition(async () => {
             try {
               if (mode === "register") {
+                const name = String(data.get("name"));
                 const options = await passkeyRegistrationOptions(
                   String(data.get("password")),
+                  name,
                 );
                 const response = await startRegistration({
                   optionsJSON: options,
                 });
-                if (
-                  !(await registerPasskey(response, String(data.get("name"))))
-                )
-                  throw new Error();
+                if (!(await registerPasskey(response, name))) throw new Error();
                 form.reset();
                 setStatus("success");
                 router.refresh();

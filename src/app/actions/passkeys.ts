@@ -100,8 +100,12 @@ async function currentUser() {
   return user;
 }
 
-export async function passkeyRegistrationOptions(password: string) {
+export async function passkeyRegistrationOptions(
+  password: string,
+  name: string,
+) {
   return loggedAction("passkeyRegistrationOptions", async () => {
+    passkeyNameSchema.parse(name);
     const user = await currentUser();
     const account = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },

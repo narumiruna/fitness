@@ -46,7 +46,27 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
     await page.goto("/account/password");
     await page.getByRole("link", { name: "Passkeys", exact: true }).click();
     await expect(page).toHaveURL(/\/account\/passkeys$/);
-    await page.getByLabel("Passkey name").fill("Test device");
+    await page.getByLabel("Passkey name").fill("   ");
+    await page.getByLabel("Current password").fill(password);
+    const [invalidNameResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === "/account/passkeys",
+      ),
+      page.getByRole("button", { name: "Add passkey" }).click(),
+    ]);
+    await expect(page.locator("main").getByRole("alert")).toBeVisible();
+    expect(invalidNameResponse.status()).toBe(500);
+    expect(
+      (await cdp.send("WebAuthn.getCredentials", { authenticatorId }))
+        .credentials,
+    ).toHaveLength(0);
+    expect(
+      await prisma.passkeyChallenge.count({ where: { userId: user.id } }),
+    ).toBe(0);
+    expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(0);
+    await page.getByLabel("Passkey name").fill("  Test device  ");
     await page.getByLabel("Current password").fill("wrong");
     await page.getByRole("button", { name: "Add passkey" }).click();
     await expect(page.locator("main").getByRole("alert")).toBeVisible();
@@ -55,6 +75,10 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
     await page.getByRole("button", { name: "Add passkey" }).click();
     await expect(page.getByRole("status")).toHaveText("Passkey added.");
     expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(1);
+    expect(
+      (await prisma.passkey.findFirstOrThrow({ where: { userId: user.id } }))
+        .name,
+    ).toBe("Test device");
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
