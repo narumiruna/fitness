@@ -1,70 +1,47 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import {
   copyFileSync,
-  cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, test } from "node:test";
+import { DatabaseSync } from "node:sqlite";
+import test from "node:test";
 import bcrypt from "bcryptjs";
-import pg from "pg";
-import { startPostgres } from "./postgres.mjs";
 
 const repository = process.cwd();
-let postgres;
-before(async () => {
-  postgres = await startPostgres();
-});
-after(async () => {
-  await postgres?.stop();
-});
 
-async function workspace() {
+function workspace() {
   const directory = mkdtempSync(join(tmpdir(), "fitness-db-init-"));
-  for (const file of ["package.json", "prisma.config.ts"]) {
-    copyFileSync(join(repository, file), join(directory, file));
+  for (const file of [
+    "package.json",
+    "prisma.config.ts",
+    "prisma-dev.config.ts",
+    "prisma/schema.prisma",
+    "scripts/generate-prisma.mjs",
+    "src/lib/development-database.ts",
+  ]) {
+    const target = join(directory, file);
+    mkdirSync(join(target, ".."), { recursive: true });
+    copyFileSync(join(repository, file), target);
   }
   symlinkSync(
     join(repository, "node_modules"),
     join(directory, "node_modules"),
     "dir",
   );
-  mkdirSync(join(directory, "prisma"));
-  copyFileSync(
-    join(repository, "prisma/schema.prisma"),
-    join(directory, "prisma/schema.prisma"),
-  );
-  cpSync(
-    join(repository, "prisma/migrations"),
-    join(directory, "prisma/migrations"),
-    { recursive: true },
-  );
-  const name = `fitness_test_${randomUUID().replaceAll("-", "")}`;
-  await postgres.pool.query(`CREATE DATABASE "${name}"`);
-  const url = new URL(postgres.url);
-  url.pathname = `/${name}`;
-  const pool = new pg.Pool({ connectionString: url.toString() });
-  return {
-    directory,
-    url: url.toString(),
-    pool,
-    async close() {
-      await pool.end();
-      await postgres.pool.query(`DROP DATABASE "${name}"`);
-      rmSync(directory, { recursive: true, force: true });
-    },
-  };
+  return directory;
 }
 
 function run(directory, databaseUrl, args = ["run", "predev"]) {
-  const env = { ...process.env };
+  const env = { ...process.env, NODE_ENV: "development" };
   delete env.DATABASE_URL;
   if (databaseUrl !== undefined) env.DATABASE_URL = databaseUrl;
   return spawnSync("npm", args, {
@@ -75,71 +52,130 @@ function run(directory, databaseUrl, args = ["run", "predev"]) {
   });
 }
 
-async function initialized(pool) {
-  for (const table of ["User", "Exercise"]) {
-    const result = await pool.query(
-      `SELECT count(*)::int AS count FROM "${table}"`,
-    );
-    assert.equal(result.rows[0].count, 0);
-  }
-  const result = await pool.query(
-    'SELECT count(*)::int AS count FROM "_prisma_migrations" WHERE finished_at IS NOT NULL',
-  );
-  assert.equal(result.rows[0].count, 1);
-}
-
-for (const source of ["environment", ".env"]) {
-  test(`predev initializes an empty PostgreSQL database from ${source} and preserves records`, async () => {
-    const workspaceData = await workspace();
-    const { directory, url, pool } = workspaceData;
+for (const source of ["environment", ".env.local"]) {
+  test(`predev ignores production PostgreSQL URLs from ${source} and preserves SQLite data`, () => {
+    const directory = workspace();
+    const productionUrl =
+      "postgresql://production:private@127.0.0.1:1/production";
     try {
-      if (source === ".env")
-        writeFileSync(join(directory, ".env"), `DATABASE_URL="${url}"\n`);
-      const configuredUrl = source === ".env" ? undefined : url;
+      if (source === ".env.local")
+        writeFileSync(
+          join(directory, source),
+          `DATABASE_URL="${productionUrl}"\n`,
+        );
+      const configuredUrl =
+        source === "environment" ? productionUrl : undefined;
       const first = run(directory, configuredUrl);
       assert.equal(first.status, 0, first.stdout + first.stderr);
-      await initialized(pool);
-      const hash = bcrypt.hashSync("existing-password", 12);
-      await pool.query(
-        'INSERT INTO "User" (id, username, "passwordHash", role, "updatedAt") VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)',
-        ["existing-user", "existing-user", hash, "ADMIN"],
-      );
-      await pool.query(
-        'INSERT INTO "Workout" (id, "userId", date, title, "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP)',
-        ["existing-workout", "existing-user", "Existing workout"],
-      );
-      for (let i = 0; i < 2; i++) {
-        const result = run(directory, configuredUrl);
-        assert.equal(result.status, 0, result.stdout + result.stderr);
+      const filename = join(directory, ".cache/dev.db");
+      assert.equal(existsSync(filename), true);
+      const db = new DatabaseSync(filename);
+      try {
+        assert.equal(
+          db.prepare('SELECT count(*) AS count FROM "User"').get().count,
+          0,
+        );
+        assert.equal(
+          db.prepare('SELECT count(*) AS count FROM "Exercise"').get().count,
+          0,
+        );
+        const hash = bcrypt.hashSync("existing-password", 12);
+        db.prepare(
+          'INSERT INTO "User" (id, username, "passwordHash", role, "updatedAt") VALUES (?, ?, ?, ?, ?)',
+        ).run("existing-user", "existing-user", hash, "ADMIN", Date.now());
+        db.prepare(
+          'INSERT INTO "Workout" (id, "userId", date, title, "updatedAt") VALUES (?, ?, ?, ?, ?)',
+        ).run(
+          "existing-workout",
+          "existing-user",
+          Date.now(),
+          "Existing workout",
+          Date.now(),
+        );
+        for (let i = 0; i < 2; i++) {
+          const result = run(directory, configuredUrl);
+          assert.equal(result.status, 0, result.stdout + result.stderr);
+        }
+        assert.equal(
+          db.prepare('SELECT "passwordHash" FROM "User"').get().passwordHash,
+          hash,
+        );
+        assert.equal(
+          db.prepare('SELECT title FROM "Workout"').get().title,
+          "Existing workout",
+        );
+      } finally {
+        db.close();
       }
-      assert.deepEqual(
-        (await pool.query('SELECT username, "passwordHash", role FROM "User"'))
-          .rows,
-        [{ username: "existing-user", passwordHash: hash, role: "ADMIN" }],
-      );
-      assert.deepEqual((await pool.query('SELECT title FROM "Workout"')).rows, [
-        { title: "Existing workout" },
-      ]);
     } finally {
-      await workspaceData.close();
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 }
 
-test("npm run dev stops before Next.js when a PostgreSQL migration fails", async () => {
-  const workspaceData = await workspace();
+test("development accepts a SQLite file URL for isolated tests", () => {
+  const directory = workspace();
   try {
-    const { directory, url } = workspaceData;
-    mkdirSync(join(directory, "prisma/migrations/99999999999999_invalid"));
-    writeFileSync(
-      join(directory, "prisma/migrations/99999999999999_invalid/migration.sql"),
-      "INVALID SQL;",
-    );
-    const result = run(directory, url, ["run", "dev", "--", "--help"]);
-    assert.notEqual(result.status, 0);
-    assert.match(result.stdout, /prisma migrate deploy/);
-    assert.doesNotMatch(result.stdout, /^> next dev/m);
+    const result = run(directory, "file:./custom.db");
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(existsSync(join(directory, "custom.db")), true);
+    assert.equal(existsSync(join(directory, ".cache/dev.db")), false);
   } finally {
-    await workspaceData.close();
+    rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("npm run dev stops before Next.js when schema initialization fails", () => {
+  const directory = workspace();
+  try {
+    writeFileSync(join(directory, "prisma/schema.prisma"), "INVALID SCHEMA;");
+    const result = run(directory, undefined, ["run", "dev", "--", "--help"]);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stdout, /^> NODE_ENV=development next dev/m);
+    assert.equal(existsSync(join(directory, ".cache/dev.db")), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("predev refuses destructive SQLite schema changes and preserves stored values", () => {
+  const directory = workspace();
+  try {
+    const initial = run(directory);
+    assert.equal(initial.status, 0, initial.stdout + initial.stderr);
+    const filename = join(directory, ".cache/dev.db");
+    const db = new DatabaseSync(filename);
+    try {
+      db.prepare(
+        'INSERT INTO "User" (id, username, "passwordHash", "updatedAt") VALUES (?, ?, ?, ?)',
+      ).run("user", "user", "hash", Date.now());
+      db.prepare(
+        'INSERT INTO "Workout" (id, "userId", date, title, "updatedAt") VALUES (?, ?, ?, ?, ?)',
+      ).run("workout", "user", Date.now(), "Keep this title", Date.now());
+      const schemaPath = join(directory, "prisma/schema.prisma");
+      const schema = readFileSync(schemaPath, "utf8");
+      assert.ok(schema.includes("  title     String?"));
+      writeFileSync(schemaPath, schema.replace("  title     String?\n", ""));
+      const result = run(directory);
+      assert.notEqual(result.status, 0);
+      assert.equal(
+        db.prepare('SELECT title FROM "Workout"').get().title,
+        "Keep this title",
+      );
+    } finally {
+      db.close();
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("generated SQLite schema keeps the canonical models unchanged", () => {
+  const sqlite = readFileSync("prisma/.dev/schema.prisma", "utf8")
+    .replace('provider = "sqlite"', 'provider = "postgresql"')
+    .replace(
+      '"../../src/generated/prisma-sqlite"',
+      '"../src/generated/prisma"',
+    );
+  assert.equal(sqlite, readFileSync("prisma/schema.prisma", "utf8"));
 });

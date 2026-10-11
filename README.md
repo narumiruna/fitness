@@ -1,27 +1,39 @@
 # Fitness
 
 A multi-user strength training tracker built with Next.js, TypeScript, Prisma,
-PostgreSQL, Radix UI, and Biome.
+PostgreSQL in production, SQLite in development, Radix UI, and Biome.
 
 ## Development
 
 ```bash
 npm install
-docker compose up -d db
 npm run dev
 ```
 
-The development server uses port `8783` by default.
+Open `http://127.0.0.1:8784`. The development server binds only to loopback
+and uses SQLite at `.cache/dev.db`; no Docker or PostgreSQL server is required.
+Development ignores PostgreSQL `DATABASE_URL` values, including production
+values inherited from the shell or environment files. An optional `file:` URL
+selects another SQLite file. Relative file paths resolve from the repository root.
+Development uses the same environment-file load order as Next.js.
 
-Docker Compose starts PostgreSQL on `localhost:5432`. The local development
-connection defaults to `postgresql://fitness:fitness@localhost:5432/fitness`.
-Set `DATABASE_URL` in `.env` or the process environment to use another database.
-`npm run dev` applies existing Prisma migrations before starting Next.js.
-Startup does not run the seed or reset existing accounts. If migrations fail,
-the server does not start. An empty database redirects to `/setup`, where you
-create the first admin account.
+`npm run dev` generates both Prisma clients and synchronizes the SQLite schema
+before starting Next.js. Startup does not seed or reset accounts, delete records,
+or accept destructive schema changes. Initialization failures prevent startup.
+An empty database redirects to `/setup`, where you create a test admin account.
 
-Use `npm run db:migrate` only when creating a new migration during development.
+`prisma/schema.prisma` remains the canonical PostgreSQL schema. Client generation
+derives an ignored SQLite schema at `prisma/.dev/schema.prisma` and generates a
+separate client at `src/generated/prisma-sqlite/`. Do not edit these generated
+files. After model changes, restart development or run `npm run db:push` to
+synchronize SQLite. PostgreSQL migrations remain under `prisma/migrations/`;
+`npm run db:migrate` is a PostgreSQL migration command, not a development SQLite
+startup step. Never run it against production for development checks.
+
+Production still uses PostgreSQL, the existing migrations, and port `8783`.
+Do not stop production to free a test port. Browser checks use port `8784` and
+separate test data. Use a separate browser profile for manual checks if production
+also uses a loopback host, because cookies are shared across ports.
 
 `npm install` configures Husky Git hooks through the `prepare` script.
 The pre-commit hook calls `script/pre-commit.sh` to run `biome ci` and TypeScript checks without changing files.
@@ -36,7 +48,12 @@ Run `npm run db:seed` explicitly if you want the development account. This comma
 sets the `admin` password to `admin` and adds sample exercises. Login fields start
 empty in development and production.
 
-## Docker
+## Production Docker
+
+`compose.yaml` and `.github/workflows/deploy.yml` manage production. Do not use
+these services for development checks. The following commands are production
+operations and require explicit production authorization:
+
 
 ```bash
 docker compose up --build -d
@@ -79,8 +96,8 @@ Application logs use Pino and write one JSON object per line to stdout at
 docker compose logs --tail=100 fitness
 docker compose logs --since=5m fitness
 npm run test:logging
-# Build the app image, then run diagnostics against disposable containers.
-docker compose build fitness
+# Use a separate test image; never rebuild production for a test.
+docker build -t fitness-logging-test:local .
 npm run test:logging:docker
 ```
 
@@ -145,18 +162,22 @@ contrast requirements on tinted backgrounds.
 ## Browser tests
 
 Install Google Chrome and start Docker before running the browser tests.
-Stop any server on port `8783`; the tests refuse to reuse an existing server.
+Port `8784` must be free; the tests refuse to reuse an existing server. Do not
+stop another service to free a port unless you own that development service.
 
 ```bash
 npm run test:ui             # Development server
 npm run test:ui:production  # Build and test the production server
 ```
 
-Each command starts a temporary PostgreSQL container on a random local port,
-applies existing migrations, and starts a server at `http://localhost:8783`.
-It does not use the development database or seed personal workout data. The test
-runner stops its server and removes the database container when the run ends.
-`npm run test:db-init` also requires Docker and uses a separate temporary container.
+`npm run test:ui` starts a development server at `http://localhost:8784` with a
+temporary SQLite file. It does not require Docker or use `.cache/dev.db`.
+`npm run test:ui:production` uses the same test port with a disposable PostgreSQL
+container and the existing migrations; it requires Docker. Neither command
+uses production data or services. The runner stops its own server and removes
+its temporary database when the run ends. `npm run test:db-init` tests SQLite
+initialization and PostgreSQL test-container cleanup; its cleanup checks require
+Docker.
 
 Tests cover account, admin, exercise, workout, template, filter, statistics, and
 calendar workflows. They check keyboard focus, themed portals, native validation,

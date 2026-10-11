@@ -2,6 +2,9 @@
 .next
 node_modules
 src/generated/prisma
+src/generated/prisma-sqlite
+prisma/.dev
+.cache
 .env
 .env.*
 *.db

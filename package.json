@@ -4,8 +4,8 @@
   "description": "A multi-user strength training tracker.",
   "private": true,
   "scripts": {
-    "predev": "prisma migrate deploy",
-    "dev": "next dev -p 8783",
+    "predev": "npm run db:generate && prisma db push --config prisma-dev.config.ts",
+    "dev": "NODE_ENV=development next dev -H 127.0.0.1 -p 8784",
     "build": "next build",
     "start": "next start -p 8783",
     "biome:ci": "biome ci .",
@@ -21,12 +21,12 @@
     "test:logging:docker": "node --test tests/docker-logging.test.mjs",
     "test:ui": "node tests/run-ui.mjs",
     "test:ui:production": "npm run build && node tests/run-ui.mjs --production",
-    "postinstall": "prisma generate",
+    "postinstall": "npm run db:generate",
     "prepare": "husky",
-    "db:generate": "prisma generate",
+    "db:generate": "node scripts/generate-prisma.mjs",
     "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:push": "npm run db:generate && prisma db push --config prisma-dev.config.ts",
+    "db:seed": "NODE_ENV=development tsx prisma/seed.ts",
     "workouts:export-csv": "tsx scripts/export-workouts-csv.ts",
     "workouts:import-csv": "tsx scripts/import-workouts-csv.ts"
   },
@@ -46,6 +46,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@next/env": "^16.4.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@radix-ui/react-icons": "^1.3.2",

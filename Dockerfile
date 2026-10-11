@@ -8,7 +8,9 @@ RUN apt-get update \
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS build
-COPY package.json package-lock.json prisma.config.ts ./
+COPY package.json package-lock.json prisma.config.ts prisma-dev.config.ts ./
+COPY scripts/generate-prisma.mjs ./scripts/
+COPY src/lib/development-database.ts ./src/lib/
 COPY prisma ./prisma
 RUN HUSKY=0 npm ci
 COPY . .

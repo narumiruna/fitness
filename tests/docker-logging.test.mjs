@@ -38,7 +38,7 @@ test("Docker login diagnostics correlate requests without logging secrets", {
       "127.0.0.1::8783",
       "--env",
       `DATABASE_URL=postgresql://fitness:fitness@${postgres.name}:5432/fitness`,
-      "fitness-fitness",
+      "fitness-logging-test:local",
     );
     appCreated = true;
     const port = docker("port", name, "8783/tcp").split(":").at(-1);
