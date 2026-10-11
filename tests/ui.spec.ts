@@ -106,8 +106,8 @@ test("setup, login failures, password validation, and session replacement", asyn
   await expect(page).toHaveURL(/\/workouts$/);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
-  const prefill = process.env.NODE_ENV === "production" ? "" : "admin";
-  await expect(page.getByLabel("Username")).toHaveValue(prefill);
+  await expect(page.getByLabel("Username")).toHaveValue("");
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
     "autocomplete",
     "current-password",

@@ -26,7 +26,6 @@ export default async function LoginPage({
 
   const t = await getDictionary();
   const params = await searchParams;
-  const isDevelopment = process.env.NODE_ENV === "development";
 
   return (
     <section className="narrow stack">
@@ -46,18 +45,12 @@ export default async function LoginPage({
           ) : null}
           <Text as="label" size="2" weight="medium" className="field-label">
             {t("username")}
-            <TextField.Root
-              autoComplete="username"
-              defaultValue={isDevelopment ? "admin" : ""}
-              name="username"
-              required
-            />
+            <TextField.Root autoComplete="username" name="username" required />
           </Text>
           <Text as="label" size="2" weight="medium" className="field-label">
             {t("password")}
             <TextField.Root
               autoComplete="current-password"
-              defaultValue={isDevelopment ? "admin" : ""}
               name="password"
               required
               type="password"
