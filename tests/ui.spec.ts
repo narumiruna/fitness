@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import bcrypt from "bcryptjs";
+import { formatDateKey } from "../src/lib/calendar";
 import { prisma } from "../src/lib/prisma";
 
 let adminPassword = "admin";
@@ -49,6 +51,34 @@ async function formData(form: Locator) {
   );
 }
 
+async function captureDashboard(
+  page: Page,
+  info: { outputPath: (name: string) => string },
+  state: string,
+) {
+  for (const route of ["/workouts", "/calendar", "/stats", "/exercises"]) {
+    await page.goto(route);
+    await expect(
+      page.locator(".primary-nav [aria-current=page]"),
+    ).toHaveAttribute("href", route);
+    for (const width of [1440, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await noOverflow(page);
+      const result = await new AxeBuilder({ page })
+        .exclude("nextjs-portal")
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze();
+      expect(result.violations, `${state} ${route} ${width}`).toEqual([]);
+      await page.screenshot({
+        caret: "initial",
+        path: info.outputPath(`${state}-${route.slice(1)}-${width}.png`),
+        fullPage: true,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+}
+
 async function noOverflow(page: Page) {
   expect(
     await page.evaluate(
@@ -60,7 +90,7 @@ async function noOverflow(page: Page) {
 test("setup, login failures, password validation, and session replacement", async ({
   page,
   context,
-}) => {
+}, info) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
   await page.getByRole("button", { name: "Create admin" }).click();
@@ -73,6 +103,7 @@ test("setup, login failures, password validation, and session replacement", asyn
   await expect(
     page.getByText("No workouts yet.", { exact: true }),
   ).toBeVisible();
+  await captureDashboard(page, info, "empty");
   await page.goto("/stats");
   await expect(
     page.getByText("Log workouts and sets to see stats."),
@@ -99,6 +130,10 @@ test("setup, login failures, password validation, and session replacement", asyn
   expect(await prisma.workoutSet.count()).toBe(0);
   await page
     .locator(".page-header")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await page
+    .getByRole("alertdialog")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await expect(page).toHaveURL(/\/workouts$/);
@@ -172,7 +207,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
   await page.goto("/exercises");
-  await expect(page.getByText("No exercises match this search.")).toBeVisible();
+  await expect(page.getByText("Your exercise library is empty.")).toBeVisible();
   await page.getByLabel("Default name").fill("Bench Press");
   await page
     .getByRole("button", { name: "Create exercise", exact: true })
@@ -323,6 +358,10 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     .last()
     .getByRole("button", { name: "Delete", exact: true })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page.locator(".mobile-list article")).toHaveCount(1);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(first.locator('input[name="weight"]')).toHaveValue("75");
@@ -337,8 +376,13 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     .locator(".page-header")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/workouts$/);
   const templateItem = page.locator(".template-item");
+  await templateItem.locator("summary").click();
   await templateItem
     .getByRole("button", { name: "Create from template" })
     .click();
@@ -350,14 +394,26 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     .locator(".desktop-table tbody tr")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page.getByText("No sets yet.", { exact: true })).toBeVisible();
   await page
     .locator(".page-header")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/workouts$/);
   await page
     .locator(".template-item")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await page
+    .getByRole("alertdialog")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await expect(
@@ -388,8 +444,16 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   expect((await formData(filters)).notes).toBeUndefined();
   await filters.getByLabel("Month", { exact: true }).fill(date.slice(0, 7));
   await filters.getByLabel("Search", { exact: true }).fill("UI workout");
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await filters.getByRole("checkbox").check();
+    await expect.poll(async () => (await formData(filters)).notes).toBe("1");
+    await filters.getByRole("checkbox").uncheck();
+    await expect
+      .poll(async () => (await formData(filters)).notes)
+      .toBeUndefined();
+  }
   await filters.getByRole("checkbox").check();
-  expect((await formData(filters)).notes).toBe("1");
+  await expect.poll(async () => (await formData(filters)).notes).toBe("1");
   await choose(page, filters.getByRole("combobox"), "Squat");
   await filters.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.locator(".workout-card")).toHaveCount(1);
@@ -408,7 +472,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     "/workouts?q=no-match&month=invalid&page=-1&exercise=invalid",
   );
   await expect(
-    page.getByText("No workouts yet.", { exact: true }),
+    page.getByText("No workouts match these filters.", { exact: true }),
   ).toBeVisible();
   await page.goto("/stats");
   await expect(
@@ -504,6 +568,288 @@ test("admin roles and user data isolation", async ({ page }) => {
   await page.getByRole("button", { name: "Sign out" }).click();
 });
 
+test("dashboard ranges, calendar selection, private usage, confirmations, and visual review", async ({
+  page,
+}, info) => {
+  const user = await prisma.user.create({
+    data: {
+      username: "reviewer",
+      passwordHash: await bcrypt.hash("review-password", 12),
+    },
+  });
+  const names = [
+    "Bench Press",
+    "Squat",
+    "Deadlift",
+    "Overhead Press",
+    "Pull Up",
+    "Romanian Deadlift",
+    "Leg Press",
+    "Plank",
+  ];
+  const exercises: { id: string }[] = [];
+  for (const name of names) {
+    const slug = name.toLowerCase().replaceAll(" ", "-");
+    exercises.push(
+      await prisma.exercise.upsert({
+        where: { slug },
+        update: {},
+        create: { slug, defaultName: name },
+      }),
+    );
+  }
+  const now = new Date();
+  const day = (offset: number) =>
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+  for (let i = 0; i < 18; i++) {
+    await prisma.workout.create({
+      data: {
+        userId: user.id,
+        date: day(-i * 4),
+        title:
+          i % 3 === 0 ? "Lower body" : i % 3 === 1 ? "Upper body" : "Full body",
+        notes:
+          i % 4 === 0
+            ? "Strong session. Kept the repetitions controlled."
+            : undefined,
+        sets: {
+          create: Array.from({ length: 6 }, (_, j) => ({
+            exerciseId: exercises[(i + j) % exercises.length].id,
+            weight: 20 + i * 2 + j * 5,
+            reps: 6 + j,
+            order: j + 1,
+          })),
+        },
+      },
+    });
+  }
+  await prisma.workout.create({
+    data: {
+      userId: user.id,
+      date: day(0),
+      title: "Evening session",
+      sets: {
+        create: { exerciseId: exercises[0].id, weight: 40, reps: 5, order: 1 },
+      },
+    },
+  });
+  const old = await prisma.workout.create({
+    data: {
+      userId: user.id,
+      date: day(-200),
+      title: "Older record",
+      sets: {
+        create: { exerciseId: exercises[0].id, weight: 500, reps: 1, order: 1 },
+      },
+    },
+  });
+  await prisma.workoutTemplate.create({
+    data: {
+      userId: user.id,
+      title: "Upper body",
+      sets: {
+        create: [
+          { exerciseId: exercises[0].id, weight: 40, reps: 5, order: 1 },
+          { exerciseId: exercises[3].id, weight: 20, reps: 8, order: 2 },
+        ],
+      },
+    },
+  });
+  await login(page, "reviewer", "review-password");
+  const row = page
+    .locator(".workout-card")
+    .filter({ hasText: "Evening session" });
+  await expect(row).toContainText("Bench Press");
+  await expect(row).toContainText("200 Volume");
+  await row.getByRole("link", { name: "View", exact: true }).click();
+  await expect(
+    page.locator(".primary-nav [aria-current=page]"),
+  ).toHaveAttribute("href", "/workouts");
+  const deleteTrigger = page
+    .locator(".page-header")
+    .getByRole("button", { name: "Delete", exact: true });
+  await deleteTrigger.click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Cancel" })
+    .click();
+  await expect(deleteTrigger).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Evening session",
+  );
+  await page.goto(
+    `/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}&day=${formatDateKey(now)}`,
+  );
+  await expect(page.locator(".selected-workout")).toHaveCount(2);
+  await expect(page.locator(".selected-date-panel")).toContainText(
+    "200 Volume",
+  );
+  const nextKey = formatDateKey(day(1));
+  await page.locator(`.calendar-day-number[aria-label="${nextKey}"]`).click();
+  await expect(
+    page.locator(".calendar-day.selected .calendar-day-number"),
+  ).toHaveAttribute("aria-label", nextKey);
+  await expect(page.getByText("No workouts on this date.")).toBeVisible();
+  await page.reload();
+  await expect(
+    page.locator(".calendar-day.selected .calendar-day-number"),
+  ).toHaveAttribute("aria-label", nextKey);
+  await page
+    .locator(".selected-date-panel")
+    .getByRole("link", { name: "Create workout", exact: true })
+    .click();
+  await expect(
+    page.locator("#new-workout").getByLabel("Date", { exact: true }),
+  ).toHaveValue(nextKey);
+  await page.goto("/workouts?date=2026-02-30");
+  await expect(
+    page.locator("#new-workout").getByLabel("Date", { exact: true }),
+  ).toHaveValue(formatDateKey(now));
+  await page.goto("/stats");
+  const allVolume = await page
+    .locator(".stats-card")
+    .filter({ hasText: "Total volume" })
+    .innerText();
+  const range = page.locator(".page-header form");
+  await choose(page, range.getByRole("combobox"), "Last 30 days");
+  await range.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/range=30/);
+  await expect(
+    page.locator(".stats-card").filter({ hasText: "Total volume" }),
+  ).not.toHaveText(allVolume);
+  await expect(page.locator(".records-filter")).toContainText(
+    "All-time records",
+  );
+  const recordForm = page.locator(".records-filter");
+  await choose(
+    page,
+    recordForm.getByRole("combobox"),
+    "Records in selected range",
+  );
+  await recordForm.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/records=range/);
+  await expect(
+    page.locator(".stats-record-value").filter({ hasText: "500" }),
+  ).toHaveCount(0);
+  const point = page.locator(".training-chart g[role=button]").first();
+  await point.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".chart-tooltip").first()).not.toHaveText("\u00a0");
+  await page.locator(".chart-data summary").first().click();
+  await expect(page.locator(".chart-data dl").first()).toBeVisible();
+  await page.goto("/exercises?sort=desc");
+  const descending = await page.locator(".exercise-row h3").allTextContents();
+  expect(descending).toEqual(
+    [...descending].sort((a, b) => b.localeCompare(a)),
+  );
+  await page.goto("/exercises?sort=recent");
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Bench Press" }),
+  ).toContainText(formatDateKey(now));
+  await page.goto("/stats?range=invalid");
+  await expect(page.locator(".page-header .rt-SelectTrigger")).toHaveText(
+    "All time",
+  );
+  await page.goto("/exercises");
+  const countBefore = await prisma.exercise.count();
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/exercises*", async (route) => {
+    if (route.request().method() === "POST") await gate;
+    await route.continue();
+  });
+  try {
+    await page
+      .locator("#new-exercise")
+      .getByLabel("Default name")
+      .fill("Bench Press");
+    await page
+      .locator("#new-exercise")
+      .getByRole("button", { name: "Create exercise", exact: true })
+      .click();
+    await expect(
+      page
+        .locator("#new-exercise")
+        .getByRole("button", { name: "Create exercise", exact: true }),
+    ).toBeDisabled();
+  } finally {
+    release();
+  }
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    "This exercise name already exists.",
+  );
+  expect(await prisma.exercise.count()).toBe(countBefore);
+  await page.unroute("**/exercises*");
+  const benchRow = page
+    .locator(".exercise-row")
+    .filter({ hasText: "Bench Press" });
+  await benchRow
+    .getByRole("button", { name: "Add alias", exact: true })
+    .click();
+  const aliasForm = benchRow.locator("form");
+  await aliasForm.getByLabel("Locale", { exact: true }).fill("en");
+  await aliasForm.getByLabel("Alias", { exact: true }).fill("Bench Press");
+  const aliasesBefore = await prisma.exerciseAlias.count();
+  await aliasForm
+    .getByRole("button", { name: "Add alias", exact: true })
+    .click();
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    "This alias already exists",
+  );
+  expect(await prisma.exerciseAlias.count()).toBe(aliasesBefore);
+  await benchRow
+    .getByRole("button", { name: "Add alias", exact: true })
+    .click();
+  await aliasForm
+    .getByLabel("Alias", { exact: true })
+    .fill("Failure recovery alias");
+  await aliasForm
+    .locator('input[name="exerciseId"]')
+    .evaluate((input: HTMLInputElement) => {
+      input.value = "missing-exercise";
+    });
+  await aliasForm
+    .getByRole("button", { name: "Add alias", exact: true })
+    .click();
+  await expect(page.locator("main").getByRole("alert")).toContainText(
+    "This page could not be loaded.",
+  );
+  expect(await prisma.exerciseAlias.count()).toBe(aliasesBefore);
+  await page.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(
+    page
+      .locator("main")
+      .getByRole("heading", { name: "Exercise library", exact: true }),
+  ).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await captureDashboard(page, info, "populated");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await login(page, "member", "member-password");
+  await page.goto("/stats");
+  await expect(page.locator(".stats-card")).toHaveCount(0);
+  await expect(
+    page.getByText("Log workouts and sets to see stats."),
+  ).toBeVisible();
+  await expect(page.locator(".training-chart")).toHaveCount(0);
+  await page.goto("/exercises");
+  await expect(
+    page.locator(".exercise-row").filter({ hasText: "Bench Press" }),
+  ).toContainText("Not used yet");
+  await expect(
+    page.getByRole("heading", { name: "Recently used", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(
+    `/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`,
+  );
+  await expect(page.locator(".calendar-workout")).toHaveCount(0);
+  await page.goto(`/workouts/${old.id}`);
+  await expect(page.getByText("This page could not be found.")).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+});
+
 test("responsive routes, semantic controls, CSS states, and themed portals", async ({
   page,
 }, info) => {
@@ -548,6 +894,7 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
         .analyze();
       expect(accessibility.violations, `${route} at ${width}px`).toEqual([]);
       await page.screenshot({
+        caret: "initial",
         path: info.outputPath(`${route.replaceAll("/", "-")}-${name}.png`),
         fullPage: true,
       });
@@ -586,6 +933,7 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
     await page.setViewportSize({ width, height: 844 });
     await noOverflow(page);
     await page.screenshot({
+      caret: "initial",
       path: info.outputPath(`login-${width}.png`),
       fullPage: true,
     });

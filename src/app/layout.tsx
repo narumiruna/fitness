@@ -1,14 +1,10 @@
-import {
-  BarChartIcon,
-  CalendarIcon,
-  ExitIcon,
-  PersonIcon,
-} from "@radix-ui/react-icons";
+import { ActivityLogIcon, ExitIcon, PersonIcon } from "@radix-ui/react-icons";
 import { Box, Button, Flex, Link, Theme } from "@radix-ui/themes";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { Navigation } from "@/components/navigation";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
@@ -44,30 +40,26 @@ export default async function RootLayout({
             >
               <header>
                 <Link highContrast asChild weight="bold" size="4">
-                  <NextLink href="/">{t("appName")}</NextLink>
+                  <NextLink className="brand" href="/">
+                    <ActivityLogIcon aria-hidden="true" />
+                    {t("appName")}
+                  </NextLink>
                 </Link>
+                {user ? (
+                  <Navigation
+                    label={t("primaryNavigation")}
+                    labels={[
+                      t("workouts"),
+                      t("calendar"),
+                      t("stats"),
+                      t("exercises"),
+                    ]}
+                  />
+                ) : null}
                 <Flex asChild align="center" wrap="wrap" gap="3">
-                  <nav aria-label={t("primaryNavigation")}>
+                  <nav className="secondary-nav" aria-label={t("account")}>
                     {user ? (
                       <>
-                        <Link highContrast asChild>
-                          <NextLink href="/workouts">{t("workouts")}</NextLink>
-                        </Link>
-                        <Link highContrast asChild>
-                          <NextLink href="/calendar">
-                            <CalendarIcon aria-hidden="true" /> {t("calendar")}
-                          </NextLink>
-                        </Link>
-                        <Link highContrast asChild>
-                          <NextLink href="/stats">
-                            <BarChartIcon aria-hidden="true" /> {t("stats")}
-                          </NextLink>
-                        </Link>
-                        <Link highContrast asChild>
-                          <NextLink href="/exercises">
-                            {t("exercises")}
-                          </NextLink>
-                        </Link>
                         {user.role === "ADMIN" ? (
                           <Link highContrast asChild>
                             <NextLink href="/admin/users">
