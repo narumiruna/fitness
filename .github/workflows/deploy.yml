@@ -1,0 +1,29 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        shell: bash
+        run: |
+          : "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD secret}"
+          docker compose build --pull
+      - name: Start services
+        shell: bash
+        run: docker compose up --detach --no-build --wait --wait-timeout 120
