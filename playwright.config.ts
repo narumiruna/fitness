@@ -1,7 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
 // Never reuse a running application or a developer's database.
-if (!/\/fitness-ui-[^/]+\/test\.db$/.test(process.env.DATABASE_URL ?? "")) {
+if (
+  !/^postgresql:\/\/fitness:fitness@127\.0\.0\.1:\d+\/fitness$/.test(
+    process.env.DATABASE_URL ?? "",
+  )
+) {
   throw new Error("Run UI tests through npm run test:ui.");
 }
 
