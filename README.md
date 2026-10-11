@@ -116,14 +116,24 @@ verification. Challenges expire after five minutes, are bound to an HttpOnly
 cookie, and can be used only once. Public keys and counters are stored in the
 database; private keys stay with the authenticator.
 
+The database stores at most 1,000 pending challenges across all app instances.
+Cleanup, the capacity check, and insertion use one serializable transaction;
+requests without cookies cannot bypass the limit. A browser can replace its prior
+challenge at capacity. If no slot is available, passkey option issuance fails
+without inserting a record or setting a new challenge cookie. Retry after a
+challenge expires or use password sign-in.
+
 ```bash
-npm run test:ui -- tests/passkeys.spec.ts
+npm run test:ui -- tests/passkeys.spec.ts tests/passkey-challenges.spec.ts
+npm run test:ui:production -- tests/passkey-challenges.spec.ts
 ```
 
 The browser test uses Chrome's virtual authenticator and a disposable SQLite
 file. It checks registration, incorrect passwords, expired challenges, invalid
-signatures, sign-in, replay rejection, and removal. It does not verify physical biometric hardware
-or cross-device passkey synchronization.
+signatures, sign-in, replay rejection, removal, and cookie-free issuance at
+capacity. Database tests check concurrent issuance, replacement, and expiry
+recovery on SQLite and disposable PostgreSQL. These tests do not verify physical
+biometric hardware or cross-device passkey synchronization.
 
 ## Logging
 
@@ -159,6 +169,14 @@ On the next request, `session.missing_cookie` means no session cookie arrived.
 `session.expired` means the session expired. `auth.required` records the
 redirect back to login. `session.authenticated` records a valid session.
 A missing cookie alone does not prove why the browser omitted it.
+
+All five passkey actions use the action logger. Registration records
+`auth.passkey_registered` or `auth.passkey_registration_failed`; sign-in records
+`auth.passkey_login_succeeded` or `auth.passkey_login_failed`. Rejected verification
+returns `false` to the UI and records the failure outcome before `action.completed`.
+Thrown option-issuance errors, including capacity rejection, record `action.failed`.
+Passkey logs omit credential IDs, challenge values, signatures, public keys,
+passkey names, and raw verification responses.
 
 Logs do not record passwords, token values or hashes, raw headers, form data,
 query strings, workout content, database URLs, or SQL parameters. Error logs

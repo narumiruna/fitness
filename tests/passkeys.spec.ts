@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { PASSKEY_CHALLENGE_LIMIT } from "../src/lib/passkey-challenges";
 import { prisma } from "../src/lib/prisma";
 
 const username = "passkey-test";
 const password = "passkey-test-password";
 
 test.afterAll(async () => {
+  await prisma.passkeyChallenge.deleteMany();
   await prisma.user.deleteMany({ where: { username } });
   await prisma.$disconnect();
 });
@@ -119,4 +121,43 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
   } finally {
     await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
   }
+});
+
+test("anonymous option requests without cookies cannot grow a full challenge store", async ({
+  page,
+  context,
+}) => {
+  await prisma.passkeyChallenge.deleteMany();
+  await prisma.passkeyChallenge.createMany({
+    data: Array.from({ length: PASSKEY_CHALLENGE_LIMIT }, (_, index) => ({
+      tokenHash: `capacity-${index}`,
+      challenge: "test-challenge",
+      purpose: "authenticate",
+      expiresAt: new Date(Date.now() + 300_000),
+    })),
+  });
+  await page.goto("/login");
+  let issuance: { headers: Record<string, string>; data: string } | undefined;
+  page.on("request", async (request) => {
+    if (request.method() === "POST" && request.postData() === "[]") {
+      issuance = { headers: await request.allHeaders(), data: "[]" };
+    }
+  });
+  await page.getByRole("button", { name: "Sign in with a passkey" }).click();
+  await expect(page.locator("main").getByRole("alert")).toBeVisible();
+  expect(
+    (await context.cookies()).some(
+      (cookie) => cookie.name === "fitness_passkey_challenge",
+    ),
+  ).toBe(false);
+  expect(issuance).toBeDefined();
+  if (!issuance) throw new Error("Option request not captured.");
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await context.request.post("/login", {
+      ...issuance,
+      headers: { ...issuance.headers, cookie: "" },
+    });
+    expect(response.status()).toBe(500);
+  }
+  expect(await prisma.passkeyChallenge.count()).toBe(PASSKEY_CHALLENGE_LIMIT);
 });
