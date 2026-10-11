@@ -22,6 +22,30 @@ model User {
   goal         BodyGoal?
   schedules    TemplateSchedule[]
   imports      ImportBatch[]
+  passkeys     Passkey[]
+}
+
+model Passkey {
+  id           String   @id
+  userId       String
+  name         String
+  publicKey    Bytes
+  counter      BigInt
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasskeyChallenge {
+  tokenHash String   @id
+  challenge String
+  purpose   String
+  userId    String?
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model Session {

@@ -3,6 +3,7 @@ import { equipment, muscles } from "./training";
 
 export const usernameSchema = z.string().trim().min(1).max(64);
 export const passwordSchema = z.string().min(1).max(256);
+export const passkeyNameSchema = z.string().trim().min(1).max(80);
 export const newPasswordSchema = z.string().min(8).max(256);
 
 export const changePasswordSchema = z
