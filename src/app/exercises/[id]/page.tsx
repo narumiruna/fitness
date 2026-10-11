@@ -15,7 +15,7 @@ import { updateExerciseAction } from "@/app/actions/exercises";
 import { ExerciseMetadata } from "@/components/exercise-metadata";
 import { SubmitButton } from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 
 export default async function ExerciseHistoryPage({
@@ -27,6 +27,11 @@ export default async function ExerciseHistoryPage({
 }) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
+  const formatInteger = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
   const { id } = await params;
   const feedback = await searchParams;
   const exercise = await prisma.exercise.findUnique({
@@ -70,7 +75,7 @@ export default async function ExerciseHistoryPage({
   const workingEntries = setEntries.filter((s) => s.type === "WORKING");
   const maxWeight = maxBy(workingEntries, (set) => set.weight);
   const maxReps = maxBy(workingEntries, (set) => set.reps);
-  const monthlyTrend = buildMonthlyTrend(setEntries);
+  const monthlyTrend = buildMonthlyTrend(setEntries, locale);
   const maxMonthlyVolume = Math.max(
     ...monthlyTrend.map((month) => month.volume),
     1,
@@ -249,7 +254,7 @@ export default async function ExerciseHistoryPage({
                       href={`/workouts/${workout.id}`}
                     >
                       <time dateTime={workout.date.toISOString()}>
-                        {workout.date.toLocaleDateString("en", {
+                        {workout.date.toLocaleDateString(locale, {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -297,7 +302,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function buildMonthlyTrend(sets: SetEntry[]) {
+function buildMonthlyTrend(sets: SetEntry[], locale: string) {
   const months = Array.from({ length: 6 }, (_, index) => {
     const date = new Date();
     date.setMonth(date.getMonth() - (5 - index));
@@ -305,7 +310,7 @@ function buildMonthlyTrend(sets: SetEntry[]) {
 
     return {
       key: formatMonthKey(date),
-      label: date.toLocaleDateString("en", { month: "short" }),
+      label: date.toLocaleDateString(locale, { month: "short" }),
       volume: 0,
     };
   });
@@ -334,16 +339,4 @@ function maxBy<T>(items: T[], value: (item: T) => number) {
 
 function formatMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatInteger(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 1,
-  }).format(value);
 }

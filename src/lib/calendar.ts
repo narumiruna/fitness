@@ -100,8 +100,8 @@ export function formatDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export function formatMonthTitle(year: number, month: number) {
-  return new Intl.DateTimeFormat("en", {
+export function formatMonthTitle(year: number, month: number, locale = "en") {
+  return new Intl.DateTimeFormat(locale, {
     month: "long",
     year: "numeric",
   }).format(new Date(year, month - 1, 1));

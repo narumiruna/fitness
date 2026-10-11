@@ -7,6 +7,7 @@ export async function priorSessions(
   workoutId: string,
   date: Date,
   exerciseIds: string[],
+  locale = "en",
 ) {
   const boundary = historyBoundary(date);
   const workouts = await prisma.workout.findMany({
@@ -35,7 +36,7 @@ export async function priorSessions(
     for (const exerciseId of new Set(workout.sets.map((s) => s.exerciseId))) {
       if (!result[exerciseId])
         result[exerciseId] = {
-          date: workout.date.toLocaleDateString("en"),
+          date: workout.date.toLocaleDateString(locale),
           sets: workout.sets
             .filter((s) => s.exerciseId === exerciseId)
             .map(({ id, weight, reps }) => ({ id, weight, reps })),

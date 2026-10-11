@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { calculateStats, type StatsRange } from "@/lib/stats-calculations";
 
@@ -21,5 +22,5 @@ export async function getUserStats(userId: string, range: StatsRange = "all") {
     },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
-  return calculateStats(workouts, range);
+  return calculateStats(workouts, range, new Date(), await getLocale());
 }

@@ -88,6 +88,7 @@ export function calculateStats(
   workouts: WorkoutForStats[],
   range: StatsRange = "all",
   now = new Date(),
+  locale = "en",
 ) {
   workouts = workouts
     .filter((w) => w.state === undefined || w.state === "COMPLETED")
@@ -109,14 +110,14 @@ export function calculateStats(
   const sets = selected.flatMap((w) =>
     w.sets.map((s) => ({ ...s, workoutDate: w.date })),
   );
-  const weekly = buildWeekly(selected, firstDate, lastDate);
+  const weekly = buildWeekly(selected, firstDate, lastDate, locale);
   const allSets = workouts.flatMap((w) =>
     w.sets.map((s) => ({ ...s, workoutDate: w.date })),
   );
   return {
     overview: buildOverview(selected, sets),
     ...buildRecentPeriods(workouts, now),
-    monthlyTrend: buildMonthlyTrend(selected, now),
+    monthlyTrend: buildMonthlyTrend(selected, now, locale),
     exerciseLeaders: buildExerciseLeaders(sets),
     personalRecords: buildPersonalRecords(
       sets.filter((s) => s.type !== "WARMUP"),
@@ -125,7 +126,7 @@ export function calculateStats(
       allSets.filter((s) => s.type !== "WARMUP"),
     ),
     workingVolume: sumVolume(sets.filter((s) => s.type !== "WARMUP")),
-    daily: buildDaily(selected),
+    daily: buildDaily(selected, locale),
     weekly: weekly.points,
     weeklyBucketWeeks: weekly.bucketWeeks,
     distribution: buildDistribution(sets),
@@ -133,7 +134,7 @@ export function calculateStats(
 }
 export type DashboardStats = ReturnType<typeof calculateStats>;
 
-function buildDaily(workouts: WorkoutForStats[]) {
+function buildDaily(workouts: WorkoutForStats[], locale: string) {
   const days = new Map<string, number>();
   for (const w of workouts) {
     const key = formatDateKey(w.date);
@@ -143,14 +144,19 @@ function buildDaily(workouts: WorkoutForStats[]) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => ({
       key,
-      label: new Intl.DateTimeFormat("en", {
+      label: new Intl.DateTimeFormat(locale, {
         month: "short",
         day: "numeric",
       }).format(new Date(`${key}T00:00:00`)),
       value,
     }));
 }
-function buildWeekly(workouts: WorkoutForStats[], start: Date, end: Date) {
+function buildWeekly(
+  workouts: WorkoutForStats[],
+  start: Date,
+  end: Date,
+  locale: string,
+) {
   const first = addDays(startOfDay(start), -start.getDay());
   // Bound both SVG points and accessible data rows without dropping records.
   const weekCount = Math.max(
@@ -159,7 +165,7 @@ function buildWeekly(workouts: WorkoutForStats[], start: Date, end: Date) {
   );
   const bucketWeeks = Math.ceil(weekCount / 52);
   const daysPerBucket = bucketWeeks * 7;
-  const formatter = new Intl.DateTimeFormat("en", {
+  const formatter = new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -265,6 +271,7 @@ function buildRecentPeriods(workouts: WorkoutForStats[], now: Date) {
 function buildMonthlyTrend(
   workouts: WorkoutForStats[],
   now: Date,
+  locale: string,
 ): MonthlyStats[] {
   const firstMonth = new Date(
     now.getFullYear(),
@@ -281,7 +288,7 @@ function buildMonthlyTrend(
 
     return {
       key,
-      label: new Intl.DateTimeFormat("en", {
+      label: new Intl.DateTimeFormat(locale, {
         month: "short",
         year: "numeric",
       }).format(date),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Locale } from "@/lib/locales";
 
 type Point = {
   key: string;
@@ -14,8 +15,10 @@ export function TrainingChart({
   kind,
   dataLabel,
   target,
+  locale = "en",
 }: {
   points: Point[];
+  locale?: Locale;
   label: string;
   kind: "line" | "bar";
   dataLabel: string;
@@ -69,7 +72,7 @@ export function TrainingChart({
               y={y(max * f) + 4}
               textAnchor="end"
             >
-              {new Intl.NumberFormat("en", {
+              {new Intl.NumberFormat(locale, {
                 notation: "compact",
                 maximumFractionDigits: 1,
               }).format(max * f)}
@@ -164,7 +167,7 @@ export function TrainingChart({
       </svg>
       <p className="chart-tooltip" aria-live="polite">
         {activePoint
-          ? `${activePoint.label}: ${new Intl.NumberFormat("en").format(activePoint.value)}`
+          ? `${activePoint.label}: ${new Intl.NumberFormat(locale).format(activePoint.value)}`
           : "\u00a0"}
       </p>
       <details className="chart-data">
@@ -173,7 +176,7 @@ export function TrainingChart({
           {points.map((p) => (
             <div className="chart-data-row" key={p.key}>
               <dt>{p.label}</dt>
-              <dd>{new Intl.NumberFormat("en").format(p.value)}</dd>
+              <dd>{new Intl.NumberFormat(locale).format(p.value)}</dd>
             </div>
           ))}
         </dl>
