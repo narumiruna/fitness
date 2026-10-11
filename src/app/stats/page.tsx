@@ -8,7 +8,7 @@ import { MuscleReport } from "@/components/muscle-report";
 import { TrainingChart } from "@/components/training-chart";
 import { requireUser } from "@/lib/auth";
 import type { MessageKey } from "@/lib/i18n";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { getUserStats, type PeriodStats, type SetRecord } from "@/lib/stats";
 import {
   type ExercisePersonalRecords,
@@ -22,6 +22,9 @@ export default async function StatsPage({
 }) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
+  const formatInteger = (value: number) => formatNumeric(value, locale, 0);
+  const formatNumber = (value: number) => formatNumeric(value, locale, 1);
   const params = await searchParams;
   const range = resolveStatsRange(params.range);
   const rangeLabel = t(
@@ -163,6 +166,7 @@ export default async function StatsPage({
                   description={rangeLabel}
                 />
                 <TrainingChart
+                  locale={locale}
                   points={stats.daily}
                   label={t("volumeHistory")}
                   kind="line"
@@ -185,6 +189,7 @@ export default async function StatsPage({
                 }
               />
               <TrainingChart
+                locale={locale}
                 points={stats.weekly}
                 label={weeklyLabel}
                 kind="bar"
@@ -265,6 +270,7 @@ export default async function StatsPage({
             </section>
           </Card>
           <RecordSummary
+            locale={locale}
             records={records}
             range={range}
             scope={params.records}
@@ -273,6 +279,7 @@ export default async function StatsPage({
         </div>
       ) : stats.allTimeRecords.length ? (
         <RecordSummary
+          locale={locale}
           records={records}
           range={range}
           scope={params.records}
@@ -294,6 +301,8 @@ export default async function StatsPage({
                 <div className="stats-mobile-list">
                   {periodRows.map((row) => (
                     <PeriodCard
+                      locale={locale}
+                      newLabel={t("newActivity")}
                       current={stats.currentPeriod}
                       currentLabel={t("current")}
                       key={row.metric}
@@ -324,6 +333,8 @@ export default async function StatsPage({
                     <Table.Body>
                       {periodRows.map((row) => (
                         <PeriodRow
+                          locale={locale}
+                          newLabel={t("newActivity")}
                           current={stats.currentPeriod}
                           key={row.metric}
                           previous={stats.previousPeriod}
@@ -466,22 +477,25 @@ export default async function StatsPage({
                         <MetricPair
                           label={t("maxWeight")}
                           value={formatNumber(record.maxWeight.value)}
-                          detail={formatSetDetail(record.maxWeight)}
+                          detail={formatSetDetail(record.maxWeight, locale)}
                         />
                         <MetricPair
                           label={t("maxReps")}
                           value={formatInteger(record.maxReps.value)}
-                          detail={formatSetDetail(record.maxReps)}
+                          detail={formatSetDetail(record.maxReps, locale)}
                         />
                         <MetricPair
                           label={t("bestVolumeSet")}
                           value={formatNumber(record.maxVolume.value)}
-                          detail={formatSetDetail(record.maxVolume)}
+                          detail={formatSetDetail(record.maxVolume, locale)}
                         />
                         <MetricPair
                           label={t("estimatedOneRepMax")}
                           value={formatNumber(record.estimatedOneRepMax.value)}
-                          detail={formatSetDetail(record.estimatedOneRepMax)}
+                          detail={formatSetDetail(
+                            record.estimatedOneRepMax,
+                            locale,
+                          )}
                         />
                       </div>
                     </article>
@@ -514,16 +528,28 @@ export default async function StatsPage({
                       <Table.Row key={record.exerciseId}>
                         <Table.Cell>{record.exerciseName}</Table.Cell>
                         <Table.Cell>
-                          <RecordValue record={record.maxWeight} />
+                          <RecordValue
+                            locale={locale}
+                            record={record.maxWeight}
+                          />
                         </Table.Cell>
                         <Table.Cell>
-                          <RecordValue record={record.maxReps} />
+                          <RecordValue
+                            locale={locale}
+                            record={record.maxReps}
+                          />
                         </Table.Cell>
                         <Table.Cell>
-                          <RecordValue record={record.maxVolume} />
+                          <RecordValue
+                            locale={locale}
+                            record={record.maxVolume}
+                          />
                         </Table.Cell>
                         <Table.Cell>
-                          <RecordValue record={record.estimatedOneRepMax} />
+                          <RecordValue
+                            locale={locale}
+                            record={record.estimatedOneRepMax}
+                          />
                         </Table.Cell>
                       </Table.Row>
                     ))}
@@ -539,16 +565,19 @@ export default async function StatsPage({
 }
 
 function RecordSummary({
+  locale,
   records,
   range,
   scope,
   t,
 }: {
+  locale: string;
   records: ExercisePersonalRecords[];
   range: string;
   scope?: string;
   t: (key: MessageKey) => string;
 }) {
+  const formatNumber = (value: number) => formatNumeric(value, locale, 1);
   return (
     <Card asChild>
       <section className="stack">
@@ -584,7 +613,7 @@ function RecordSummary({
                 </Text>
                 <Text size="2">{formatNumber(record.maxWeight.value)}</Text>
                 <Text size="1" color="gray">
-                  {record.maxWeight.date.toLocaleDateString("en", {
+                  {record.maxWeight.date.toLocaleDateString(locale, {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
@@ -636,6 +665,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 function PeriodRow({
+  locale,
+  newLabel,
   current,
   previous,
   row,
@@ -643,6 +674,8 @@ function PeriodRow({
   current: PeriodStats;
   previous: PeriodStats;
   row: PeriodRowData;
+  locale: string;
+  newLabel: string;
 }) {
   return (
     <Table.Row>
@@ -650,13 +683,21 @@ function PeriodRow({
       <Table.Cell>{row.formatter(current[row.metric])}</Table.Cell>
       <Table.Cell>{row.formatter(previous[row.metric])}</Table.Cell>
       <Table.Cell>
-        {formatChange(current[row.metric], previous[row.metric], row.formatter)}
+        {formatChange(
+          current[row.metric],
+          previous[row.metric],
+          row.formatter,
+          locale,
+          newLabel,
+        )}
       </Table.Cell>
     </Table.Row>
   );
 }
 
 function PeriodCard({
+  locale,
+  newLabel,
   current,
   currentLabel,
   previous,
@@ -668,6 +709,8 @@ function PeriodCard({
   previous: PeriodStats;
   previousLabel: string;
   row: PeriodRowData;
+  locale: string;
+  newLabel: string;
 }) {
   return (
     <Card asChild>
@@ -679,6 +722,8 @@ function PeriodCard({
               current[row.metric],
               previous[row.metric],
               row.formatter,
+              locale,
+              newLabel,
             )}
           </Text>
         </div>
@@ -723,46 +768,50 @@ function MetricPair({
   );
 }
 
-function RecordValue({ record }: { record: SetRecord }) {
+function RecordValue({
+  record,
+  locale,
+}: {
+  record: SetRecord;
+  locale: string;
+}) {
   return (
     <span className="stats-record-value">
-      <Text weight="bold">{formatNumber(record.value)}</Text>
+      <Text weight="bold">{formatNumeric(record.value, locale, 1)}</Text>
       <Text size="1" color="gray">
-        {formatSetDetail(record)}
+        {formatSetDetail(record, locale)}
       </Text>
     </span>
   );
 }
 
-function formatSetDetail(record: SetRecord) {
-  return `${formatNumber(record.weight)} × ${formatInteger(record.reps)} · ${record.date.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
+function formatSetDetail(record: SetRecord, locale: string) {
+  return `${formatNumeric(record.weight, locale, 1)} × ${formatNumeric(record.reps, locale, 0)} · ${record.date.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
 function formatChange(
   current: number,
   previous: number,
   formatter: (value: number) => string,
+  locale: string,
+  newLabel: string,
 ) {
   const difference = current - previous;
 
   if (previous === 0) {
-    return difference === 0 ? "0%" : "New";
+    return difference === 0 ? "0%" : newLabel;
   }
 
   const percent = (difference / previous) * 100;
   const sign = difference > 0 ? "+" : "";
 
-  return `${sign}${formatter(difference)} (${sign}${formatNumber(percent)}%)`;
+  return `${sign}${formatter(difference)} (${sign}${formatNumeric(percent, locale, 1)}%)`;
 }
 
-function formatInteger(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 1,
-  }).format(value);
+function formatNumeric(
+  value: number,
+  locale: string,
+  maximumFractionDigits: number,
+) {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
 }

@@ -27,7 +27,7 @@ import { FormSelect } from "@/components/form-select";
 import { PreviousSession } from "@/components/previous-session";
 import { SessionPanel } from "@/components/session-panel";
 import { requireUser } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { priorSessions } from "@/lib/workout-history";
 
@@ -38,6 +38,11 @@ export default async function WorkoutPage({
 }) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
+  const formatInteger = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
   const { id } = await params;
   const workout = await prisma.workout.findFirst({
     where: {
@@ -89,6 +94,7 @@ export default async function WorkoutPage({
     workout.id,
     workout.date,
     exercises.map((e) => e.id),
+    locale,
   );
 
   return (
@@ -99,7 +105,7 @@ export default async function WorkoutPage({
             {workout.title || t("workout")}
           </Heading>
           <Text as="p" size="2" color="gray">
-            {workout.date.toLocaleDateString("en")}
+            {workout.date.toLocaleDateString(locale)}
           </Text>
         </div>
         <div className="card-actions">
@@ -687,16 +693,4 @@ function formatDateInput(date: Date) {
     String(date.getMonth() + 1).padStart(2, "0"),
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
-}
-
-function formatInteger(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 1,
-  }).format(value);
 }

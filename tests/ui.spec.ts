@@ -3,6 +3,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
 import { formatDateKey } from "../src/lib/calendar";
 import { prisma } from "../src/lib/prisma";
+import { dictionary } from "../src/lib/translations";
 
 let adminPassword = "admin";
 let workoutPath = "";
@@ -801,28 +802,29 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
       { name: "locale", value: "zh-TW", url: "http://localhost:8784" },
     ]);
   await page.reload();
+  const t = dictionary("zh-TW");
   const benchRow = page
     .locator(".exercise-row")
     .filter({ hasText: "Bench Press" });
   await benchRow
-    .getByRole("button", { name: "Add alias", exact: true })
+    .getByRole("button", { name: t("addAlias"), exact: true })
     .click();
   const aliasForm = benchRow.locator("form");
-  await aliasForm.getByLabel("Locale", { exact: true }).fill("en");
-  await aliasForm.getByLabel("Alias", { exact: true }).fill("Bench Press");
+  await aliasForm.getByLabel(t("locale"), { exact: true }).fill("en");
+  await aliasForm.getByLabel(t("alias"), { exact: true }).fill("Bench Press");
   const aliasesBefore = await prisma.exerciseAlias.count();
   await aliasForm
-    .getByRole("button", { name: "Add alias", exact: true })
+    .getByRole("button", { name: t("addAlias"), exact: true })
     .click();
   await expect(page.locator("main").getByRole("alert")).toContainText(
-    "This alias already exists",
+    t("duplicateAlias"),
   );
   expect(await prisma.exerciseAlias.count()).toBe(aliasesBefore);
   await benchRow
-    .getByRole("button", { name: "Add alias", exact: true })
+    .getByRole("button", { name: t("addAlias"), exact: true })
     .click();
   await aliasForm
-    .getByLabel("Alias", { exact: true })
+    .getByLabel(t("alias"), { exact: true })
     .fill("Failure recovery alias");
   await aliasForm
     .locator('input[name="exerciseId"]')
@@ -830,17 +832,17 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
       input.value = "missing-exercise";
     });
   await aliasForm
-    .getByRole("button", { name: "Add alias", exact: true })
+    .getByRole("button", { name: t("addAlias"), exact: true })
     .click();
   await expect(page.locator("main").getByRole("alert")).toContainText(
-    "This page could not be loaded.",
+    t("pageError"),
   );
   expect(await prisma.exerciseAlias.count()).toBe(aliasesBefore);
-  await page.getByRole("button", { name: "Try again", exact: true }).click();
+  await page.getByRole("button", { name: t("tryAgain"), exact: true }).click();
   await expect(
     page
       .locator("main")
-      .getByRole("heading", { name: "Exercise library", exact: true }),
+      .getByRole("heading", { name: t("exerciseLibrary"), exact: true }),
   ).toBeVisible();
   await page.context().clearCookies({ name: "locale" });
   await page.emulateMedia({ reducedMotion: "reduce" });

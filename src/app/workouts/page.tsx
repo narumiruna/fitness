@@ -25,7 +25,7 @@ import { TemplatePlanning } from "@/components/template-planning";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey, parseDateKey } from "@/lib/calendar";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { sumVolume } from "@/lib/stats-calculations";
 
@@ -53,6 +53,11 @@ export default async function WorkoutsPage({
 }: WorkoutsPageProps) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
+  const formatInteger = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
   const params = await searchParams;
   const filters = resolveWorkoutFilters(params);
   const now = new Date();
@@ -204,12 +209,12 @@ export default async function WorkoutsPage({
               />
             ) : (
               workouts.map((workout, index) => {
-                const month = workout.date.toLocaleDateString("en", {
+                const month = workout.date.toLocaleDateString(locale, {
                   month: "long",
                   year: "numeric",
                 });
                 const previous = workouts[index - 1]?.date.toLocaleDateString(
-                  "en",
+                  locale,
                   { month: "long", year: "numeric" },
                 );
                 const names = [
@@ -228,13 +233,13 @@ export default async function WorkoutsPage({
                         dateTime={formatDateKey(workout.date)}
                       >
                         <span>
-                          {workout.date.toLocaleDateString("en", {
+                          {workout.date.toLocaleDateString(locale, {
                             month: "short",
                           })}
                         </span>
                         <strong>{workout.date.getDate()}</strong>
                         <span>
-                          {workout.date.toLocaleDateString("en", {
+                          {workout.date.toLocaleDateString(locale, {
                             weekday: "short",
                           })}
                         </span>
@@ -550,16 +555,4 @@ function firstParam(value: string | string[] | undefined) {
 function positiveInteger(value: string | undefined) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-function formatInteger(value: number) {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", { maximumFractionDigits: 1 }).format(
-    value,
-  );
 }

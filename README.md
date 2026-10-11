@@ -3,6 +3,27 @@
 A multi-user strength training tracker built with Next.js, TypeScript, Prisma,
 PostgreSQL in production, SQLite in development, Radix UI, and Biome.
 
+## Languages
+
+Use the language selector in the header to switch between English and Traditional
+Chinese. It is available before and after sign-in. The selected language is saved
+in a cookie for one year and takes priority over the browser language. Without a
+valid saved choice, the app uses the browser's supported language preference,
+then falls back to English. Dates, numbers, and document language use the same
+locale. Language changes do not translate user-entered data or change stored
+workout dates, values, or exercise names.
+
+Add English UI strings in `src/lib/messages.ts` and matching Traditional Chinese
+strings in `src/lib/messages-zh-tw.ts`. The dictionaries have the same typed keys.
+Keep message placeholders unchanged in translations. Server components use
+`getDictionary()` from `src/lib/i18n.ts`; pass translated labels to client
+components.
+
+```bash
+npm run test:i18n
+npm run test:ui -- tests/i18n.spec.ts
+```
+
 ## Development
 
 ```bash

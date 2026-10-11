@@ -4,12 +4,13 @@ import type { Metadata } from "next";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { LanguageSelect } from "@/components/language-select";
 import { Navigation } from "@/components/navigation";
 import { PageErrorMessagesProvider } from "@/components/page-error";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Fitness",
@@ -21,9 +22,10 @@ export default async function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   const user = await getCurrentUser();
   const t = await getDictionary();
+  const locale = await getLocale();
 
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
         <Theme
           accentColor="teal"
@@ -61,6 +63,11 @@ export default async function RootLayout({
                 ) : null}
                 <Flex asChild align="center" wrap="wrap" gap="3">
                   <nav className="secondary-nav" aria-label={t("account")}>
+                    <LanguageSelect
+                      locale={locale}
+                      label={t("language")}
+                      errorMessage={t("languageChangeError")}
+                    />
                     {user ? (
                       <>
                         {user.role === "ADMIN" ? (

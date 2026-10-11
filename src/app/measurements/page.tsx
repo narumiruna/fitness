@@ -16,11 +16,12 @@ import { SafeForm } from "@/components/safe-form";
 import { TrainingChart } from "@/components/training-chart";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey } from "@/lib/calendar";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 export default async function MeasurementsPage() {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
   const [records, goal] = await Promise.all([
     prisma.bodyMeasurement.findMany({
       where: { userId: user.id },
@@ -103,6 +104,7 @@ export default async function MeasurementsPage() {
               {t(metric)}
             </Heading>
             <TrainingChart
+              locale={locale}
               kind="line"
               label={t(metric)}
               dataLabel={t("chartData")}

@@ -1,5 +1,11 @@
 export const englishMessages = {
   appName: "Fitness",
+  language: "Language",
+  newActivity: "New",
+  languageChangeError: "Language could not be changed. Try again.",
+  editExercise: "Edit exercise",
+  exerciseEditHelp:
+    "Only the creator or an administrator can edit this shared exercise. Earlier names remain searchable. Workout records stay linked.",
   previousSession: "Previous session",
   noPreviousSession: "No earlier completed sets for this exercise.",
   copyValues: "Copy weight and reps",

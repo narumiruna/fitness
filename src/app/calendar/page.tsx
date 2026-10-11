@@ -11,7 +11,7 @@ import {
   parseDateKey,
   resolveCalendarMonth,
 } from "@/lib/calendar";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { sumVolume } from "@/lib/stats-calculations";
 
@@ -28,6 +28,7 @@ export default async function CalendarPage({
 }: CalendarPageProps) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
   const params = await searchParams;
   const today = new Date();
   const { year, month } = resolveCalendarMonth(params, today);
@@ -89,7 +90,7 @@ export default async function CalendarPage({
             <section className="calendar-month stack">
               <div className="section-heading">
                 <Heading as="h2" size="5">
-                  {formatMonthTitle(year, month)}
+                  {formatMonthTitle(year, month, locale)}
                 </Heading>
                 <div className="calendar-actions">
                   <Button highContrast asChild variant="soft">
@@ -194,7 +195,7 @@ export default async function CalendarPage({
                         href={`/workouts/${workout.id}`}
                       >
                         <time dateTime={formatDateKey(workout.date)}>
-                          {workout.date.toLocaleDateString("en", {
+                          {workout.date.toLocaleDateString(locale, {
                             month: "short",
                             day: "numeric",
                           })}
@@ -221,7 +222,7 @@ export default async function CalendarPage({
               {t("selectedDate")}
             </Text>
             <Heading as="h2" size="4">
-              {selected.toLocaleDateString("en", {
+              {selected.toLocaleDateString(locale, {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -246,7 +247,7 @@ export default async function CalendarPage({
                       {workout.sets.length} {t("sets")}
                     </Badge>
                     <Badge color="gray">
-                      {new Intl.NumberFormat("en").format(
+                      {new Intl.NumberFormat(locale).format(
                         sumVolume(workout.sets),
                       )}{" "}
                       {t("volume")}
