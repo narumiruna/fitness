@@ -81,7 +81,6 @@ export async function updateExerciseAction(formData: FormData) {
           where: { id: exercise.id },
           data: {
             defaultName: input.defaultName,
-            slug: slugifyExerciseName(input.defaultName),
           },
         });
         await tx.exerciseName.updateMany({

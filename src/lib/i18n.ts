@@ -1,5 +1,12 @@
 import { cookies } from "next/headers";
-import { englishMessages as enMessages } from "@/lib/messages";
+import { englishMessages } from "@/lib/messages";
+
+const enMessages = {
+  ...englishMessages,
+  editExercise: "Edit exercise",
+  exerciseEditHelp:
+    "Only the creator or an administrator can edit this shared exercise. Earlier names remain searchable. Workout records stay linked.",
+};
 
 export const defaultLocale = "en";
 export const supportedLocales = ["en", "zh-TW"] as const;
