@@ -22,6 +22,8 @@ export function Navigation({
     { href: "/calendar", Icon: CalendarIcon },
     { href: "/stats", Icon: BarChartIcon },
     { href: "/exercises", Icon: ReaderIcon },
+    { href: "/measurements", Icon: BarChartIcon },
+    { href: "/data", Icon: ReaderIcon },
   ];
   return (
     <nav className="primary-nav" aria-label={label}>

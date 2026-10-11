@@ -153,7 +153,7 @@ vite.config.ts.timestamp-*
 /playwright-report/
 
 # Personal data
-data/
+/data/
 
 # pi
 .pi/

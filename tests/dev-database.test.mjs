@@ -154,8 +154,9 @@ test("predev refuses destructive SQLite schema changes and preserves stored valu
       ).run("workout", "user", Date.now(), "Keep this title", Date.now());
       const schemaPath = join(directory, "prisma/schema.prisma");
       const schema = readFileSync(schemaPath, "utf8");
-      assert.ok(schema.includes("  title     String?"));
-      writeFileSync(schemaPath, schema.replace("  title     String?\n", ""));
+      const titleField = /^\s+title\s+String\?\r?\n/m;
+      assert.match(schema, titleField);
+      writeFileSync(schemaPath, schema.replace(titleField, ""));
       const result = run(directory);
       assert.notEqual(result.status, 0);
       assert.equal(

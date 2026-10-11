@@ -24,9 +24,12 @@ import {
 } from "@/app/actions/workouts";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormSelect } from "@/components/form-select";
+import { PreviousSession } from "@/components/previous-session";
+import { SessionPanel } from "@/components/session-panel";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
+import { priorSessions } from "@/lib/workout-history";
 
 export default async function WorkoutPage({
   params,
@@ -58,16 +61,34 @@ export default async function WorkoutPage({
   const exercises = await prisma.exercise.findMany({
     orderBy: { defaultName: "asc" },
   });
+  const history = await priorSessions(
+    user.id,
+    workout.id,
+    workout.date,
+    exercises.map((e) => e.id),
+  );
   const today = formatDateInput(new Date());
   const workoutDate = formatDateInput(workout.date);
   const nextOrder =
     workout.sets.reduce((max, set) => Math.max(max, set.order), 0) + 1;
-  const totalReps = workout.sets.reduce((total, set) => total + set.reps, 0);
-  const totalVolume = workout.sets.reduce(
+  const performedSets = workout.sets.filter((s) => s.completed);
+  const totalReps = performedSets.reduce((total, set) => total + set.reps, 0);
+  const totalVolume = performedSets.reduce(
     (total, set) => total + set.weight * set.reps,
     0,
   );
-  const exerciseCount = new Set(workout.sets.map((set) => set.exerciseId)).size;
+  const exerciseCount = new Set(performedSets.map((set) => set.exerciseId))
+    .size;
+  if (workout.state !== "COMPLETED")
+    return (
+      <section className="stack">
+        <Heading as="h1" size="8">
+          {workout.title || t("workout")}
+        </Heading>
+        <Text>{workoutDate}</Text>
+        <SessionPanel workout={workout} userId={user.id} />
+      </section>
+    );
 
   return (
     <section className="stack">
@@ -99,10 +120,11 @@ export default async function WorkoutPage({
         </div>
       </div>
 
+      <SessionPanel workout={workout} userId={user.id} />
       <section className="stats-card-grid" aria-label={t("overview")}>
         <SummaryCard
           label={t("totalSets")}
-          value={formatInteger(workout.sets.length)}
+          value={formatInteger(performedSets.length)}
         />
         <SummaryCard label={t("totalReps")} value={formatInteger(totalReps)} />
         <SummaryCard
@@ -175,16 +197,39 @@ export default async function WorkoutPage({
                   className="field-label"
                 >
                   {t("exercise")}
-                  <FormSelect
-                    name="exerciseId"
-                    required
-                    label={t("exercise")}
-                    options={exercises.map((exercise) => ({
-                      value: exercise.id,
-                      label: exercise.defaultName,
-                    }))}
+                  <PreviousSession
+                    exercises={exercises}
+                    history={history}
+                    labels={{
+                      exercise: t("exercise"),
+                      previous: t("previousSession"),
+                      empty: t("noPreviousSession"),
+                      copy: t("copyValues"),
+                    }}
                   />
                 </Text>
+                <Text as="label">
+                  {t("setType")}
+                  <FormSelect
+                    name="type"
+                    label={t("setType")}
+                    options={[
+                      { value: "WORKING", label: t("WORKING") },
+                      { value: "WARMUP", label: t("WARMUP") },
+                    ]}
+                  />
+                </Text>
+                <Text as="label">
+                  {t("rir")}
+                  <TextField.Root
+                    name="rir"
+                    type="number"
+                    min={0}
+                    max={10}
+                    step="0.5"
+                  />
+                </Text>
+                <Text size="2">{t("rirHelp")}</Text>
                 <div className="form-grid two">
                   <Text
                     as="label"
@@ -297,6 +342,29 @@ export default async function WorkoutPage({
                             value={workout.id}
                           />
                           <input name="setId" type="hidden" value={set.id} />
+                          <Text as="label">
+                            {t("setType")}
+                            <FormSelect
+                              name="type"
+                              label={t("setType")}
+                              defaultValue={set.type}
+                              options={[
+                                { value: "WORKING", label: t("WORKING") },
+                                { value: "WARMUP", label: t("WARMUP") },
+                              ]}
+                            />
+                          </Text>
+                          <Text as="label">
+                            {t("rir")}
+                            <TextField.Root
+                              name="rir"
+                              type="number"
+                              min={0}
+                              max={10}
+                              step="0.5"
+                              defaultValue={set.rir ?? ""}
+                            />
+                          </Text>
                           <div className="detail-list-header">
                             <div>
                               <Badge color="gray" variant="soft">
@@ -497,6 +565,26 @@ export default async function WorkoutPage({
                               />
                             </Table.Cell>
                             <Table.Cell>
+                              <FormSelect
+                                name="type"
+                                form={formId}
+                                label={t("setType")}
+                                defaultValue={set.type}
+                                options={[
+                                  { value: "WORKING", label: t("WORKING") },
+                                  { value: "WARMUP", label: t("WARMUP") },
+                                ]}
+                              />
+                              <TextField.Root
+                                aria-label={t("rir")}
+                                name="rir"
+                                form={formId}
+                                type="number"
+                                min={0}
+                                max={10}
+                                step="0.5"
+                                defaultValue={set.rir ?? ""}
+                              />
                               <TextField.Root
                                 aria-label={t("notes")}
                                 defaultValue={set.notes ?? ""}
@@ -572,6 +660,8 @@ function setFormKey(set: {
     set.weight,
     set.reps,
     set.notes,
+    "type" in set ? set.type : null,
+    "rir" in set ? set.rir : null,
   ]);
 }
 

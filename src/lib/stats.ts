@@ -15,8 +15,10 @@ export type {
 
 export async function getUserStats(userId: string, range: StatsRange = "all") {
   const workouts = await prisma.workout.findMany({
-    where: { userId },
-    include: { sets: { include: { exercise: true } } },
+    where: { userId, state: "COMPLETED" },
+    include: {
+      sets: { where: { completed: true }, include: { exercise: true } },
+    },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
   return calculateStats(workouts, range);

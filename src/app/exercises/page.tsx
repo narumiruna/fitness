@@ -20,8 +20,10 @@ import { SubmitButton } from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey } from "@/lib/calendar";
 import { normalizeExerciseAlias } from "@/lib/exercises";
+import type { MessageKey } from "@/lib/i18n";
 import { getDictionary } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
+import { equipment, muscles } from "@/lib/training";
 
 export default async function ExercisesPage({
   searchParams,
@@ -31,6 +33,8 @@ export default async function ExercisesPage({
     q?: string;
     sort?: string;
     error?: string;
+    muscle?: string;
+    equipment?: string;
   }>;
 }) {
   const user = await requireUser();
@@ -44,19 +48,27 @@ export default async function ExercisesPage({
   const [exercises, totalExerciseCount, totalAliasCount, usedExercises] =
     await Promise.all([
       prisma.exercise.findMany({
-        where: query
-          ? {
-              OR: [
-                { defaultName: { contains: query } },
-                { names: { some: { name: { contains: query } } } },
-                {
-                  aliases: {
-                    some: { normalizedAlias: { contains: normalizedQuery } },
+        where: {
+          ...(params.muscle && params.muscle !== "all"
+            ? { muscles: { some: { muscle: params.muscle } } }
+            : {}),
+          ...(params.equipment && params.equipment !== "all"
+            ? { equipment: { some: { equipment: params.equipment } } }
+            : {}),
+          ...(query
+            ? {
+                OR: [
+                  { defaultName: { contains: query } },
+                  { names: { some: { name: { contains: query } } } },
+                  {
+                    aliases: {
+                      some: { normalizedAlias: { contains: normalizedQuery } },
+                    },
                   },
-                },
-              ],
-            }
-          : undefined,
+                ],
+              }
+            : {}),
+        },
         include: {
           aliases: { orderBy: [{ locale: "asc" }, { alias: "asc" }] },
         },
@@ -77,7 +89,7 @@ export default async function ExercisesPage({
         FROM "WorkoutSet" AS s
         JOIN "Workout" AS w ON w.id = s."workoutId"
         JOIN "Exercise" AS e ON e.id = s."exerciseId"
-        WHERE w."userId" = ${user.id}
+        WHERE w."userId" = ${user.id} AND w.state = 'COMPLETED' AND s.completed = true
         GROUP BY s."exerciseId", e."defaultName"
         ORDER BY MAX(w.date) DESC, e."defaultName" ASC, s."exerciseId" ASC
       `,
@@ -107,6 +119,33 @@ export default async function ExercisesPage({
   const recent = [...usage.entries()].slice(0, 5);
   return (
     <section className="stack exercises-page">
+      <form action="/exercises" className="card-actions">
+        <input type="hidden" name="q" value={query} />
+        <FormSelect
+          name="muscle"
+          label={t("muscle")}
+          defaultValue={params.muscle ?? "all"}
+          options={[
+            { value: "all", label: t("allExercises") },
+            ...muscles.map((m) => ({ value: m, label: t(m as MessageKey) })),
+          ]}
+        />
+        <FormSelect
+          name="equipment"
+          label={t("equipment")}
+          defaultValue={params.equipment ?? "all"}
+          options={[
+            { value: "all", label: t("allExercises") },
+            ...equipment.map((m) => ({ value: m, label: t(m as MessageKey) })),
+          ]}
+        />
+        <Button highContrast type="submit">
+          {t("applyFilters")}
+        </Button>
+        <Button highContrast asChild variant="soft">
+          <NextLink href="/exercises">{t("clearFilters")}</NextLink>
+        </Button>
+      </form>
       <PageHeader title={t("exercises")} description={t("exercisePageIntro")}>
         <Button highContrast asChild>
           <a href="#new-exercise">

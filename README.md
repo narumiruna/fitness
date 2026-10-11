@@ -159,6 +159,22 @@ Workout set editors remount after saved values change so desktop and mobile form
 do not retain different values. Buttons and links use `highContrast` to meet text
 contrast requirements on tinted backgrounds.
 
+## Training features
+
+Workout weights use kilograms. See [training features](docs/training-features.md)
+for previous-session entry, weekly consistency, set types and RIR, active sessions,
+exercise metadata, progression, schedules, measurements, app CSV, and migration recovery.
+See [delivery evidence](docs/training-verification.md) for verification results and release limits.
+
+```bash
+npm run test:training           # Pure TypeScript rules and CSV tests
+npm run test:training:sqlite    # Disposable SQLite upgrades and integration
+npm run test:training:postgres  # Disposable PostgreSQL upgrades and integration
+```
+
+The PostgreSQL command requires Docker. None of these commands uses a developer
+or production database.
+
 ## Browser tests
 
 Install Google Chrome and start Docker before running the browser tests.

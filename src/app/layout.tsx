@@ -54,6 +54,8 @@ export default async function RootLayout({
                       t("calendar"),
                       t("stats"),
                       t("exercises"),
+                      t("measurements"),
+                      t("dataTransfer"),
                     ]}
                   />
                 ) : null}

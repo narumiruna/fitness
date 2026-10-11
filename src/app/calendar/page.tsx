@@ -2,6 +2,7 @@ import { PlusIcon } from "@radix-ui/react-icons";
 import { Badge, Button, Card, Heading, Link, Text } from "@radix-ui/themes";
 import NextLink from "next/link";
 import { EmptyState, PageHeader } from "@/components/dashboard";
+import { ScheduledOccurrences } from "@/components/scheduled-occurrences";
 import { requireUser } from "@/lib/auth";
 import {
   buildCalendarMonth,
@@ -47,7 +48,11 @@ export default async function CalendarPage({
     },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
     include: {
-      sets: { include: { exercise: true }, orderBy: { order: "asc" } },
+      sets: {
+        where: { completed: true, workout: { state: "COMPLETED" } },
+        include: { exercise: true },
+        orderBy: { order: "asc" },
+      },
     },
   });
   const workoutsByDate = new Map<string, typeof workouts>();
@@ -58,12 +63,18 @@ export default async function CalendarPage({
   const dayWorkouts = workoutsByDate.get(selectedKey) ?? [];
   const monthWorkouts = workouts.filter(
     (w) =>
+      w.state === "COMPLETED" &&
       w.date >= new Date(year, month - 1, 1) &&
       w.date < new Date(year, month, 1),
   );
   const createHref = `/workouts?date=${selectedKey}#new-workout`;
   return (
     <section className="calendar-shell">
+      <ScheduledOccurrences
+        userId={user.id}
+        start={calendar.startDate}
+        end={calendar.endDate}
+      />
       <PageHeader title={t("calendar")} description={t("calendarIntro")}>
         <Button highContrast asChild>
           <NextLink href={createHref}>
