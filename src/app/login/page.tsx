@@ -8,6 +8,7 @@ import {
 } from "@radix-ui/themes";
 import { redirect } from "next/navigation";
 import { loginAction } from "@/app/actions/auth";
+import { PasskeyForm } from "@/components/passkey-form";
 import { getCurrentUser, hasUsers } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 
@@ -61,6 +62,16 @@ export default async function LoginPage({
           </Button>
         </form>
       </Card>
+      <PasskeyForm
+        mode="authenticate"
+        labels={{
+          button: t("passkeySignIn"),
+          error: t("passkeyError"),
+          name: t("passkeyName"),
+          password: t("currentPassword"),
+          success: t("passkeyAdded"),
+        }}
+      />
     </section>
   );
 }

@@ -263,6 +263,16 @@ export const englishMessages = {
   createFromTemplate: "Create from template",
   noTemplates:
     "No templates yet. Save a workout as a template from its detail page.",
+  passkeys: "Passkeys",
+  passkeyHelp:
+    "Use a fingerprint, face recognition, device PIN, or security key. Keep your password for account recovery.",
+  addPasskey: "Add passkey",
+  passkeyName: "Passkey name",
+  passkeySignIn: "Sign in with a passkey",
+  passkeyError:
+    "Passkey request failed or was canceled. Check your password, browser support, and HTTPS connection, then retry.",
+  passkeyAdded: "Passkey added.",
+  noPasskeys: "No passkeys registered.",
   changePassword: "Change password",
   currentPassword: "Current password",
   newPassword: "New password",

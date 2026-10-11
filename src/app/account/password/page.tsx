@@ -3,9 +3,11 @@ import {
   Callout,
   Card,
   Heading,
+  Link,
   Text,
   TextField,
 } from "@radix-ui/themes";
+import NextLink from "next/link";
 import { changePasswordAction } from "@/app/actions/auth";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
@@ -28,6 +30,9 @@ export default async function ChangePasswordPage({
           </Heading>
         </div>
       </div>
+      <Link highContrast asChild>
+        <NextLink href="/account/passkeys">{t("passkeys")}</NextLink>
+      </Link>
       <Card asChild>
         <form action={changePasswordAction} className="form-grid">
           {params.changed ? (

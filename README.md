@@ -87,6 +87,54 @@ are not imported or modified.
 Local environment files, databases, and workout data are excluded from the build
 context.
 
+## Passkeys
+
+Sign in with your password, open **Account**, then select **Passkeys**.
+Enter a passkey name and your current password, then select **Add passkey**.
+Use **Sign in with a passkey** on the login page for password-free sign-in.
+The account page lists your passkeys and lets you remove them. Keep your password
+for recovery if you lose access to all passkeys. Removing a passkey prevents new
+sign-ins with that key; it does not end existing sessions.
+
+Passkeys require a WebAuthn-compatible browser and a device PIN, biometric check,
+or security key with user verification. Development supports HTTP only on
+`localhost` and `127.0.0.1`. These hosts have separate passkeys; use the same host
+for registration and sign-in.
+
+Production requires HTTPS and `PASSKEY_ORIGIN` in the app process environment,
+for example `https://fitness.example.com` (no trailing slash or path). The exact
+origin includes the port if it is not the default HTTPS port. The relying party
+ID is its hostname. Do not derive this setting from forwarded request headers.
+Configure the app container environment through your authorized deployment process;
+adding a value to a host `.env` file alone does not pass it into the container.
+Apply the included PostgreSQL migration before using the feature. This change
+does not deploy or modify production services.
+
+Registration requires a valid session and the current password. Sign-in verifies
+the challenge, origin, relying party ID, signature, user handle, and user
+verification. Challenges expire after five minutes, are bound to an HttpOnly
+cookie, and can be used only once. Public keys and counters are stored in the
+database; private keys stay with the authenticator.
+
+The database stores at most 1,000 pending challenges across all app instances.
+Cleanup, the capacity check, and insertion use one serializable transaction;
+requests without cookies cannot bypass the limit. A browser can replace its prior
+challenge at capacity. If no slot is available, passkey option issuance fails
+without inserting a record or setting a new challenge cookie. Retry after a
+challenge expires or use password sign-in.
+
+```bash
+npm run test:ui -- tests/passkeys.spec.ts tests/passkey-challenges.spec.ts
+npm run test:ui:production -- tests/passkey-challenges.spec.ts
+```
+
+The browser test uses Chrome's virtual authenticator and a disposable SQLite
+file. It checks registration, incorrect passwords, expired challenges, invalid
+signatures, sign-in, replay rejection, removal, and cookie-free issuance at
+capacity. Database tests check concurrent issuance, replacement, and expiry
+recovery on SQLite and disposable PostgreSQL. These tests do not verify physical
+biometric hardware or cross-device passkey synchronization.
+
 ## Logging
 
 Application logs use Pino and write one JSON object per line to stdout at
@@ -121,6 +169,14 @@ On the next request, `session.missing_cookie` means no session cookie arrived.
 `session.expired` means the session expired. `auth.required` records the
 redirect back to login. `session.authenticated` records a valid session.
 A missing cookie alone does not prove why the browser omitted it.
+
+All five passkey actions use the action logger. Registration records
+`auth.passkey_registered` or `auth.passkey_registration_failed`; sign-in records
+`auth.passkey_login_succeeded` or `auth.passkey_login_failed`. Rejected verification
+returns `false` to the UI and records the failure outcome before `action.completed`.
+Thrown option-issuance errors, including capacity rejection, record `action.failed`.
+Passkey logs omit credential IDs, challenge values, signatures, public keys,
+passkey names, and raw verification responses.
 
 Logs do not record passwords, token values or hashes, raw headers, form data,
 query strings, workout content, database URLs, or SQL parameters. Error logs
