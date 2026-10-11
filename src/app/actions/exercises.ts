@@ -77,6 +77,18 @@ export async function updateExerciseAction(formData: FormData) {
         });
         if (!exercise) throw new Error("Not permitted.");
 
+        const duplicate = await tx.exercise.findFirst({
+          where: {
+            id: { not: exercise.id },
+            OR: [
+              { defaultName: input.defaultName },
+              { names: { some: { name: input.defaultName } } },
+            ],
+          },
+          select: { id: true },
+        });
+        if (duplicate) redirect(`${path}?error=duplicate#edit-exercise`);
+
         await tx.exercise.update({
           where: { id: exercise.id },
           data: {

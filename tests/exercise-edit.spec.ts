@@ -57,13 +57,6 @@ test("exercise renaming preserves records and checks duplicates and permissions"
     data: {
       slug: "edit-protected",
       defaultName: "Edit Protected",
-      aliases: {
-        create: {
-          locale: "en",
-          alias: "Edit Protected",
-          normalizedAlias: "edit protected",
-        },
-      },
     },
   });
   exerciseIds.push(protectedExercise.id);
@@ -123,6 +116,28 @@ test("exercise renaming preserves records and checks duplicates and permissions"
   expect(
     await prisma.exercise.findUnique({ where: { id: exercise.id } }),
   ).toMatchObject({ defaultName: "Edit Renamed", slug: "edit-original" });
+  // Alias-less imported exercises must also reserve their visible names.
+  await prisma.exerciseAlias.create({
+    data: {
+      exerciseId: protectedExercise.id,
+      locale: "en",
+      alias: "Reserved Alias",
+      normalizedAlias: "reserved alias",
+    },
+  });
+  await form.getByLabel("Default name").fill("Reserved Alias");
+  await form.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(form.getByRole("alert")).toContainText(
+    "This exercise name already exists.",
+  );
+  expect(
+    await prisma.exercise.findUnique({ where: { id: exercise.id } }),
+  ).toMatchObject({ defaultName: "Edit Renamed" });
+  expect(
+    await prisma.exerciseName.count({
+      where: { exerciseId: exercise.id, name: "Reserved Alias" },
+    }),
+  ).toBe(0);
   await page.goto(`/exercises/${protectedExercise.id}`);
   await expect(page.locator("#edit-exercise")).toHaveCount(0);
   await page.goto(`/exercises/${exercise.id}`);
