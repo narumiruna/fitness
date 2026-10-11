@@ -553,6 +553,7 @@ test("admin roles and user data isolation", async ({ page }) => {
   ).toBe("ADMIN");
   await expect(create.getByRole("combobox")).toHaveText("USER");
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
   await login(page, "member", "member-password");
   await expect(
     page.getByRole("link", { name: "Admin", exact: true }),
@@ -734,7 +735,10 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
     page.locator(".stats-record-value").filter({ hasText: "500" }),
   ).toHaveCount(0);
   const point = page.locator(".training-chart g[role=button]").first();
+  // Streaming can put chart markup in a hidden container before it is ready.
+  await expect(point).toBeVisible();
   await point.focus();
+  await expect(point).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator(".chart-tooltip").first()).not.toHaveText("\u00a0");
   await page.locator(".chart-data summary").first().click();
@@ -835,6 +839,7 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   await page.emulateMedia({ reducedMotion: "reduce" });
   await captureDashboard(page, info, "populated");
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
   await login(page, "member", "member-password");
   await page.goto("/stats");
   await expect(page.locator(".stats-card")).toHaveCount(0);
