@@ -1,10 +1,21 @@
-import Link from "next/link";
+import {
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  Heading,
+  Text,
+  TextArea,
+  TextField,
+} from "@radix-ui/themes";
+import NextLink from "next/link";
 import {
   createWorkoutAction,
   createWorkoutFromTemplateAction,
   deleteWorkoutTemplateAction,
   duplicateWorkoutAction,
 } from "@/app/actions/workouts";
+import { FormSelect } from "@/components/form-select";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
@@ -112,8 +123,12 @@ export default async function WorkoutsPage({
     <section className="stack workouts-page">
       <div className="page-header workouts-header">
         <div>
-          <h1>{t("workouts")}</h1>
-          <p>{t("workoutsIntro")}</p>
+          <Heading as="h1" size="8">
+            {t("workouts")}
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            {t("workoutsIntro")}
+          </Text>
         </div>
       </div>
 
@@ -145,143 +160,195 @@ export default async function WorkoutsPage({
 
       <div className="workouts-layout">
         <aside className="workouts-sidebar stack">
-          <form
-            className="panel form-grid create-workout-card"
-            action={createWorkoutAction}
-          >
-            <h2>{t("createWorkout")}</h2>
-            <label>
-              {t("date")}
-              <input defaultValue={today} name="date" required type="date" />
-            </label>
-            <label>
-              {t("workoutTitle")}
-              <input name="title" placeholder="Lower body" />
-            </label>
-            <label>
-              {t("notes")}
-              <textarea name="notes" placeholder="How did it feel?" />
-            </label>
-            <button className="button" type="submit">
-              {t("createWorkout")}
-            </button>
-          </form>
+          <Card asChild>
+            <form
+              action={createWorkoutAction}
+              className="form-grid create-workout-card"
+            >
+              <Heading as="h2" size="5">
+                {t("createWorkout")}
+              </Heading>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("date")}
+                <TextField.Root
+                  defaultValue={today}
+                  name="date"
+                  required
+                  type="date"
+                />
+              </Text>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("workoutTitle")}
+                <TextField.Root
+                  name="title"
+                  placeholder={t("workoutTitlePlaceholder")}
+                />
+              </Text>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("notes")}
+                <TextArea
+                  aria-label={t("notes")}
+                  name="notes"
+                  placeholder={t("workoutNotesPlaceholder")}
+                />
+              </Text>
+              <Button highContrast type="submit">
+                {t("createWorkout")}
+              </Button>
+            </form>
+          </Card>
 
-          <form className="panel form-grid" action="/workouts">
-            <h2>{t("filterWorkouts")}</h2>
-            <label>
-              {t("search")}
-              <input
-                defaultValue={filters.q}
-                name="q"
-                placeholder="title or notes"
-              />
-            </label>
-            <label>
-              {t("month")}
-              <input defaultValue={filters.month} name="month" type="month" />
-            </label>
-            <label>
-              {t("exercise")}
-              <select defaultValue={filters.exerciseId} name="exercise">
-                <option value="">{t("allExercises")}</option>
-                {exerciseOptions.map((exercise) => (
-                  <option key={exercise.id} value={exercise.id}>
-                    {exercise.defaultName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="checkbox-label">
-              <input
-                defaultChecked={filters.notesOnly}
-                name="notes"
-                type="checkbox"
-                value="1"
-              />
-              {t("onlyWorkoutsWithNotes")}
-            </label>
-            <div className="toolbar-actions">
-              <button className="button" type="submit">
-                {t("applyFilters")}
-              </button>
-              <Link className="button secondary" href="/workouts">
-                {t("clearFilters")}
-              </Link>
-            </div>
-          </form>
-
-          <section className="panel stack">
-            <div className="section-heading">
-              <h2>{t("templates")}</h2>
-              <span>{templates.length}</span>
-            </div>
-            {templates.length === 0 ? (
-              <p className="muted">{t("noTemplates")}</p>
-            ) : (
-              <div className="template-list">
-                {templates.map((template) => (
-                  <article className="template-item" key={template.id}>
-                    <div>
-                      <strong>{template.title}</strong>
-                      <small>
-                        {template._count.sets}{" "}
-                        {template._count.sets === 1 ? t("set") : t("sets")}
-                      </small>
-                    </div>
-                    <form
-                      className="form-grid template-actions"
-                      action={createWorkoutFromTemplateAction}
-                    >
-                      <input
-                        name="templateId"
-                        type="hidden"
-                        value={template.id}
-                      />
-                      <input
-                        aria-label={t("date")}
-                        defaultValue={today}
-                        name="date"
-                        required
-                        type="date"
-                      />
-                      <button className="button secondary" type="submit">
-                        {t("createFromTemplate")}
-                      </button>
-                    </form>
-                    <form action={deleteWorkoutTemplateAction}>
-                      <input
-                        name="templateId"
-                        type="hidden"
-                        value={template.id}
-                      />
-                      <button className="link-button danger-link" type="submit">
-                        {t("delete")}
-                      </button>
-                    </form>
-                  </article>
-                ))}
+          <Card asChild>
+            <form action="/workouts" className="form-grid">
+              <Heading as="h2" size="5">
+                {t("filterWorkouts")}
+              </Heading>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("search")}
+                <TextField.Root
+                  defaultValue={filters.q}
+                  name="q"
+                  placeholder={t("workoutSearchPlaceholder")}
+                />
+              </Text>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("month")}
+                <TextField.Root
+                  defaultValue={filters.month}
+                  name="month"
+                  type="month"
+                />
+              </Text>
+              <Text as="label" size="2" weight="medium" className="field-label">
+                {t("exercise")}
+                <FormSelect
+                  defaultValue={filters.exerciseId}
+                  name="exercise"
+                  key={filters.exerciseId}
+                  label={t("exercise")}
+                  options={[
+                    { value: "", label: t("allExercises") },
+                    ...exerciseOptions.map((exercise) => ({
+                      value: exercise.id,
+                      label: exercise.defaultName,
+                    })),
+                  ]}
+                />
+              </Text>
+              <Text
+                as="label"
+                size="2"
+                weight="medium"
+                className="checkbox-label"
+              >
+                <Checkbox
+                  defaultChecked={filters.notesOnly}
+                  name="notes"
+                  value="1"
+                />
+                {t("onlyWorkoutsWithNotes")}
+              </Text>
+              <div className="toolbar-actions">
+                <Button highContrast type="submit">
+                  {t("applyFilters")}
+                </Button>
+                <Button highContrast asChild variant="soft">
+                  <NextLink href="/workouts">{t("clearFilters")}</NextLink>
+                </Button>
               </div>
-            )}
-          </section>
+            </form>
+          </Card>
+
+          <Card asChild>
+            <section className="stack">
+              <div className="section-heading">
+                <Heading as="h2" size="5">
+                  {t("templates")}
+                </Heading>
+                <Badge color="gray">{templates.length}</Badge>
+              </div>
+              {templates.length === 0 ? (
+                <Text as="p" size="2" color="gray">
+                  {t("noTemplates")}
+                </Text>
+              ) : (
+                <div className="template-list">
+                  {templates.map((template) => (
+                    <Card asChild key={template.id}>
+                      <article className="template-item">
+                        <div>
+                          <Text weight="bold">{template.title}</Text>
+                          <Text size="1" color="gray">
+                            {template._count.sets}{" "}
+                            {template._count.sets === 1 ? t("set") : t("sets")}
+                          </Text>
+                        </div>
+                        <form
+                          className="form-grid template-actions"
+                          action={createWorkoutFromTemplateAction}
+                        >
+                          <input
+                            name="templateId"
+                            type="hidden"
+                            value={template.id}
+                          />
+                          <TextField.Root
+                            aria-label={t("date")}
+                            defaultValue={today}
+                            name="date"
+                            required
+                            type="date"
+                          />
+                          <Button highContrast variant="soft" type="submit">
+                            {t("createFromTemplate")}
+                          </Button>
+                        </form>
+                        <form action={deleteWorkoutTemplateAction}>
+                          <input
+                            name="templateId"
+                            type="hidden"
+                            value={template.id}
+                          />
+                          <Button
+                            highContrast
+                            color="red"
+                            variant="soft"
+                            type="submit"
+                          >
+                            {t("delete")}
+                          </Button>
+                        </form>
+                      </article>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+          </Card>
         </aside>
 
         <section className="workouts-list stack">
           <div className="section-heading workout-list-heading">
             <div>
-              <h2>{t("recentWorkouts")}</h2>
-              <p className="muted">
+              <Heading as="h2" size="5">
+                {t("recentWorkouts")}
+              </Heading>
+              <Text as="p" size="2" color="gray">
                 {t("showing")} {formatInteger(workouts.length)} {t("of")}{" "}
                 {formatInteger(filteredWorkoutCount)}
-              </p>
+              </Text>
             </div>
-            <span>{filteredWorkoutCount}</span>
+            <Badge color="gray">{filteredWorkoutCount}</Badge>
           </div>
           {workouts.length === 0 ? (
-            <div className="empty-state">
-              <strong>{t("noWorkouts")}</strong>
-              <p className="muted">{t("workoutsIntro")}</p>
-            </div>
+            <Card asChild>
+              <div className="empty-state">
+                <Text weight="bold">{t("noWorkouts")}</Text>
+                <Text as="p" size="2" color="gray">
+                  {t("workoutsIntro")}
+                </Text>
+              </div>
+            </Card>
           ) : (
             workouts.map((workout) => {
               const exerciseCount = new Set(
@@ -289,55 +356,61 @@ export default async function WorkoutsPage({
               ).size;
 
               return (
-                <article className="item workout-card" key={workout.id}>
-                  <div className="workout-card-body">
-                    <div className="workout-card-main">
-                      <time
-                        className="meta-pill"
-                        dateTime={workout.date.toISOString()}
-                      >
-                        {workout.date.toLocaleDateString("en")}
-                      </time>
-                      <h2>{workout.title || t("workout")}</h2>
+                <Card asChild key={workout.id}>
+                  <article className="workout-card">
+                    <div className="workout-card-body">
+                      <div className="workout-card-main">
+                        <Badge asChild color="gray">
+                          <time dateTime={workout.date.toISOString()}>
+                            {workout.date.toLocaleDateString("en")}
+                          </time>
+                        </Badge>
+                        <Heading as="h2" size="5">
+                          {workout.title || t("workout")}
+                        </Heading>
+                      </div>
                     </div>
-                  </div>
-                  <div className="workout-card-footer">
-                    <div className="workout-card-stats">
-                      <span>
-                        <strong>{formatInteger(workout.sets.length)}</strong>{" "}
-                        {workout.sets.length === 1 ? t("set") : t("sets")}
-                      </span>
-                      <span>
-                        <strong>{formatInteger(exerciseCount)}</strong>{" "}
-                        {exerciseCount === 1
-                          ? t("exercise")
-                          : t("exercisesMetric")}
-                      </span>
-                      {workout.notes ? (
-                        <span>{t("notesAvailable")}</span>
-                      ) : null}
+                    <div className="workout-card-footer">
+                      <div className="workout-card-stats">
+                        <span>
+                          <Text weight="bold">
+                            {formatInteger(workout.sets.length)}
+                          </Text>{" "}
+                          {workout.sets.length === 1 ? t("set") : t("sets")}
+                        </span>
+                        <span>
+                          <Text weight="bold">
+                            {formatInteger(exerciseCount)}
+                          </Text>{" "}
+                          {exerciseCount === 1
+                            ? t("exercise")
+                            : t("exercisesMetric")}
+                        </span>
+                        {workout.notes ? (
+                          <span>{t("notesAvailable")}</span>
+                        ) : null}
+                      </div>
+                      <div className="card-actions">
+                        <form action={duplicateWorkoutAction}>
+                          <input
+                            name="sourceWorkoutId"
+                            type="hidden"
+                            value={workout.id}
+                          />
+                          <input name="date" type="hidden" value={today} />
+                          <Button highContrast variant="soft" type="submit">
+                            {t("repeatWorkout")}
+                          </Button>
+                        </form>
+                        <Button highContrast asChild variant="soft">
+                          <NextLink href={`/workouts/${workout.id}`}>
+                            {t("view")}
+                          </NextLink>
+                        </Button>
+                      </div>
                     </div>
-                    <div className="card-actions">
-                      <form action={duplicateWorkoutAction}>
-                        <input
-                          name="sourceWorkoutId"
-                          type="hidden"
-                          value={workout.id}
-                        />
-                        <input name="date" type="hidden" value={today} />
-                        <button className="button secondary" type="submit">
-                          {t("repeatWorkout")}
-                        </button>
-                      </form>
-                      <Link
-                        className="button secondary"
-                        href={`/workouts/${workout.id}`}
-                      >
-                        {t("view")}
-                      </Link>
-                    </div>
-                  </div>
-                </article>
+                  </article>
+                </Card>
               );
             })
           )}
@@ -345,30 +418,34 @@ export default async function WorkoutsPage({
           {totalPages > 1 ? (
             <nav className="pagination" aria-label={t("pagination")}>
               {currentPage > 1 ? (
-                <Link
-                  className="button secondary"
-                  href={workoutsHref(filters, { page: currentPage - 1 })}
-                >
-                  {t("previous")}
-                </Link>
+                <Button highContrast asChild variant="soft">
+                  <NextLink
+                    href={workoutsHref(filters, { page: currentPage - 1 })}
+                  >
+                    {t("previous")}
+                  </NextLink>
+                </Button>
               ) : (
-                <span className="button secondary disabled">
+                <Button highContrast variant="soft" disabled>
                   {t("previous")}
-                </span>
+                </Button>
               )}
               <span className="pagination-status">
                 {t("page")} {formatInteger(currentPage)} {t("of")}{" "}
                 {formatInteger(totalPages)}
               </span>
               {currentPage < totalPages ? (
-                <Link
-                  className="button secondary"
-                  href={workoutsHref(filters, { page: currentPage + 1 })}
-                >
-                  {t("next")}
-                </Link>
+                <Button highContrast asChild variant="soft">
+                  <NextLink
+                    href={workoutsHref(filters, { page: currentPage + 1 })}
+                  >
+                    {t("next")}
+                  </NextLink>
+                </Button>
               ) : (
-                <span className="button secondary disabled">{t("next")}</span>
+                <Button highContrast variant="soft" disabled>
+                  {t("next")}
+                </Button>
               )}
             </nav>
           ) : null}
@@ -386,10 +463,16 @@ function WorkoutSummaryCard({
   value: string;
 }) {
   return (
-    <article className="item workout-summary-card">
-      <span className="muted">{label}</span>
-      <strong>{value}</strong>
-    </article>
+    <Card asChild>
+      <article className="workout-summary-card">
+        <Text size="2" color="gray">
+          {label}
+        </Text>
+        <Text size="7" weight="bold">
+          {value}
+        </Text>
+      </article>
+    </Card>
   );
 }
 

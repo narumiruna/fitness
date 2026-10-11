@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Badge, Button, Card, Heading, Link, Text } from "@radix-ui/themes";
+import NextLink from "next/link";
 import { requireUser } from "@/lib/auth";
 import {
   buildCalendarMonth,
@@ -66,22 +67,25 @@ export default async function CalendarPage({
     <section className="calendar-shell">
       <div className="page-header calendar-header">
         <div>
-          <h1>{t("calendar")}</h1>
-          <p>{monthTitle}</p>
+          <Heading as="h1" size="8">
+            {t("calendar")}
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            {monthTitle}
+          </Text>
         </div>
         <div className="calendar-actions">
-          <Link
-            className="button secondary"
-            href={calendarHref(calendar.previous)}
-          >
-            {t("previous")}
-          </Link>
-          <Link className="button secondary" href="/calendar">
-            {t("today")}
-          </Link>
-          <Link className="button secondary" href={calendarHref(calendar.next)}>
-            {t("next")}
-          </Link>
+          <Button highContrast asChild variant="soft">
+            <NextLink href={calendarHref(calendar.previous)}>
+              {t("previous")}
+            </NextLink>
+          </Button>
+          <Button highContrast asChild variant="soft">
+            <NextLink href="/calendar">{t("today")}</NextLink>
+          </Button>
+          <Button highContrast asChild variant="soft">
+            <NextLink href={calendarHref(calendar.next)}>{t("next")}</NextLink>
+          </Button>
         </div>
       </div>
 
@@ -121,19 +125,21 @@ export default async function CalendarPage({
               {visibleWorkouts.length > 0 ? (
                 <div className="calendar-workouts">
                   {visibleWorkouts.map((workout) => (
-                    <Link
-                      className="calendar-workout"
-                      href={`/workouts/${workout.id}`}
-                      key={workout.id}
-                    >
-                      <span className="calendar-workout-title">
-                        {workout.title || t("workout")}
-                      </span>
-                      <span className="calendar-workout-meta">
-                        {workout._count.sets}{" "}
-                        {workout._count.sets === 1 ? t("set") : t("sets")}
-                        {workout.notes ? ` · ${t("notesAvailable")}` : ""}
-                      </span>
+                    <Link highContrast asChild key={workout.id}>
+                      <NextLink
+                        className="calendar-workout"
+                        aria-label={`${workout.title || t("workout")} · ${day.dateKey}`}
+                        href={`/workouts/${workout.id}`}
+                      >
+                        <span className="calendar-workout-title">
+                          {workout.title || t("workout")}
+                        </span>
+                        <span className="calendar-workout-meta">
+                          {workout._count.sets}{" "}
+                          {workout._count.sets === 1 ? t("set") : t("sets")}
+                          {workout.notes ? ` · ${t("notesAvailable")}` : ""}
+                        </span>
+                      </NextLink>
                     </Link>
                   ))}
                   {hiddenWorkoutCount > 0 ? (
@@ -148,37 +154,44 @@ export default async function CalendarPage({
         })}
       </div>
 
-      <section className="panel calendar-agenda">
-        <div className="section-heading">
-          <h2>{t("monthWorkouts")}</h2>
-          <span>{currentMonthWorkouts.length}</span>
-        </div>
-        {currentMonthWorkouts.length > 0 ? (
-          <div className="agenda-list">
-            {currentMonthWorkouts.map((workout) => (
-              <Link
-                className="agenda-item"
-                href={`/workouts/${workout.id}`}
-                key={workout.id}
-              >
-                <time dateTime={workout.date.toISOString()}>
-                  {workout.date.toLocaleDateString("en", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </time>
-                <span>{workout.title || t("workout")}</span>
-                <small>
-                  {workout._count.sets}{" "}
-                  {workout._count.sets === 1 ? t("set") : t("sets")}
-                </small>
-              </Link>
-            ))}
+      <Card asChild>
+        <section className="calendar-agenda">
+          <div className="section-heading">
+            <Heading as="h2" size="5">
+              {t("monthWorkouts")}
+            </Heading>
+            <Badge color="gray">{currentMonthWorkouts.length}</Badge>
           </div>
-        ) : (
-          <p className="muted">{t("noMonthWorkouts")}</p>
-        )}
-      </section>
+          {currentMonthWorkouts.length > 0 ? (
+            <div className="agenda-list">
+              {currentMonthWorkouts.map((workout) => (
+                <Link highContrast asChild key={workout.id}>
+                  <NextLink
+                    className="agenda-item"
+                    href={`/workouts/${workout.id}`}
+                  >
+                    <time dateTime={workout.date.toISOString()}>
+                      {workout.date.toLocaleDateString("en", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </time>
+                    <span>{workout.title || t("workout")}</span>
+                    <Text size="1" color="gray">
+                      {workout._count.sets}{" "}
+                      {workout._count.sets === 1 ? t("set") : t("sets")}
+                    </Text>
+                  </NextLink>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Text as="p" size="2" color="gray">
+              {t("noMonthWorkouts")}
+            </Text>
+          )}
+        </section>
+      </Card>
     </section>
   );
 }

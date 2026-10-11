@@ -7,6 +7,13 @@ export type Locale = (typeof supportedLocales)[number];
 
 const enMessages = {
   appName: "Fitness",
+  primaryNavigation: "Primary",
+  workoutTitlePlaceholder: "Lower body",
+  workoutNotesPlaceholder: "How did it feel?",
+  workoutSearchPlaceholder: "Title or notes",
+  exerciseSearchPlaceholder: "Exercise name or alias",
+  exerciseNamePlaceholder: "Overhead Press",
+  aliasPlaceholder: "Alternate name",
   dashboard: "Dashboard",
   workouts: "Workouts",
   workout: "Workout",

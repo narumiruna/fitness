@@ -1,7 +1,7 @@
 # Fitness
 
 A multi-user strength training tracker built with Next.js, TypeScript, Prisma,
-SQLite, and Biome.
+SQLite, Radix UI, and Biome.
 
 ## Development
 
@@ -40,3 +40,41 @@ prek run -a
 ```
 
 Run `npm run biome:check -- --write` to apply safe Biome fixes.
+
+## UI
+
+Radix Themes provides shared controls, cards, tables, typography, and layout.
+The root theme uses light appearance, teal accent, and slate gray. Radix Icons
+provides navigation and action icons. The alias disclosure uses Radix Primitives.
+Calendar cells and statistical bars remain custom components styled with Themes
+and Radix Colors tokens in `src/app/globals.css`.
+
+`src/components/form-select.tsx` preserves native form values, external form
+association, form reset behavior, and the selected label during server rendering.
+Workout set editors remount after saved values change so desktop and mobile forms
+do not retain different values. Buttons and links use `highContrast` to meet text
+contrast requirements on tinted backgrounds.
+
+## Browser tests
+
+Install Google Chrome before running the browser tests. Stop any server on port
+`8783`; the tests refuse to reuse an existing server.
+
+```bash
+npm run test:ui             # Development server
+npm run test:ui:production  # Build and test the production server
+```
+
+Each command creates a temporary SQLite database, applies existing migrations,
+starts a server at `http://localhost:8783`, and removes the database after the run.
+It does not use `dev.db` or seed personal workout data. The test runner stops its
+server when the run ends.
+
+Tests cover account, admin, exercise, workout, template, filter, statistics, and
+calendar workflows. They check keyboard focus, themed portals, native validation,
+form values, reset behavior, user data isolation, and layouts from 320px to 1440px.
+Axe checks WCAG A/AA rules on desktop and mobile views. Screenshots and failure
+traces are saved under the ignored `test-results/` directory.
+
+The tests check password input types and autocomplete attributes. They do not
+access saved passwords or test a browser password manager's stored credentials.

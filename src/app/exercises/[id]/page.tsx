@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Badge, Card, Grid, Heading, Link, Text } from "@radix-ui/themes";
+import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { requireUser } from "@/lib/auth";
@@ -62,8 +63,12 @@ export default async function ExerciseHistoryPage({
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>{exercise.defaultName}</h1>
-          <p>{t("exerciseHistoryIntro")}</p>
+          <Heading as="h1" size="8">
+            {exercise.defaultName}
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            {t("exerciseHistoryIntro")}
+          </Text>
         </div>
       </div>
 
@@ -86,102 +91,125 @@ export default async function ExerciseHistoryPage({
         />
       </section>
 
-      <div className="grid">
-        <section className="panel stack">
-          <div className="stats-section-header">
-            <h2>{t("monthlyTrend")}</h2>
-            <p>{t("monthlyTrendIntro")}</p>
-          </div>
-          <div className="stats-bars">
-            {monthlyTrend.map((month) => (
-              <div className="stats-bar-row" key={month.key}>
-                <span className="stats-bar-label">{month.label}</span>
-                <span className="stats-bar-track">
-                  <span
-                    className="stats-bar-fill"
-                    style={
-                      {
-                        "--bar-width": `${(month.volume / maxMonthlyVolume) * 100}%`,
-                      } as CSSProperties
-                    }
-                  />
-                </span>
-                <span className="stats-bar-value">
-                  {formatNumber(month.volume)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel stack">
-          <div className="section-heading">
-            <h2>{t("aliases")}</h2>
-            <span>{exercise.aliases.length}</span>
-          </div>
-          {exercise.aliases.length > 0 ? (
-            <div className="alias-list">
-              {exercise.aliases.map((alias) => (
-                <span className="alias-chip" key={alias.id}>
-                  {alias.alias}
-                  <small>{alias.locale}</small>
-                </span>
+      <Grid columns={{ initial: "1", md: "2" }} gap="4">
+        <Card asChild>
+          <section className="stack">
+            <div className="stats-section-header">
+              <Heading as="h2" size="5">
+                {t("monthlyTrend")}
+              </Heading>
+              <Text as="p" size="2" color="gray">
+                {t("monthlyTrendIntro")}
+              </Text>
+            </div>
+            <div className="stats-bars">
+              {monthlyTrend.map((month) => (
+                <div className="stats-bar-row" key={month.key}>
+                  <span className="stats-bar-label">{month.label}</span>
+                  <span className="stats-bar-track">
+                    <span
+                      className="stats-bar-fill"
+                      style={
+                        {
+                          "--bar-width": `${(month.volume / maxMonthlyVolume) * 100}%`,
+                        } as CSSProperties
+                      }
+                    />
+                  </span>
+                  <span className="stats-bar-value">
+                    {formatNumber(month.volume)}
+                  </span>
+                </div>
               ))}
             </div>
+          </section>
+        </Card>
+
+        <Card asChild>
+          <section className="stack">
+            <div className="section-heading">
+              <Heading as="h2" size="5">
+                {t("aliases")}
+              </Heading>
+              <Badge color="gray">{exercise.aliases.length}</Badge>
+            </div>
+            {exercise.aliases.length > 0 ? (
+              <div className="alias-list">
+                {exercise.aliases.map((alias) => (
+                  <Badge color="gray" variant="soft" key={alias.id}>
+                    {alias.alias}
+                    <Text size="1" color="gray">
+                      {alias.locale}
+                    </Text>
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <Text as="p" size="2" color="gray">
+                {t("noAliases")}
+              </Text>
+            )}
+          </section>
+        </Card>
+      </Grid>
+
+      <Card asChild>
+        <section className="stack">
+          <div className="section-heading">
+            <Heading as="h2" size="5">
+              {t("recentWorkouts")}
+            </Heading>
+            <Badge color="gray">{workouts.length}</Badge>
+          </div>
+          {workouts.length === 0 ? (
+            <Card asChild>
+              <div className="empty-state">
+                <Text weight="bold">{t("noExerciseHistory")}</Text>
+                <Text as="p" size="2" color="gray">
+                  {t("exerciseHistoryIntro")}
+                </Text>
+              </div>
+            </Card>
           ) : (
-            <p className="muted">{t("noAliases")}</p>
+            <div className="agenda-list">
+              {workouts.map((workout) => {
+                const reps = workout.sets.reduce(
+                  (total, set) => total + set.reps,
+                  0,
+                );
+                const volume = workout.sets.reduce(
+                  (total, set) => total + set.weight * set.reps,
+                  0,
+                );
+
+                return (
+                  <Link highContrast asChild key={workout.id}>
+                    <NextLink
+                      className="agenda-item"
+                      href={`/workouts/${workout.id}`}
+                    >
+                      <time dateTime={workout.date.toISOString()}>
+                        {workout.date.toLocaleDateString("en", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </time>
+                      <span>{workout.title || t("workout")}</span>
+                      <Text size="1" color="gray">
+                        {workout.sets.length}{" "}
+                        {workout.sets.length === 1 ? t("set") : t("sets")} ·{" "}
+                        {formatInteger(reps)} {t("reps")} ·{" "}
+                        {formatNumber(volume)} {t("volume")}
+                      </Text>
+                    </NextLink>
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </section>
-      </div>
-
-      <section className="panel stack">
-        <div className="section-heading">
-          <h2>{t("recentWorkouts")}</h2>
-          <span>{workouts.length}</span>
-        </div>
-        {workouts.length === 0 ? (
-          <div className="empty-state">
-            <strong>{t("noExerciseHistory")}</strong>
-            <p className="muted">{t("exerciseHistoryIntro")}</p>
-          </div>
-        ) : (
-          <div className="agenda-list">
-            {workouts.map((workout) => {
-              const reps = workout.sets.reduce(
-                (total, set) => total + set.reps,
-                0,
-              );
-              const volume = workout.sets.reduce(
-                (total, set) => total + set.weight * set.reps,
-                0,
-              );
-
-              return (
-                <Link
-                  className="agenda-item"
-                  href={`/workouts/${workout.id}`}
-                  key={workout.id}
-                >
-                  <time dateTime={workout.date.toISOString()}>
-                    {workout.date.toLocaleDateString("en", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </time>
-                  <span>{workout.title || t("workout")}</span>
-                  <small>
-                    {workout.sets.length}{" "}
-                    {workout.sets.length === 1 ? t("set") : t("sets")} ·{" "}
-                    {formatInteger(reps)} {t("reps")} · {formatNumber(volume)}{" "}
-                    {t("volume")}
-                  </small>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      </Card>
     </section>
   );
 }
@@ -196,10 +224,16 @@ type SetEntry = {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="item stats-card">
-      <span className="muted">{label}</span>
-      <strong>{value}</strong>
-    </article>
+    <Card asChild>
+      <article className="stats-card">
+        <Text size="2" color="gray">
+          {label}
+        </Text>
+        <Text size="7" weight="bold">
+          {value}
+        </Text>
+      </article>
+    </Card>
   );
 }
 
