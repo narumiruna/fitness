@@ -32,7 +32,21 @@ test("seed and legacy import reruns preserve renamed exercise identity and prima
     },
   });
   userIds.push(admin.id);
-  for (const name of ["Deadlift", "Squat", "Bench Press"]) {
+  const seededNames = [
+    "Deadlift",
+    "Squat",
+    "Bench Press",
+    "Overhead Press",
+    "Barbell Row",
+    "Pull-up",
+    "Lat Pulldown",
+    "Dumbbell Curl",
+    "Triceps Pushdown",
+    "Leg Press",
+    "Leg Curl",
+    "Calf Raise",
+  ];
+  for (const name of seededNames) {
     const exercise = await prisma.exercise.create({
       data: {
         slug: slugifyExerciseName(name),
@@ -42,6 +56,20 @@ test("seed and legacy import reruns preserve renamed exercise identity and prima
     });
     exerciseIds.push(exercise.id);
   }
+  const existingRow = await prisma.exercise.create({
+    data: {
+      slug: "barbell-bent-over-row",
+      defaultName: "Barbell Bent-Over Row",
+      aliases: {
+        create: {
+          locale: "en",
+          alias: "Barbell Row",
+          normalizedAlias: "barbell row",
+        },
+      },
+    },
+  });
+  exerciseIds.push(existingRow.id);
   const squat = await prisma.exercise.findUniqueOrThrow({
     where: { slug: "squat" },
   });
@@ -77,7 +105,27 @@ test("seed and legacy import reruns preserve renamed exercise identity and prima
     expect(
       await prisma.workoutSet.findFirst({ where: { workoutId: workout.id } }),
     ).toMatchObject({ exerciseId: squat.id });
-    expect(await prisma.exercise.count()).toBe(3);
+    expect(await prisma.exercise.count()).toBe(seededNames.length + 1);
+    expect(
+      await prisma.exerciseAlias.findUniqueOrThrow({
+        where: {
+          locale_normalizedAlias: {
+            locale: "en",
+            normalizedAlias: "barbell row",
+          },
+        },
+      }),
+    ).toMatchObject({ exerciseId: existingRow.id, alias: "Barbell Row" });
+    const pullUp = await prisma.exercise.findUniqueOrThrow({
+      where: { slug: "pull-up" },
+      include: { aliases: true },
+    });
+    expect(
+      pullUp.aliases
+        .filter((alias) => alias.locale === "en")
+        .map((alias) => alias.normalizedAlias)
+        .sort(),
+    ).toEqual(["pull up", "pull-up"]);
   };
   await runFile(process.execPath, [
     "--import",
@@ -85,6 +133,16 @@ test("seed and legacy import reruns preserve renamed exercise identity and prima
     resolve("prisma/seed.ts"),
   ]);
   await assertNaming();
+  await runFile(process.execPath, [
+    "--import",
+    "tsx",
+    resolve("prisma/seed.ts"),
+  ]);
+  await assertNaming();
+  await page.goto("/exercises?q=Pull%20Up");
+  await expect(
+    page.getByRole("link", { name: "Pull-up", exact: true }),
+  ).toBeVisible();
 
   // Run the real legacy importer without reading or changing repository data/.
   const directory = await mkdtemp(join(tmpdir(), "fitness-exercise-import-"));
