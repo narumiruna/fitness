@@ -45,6 +45,7 @@ async function main() {
   ]);
   await seedExercise("Pull-up", [
     { locale: "en", alias: "pull-up" },
+    { locale: "en", alias: "pull up" },
     { locale: "zh-TW", alias: "引體向上" },
   ]);
   await seedExercise("Lat Pulldown", [
@@ -101,10 +102,8 @@ async function seedExercise(
           normalizedAlias: normalizeExerciseAlias(item.alias),
         },
       },
-      update: {
-        alias: item.alias,
-        exerciseId: exercise.id,
-      },
+      // Existing aliases belong to their current exercise, including user data.
+      update: {},
       create: {
         locale: item.locale,
         alias: item.alias,
