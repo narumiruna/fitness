@@ -7,12 +7,19 @@ SQLite, Radix UI, and Biome.
 
 ```bash
 npm install
-npm run db:migrate
-npm run db:seed
 npm run dev
 ```
 
 The development server uses port `8783` by default.
+
+`npm run dev` applies existing Prisma migrations before starting Next.js. It
+creates `dev.db` in the repository root when the database is missing or empty.
+Set `DATABASE_URL` in `.env` or the process environment to use another database.
+Startup does not run the seed or reset existing accounts. If migrations fail,
+the server does not start. An empty database redirects to `/setup`, where you
+create the first admin account.
+
+Use `npm run db:migrate` only when creating a new migration during development.
 
 `npm install` configures Husky Git hooks through the `prepare` script.
 The pre-commit hook calls `script/pre-commit.sh` to run `biome ci` and TypeScript checks without changing files.
@@ -23,9 +30,9 @@ Development seed credentials:
 - Username: `admin`
 - Password: `admin`
 
-`npm run dev` prefills the login form with these credentials.
-Run `npm run db:seed` to create the development account before signing in.
-Production login fields are empty.
+Run `npm run db:seed` explicitly if you want the development account. This command
+sets the `admin` password to `admin` and adds sample exercises. Login fields start
+empty in development and production.
 
 ## Checks
 
@@ -36,6 +43,7 @@ npm run biome:check # Biome formatting, lint, and import checks
 npm run biome:format # Formatting checks only
 npm run format     # Apply formatting changes
 npm run build
+npm run test:db-init # Database initialization and data preservation checks
 prek run -a
 ```
 

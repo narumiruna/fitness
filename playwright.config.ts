@@ -7,6 +7,7 @@ if (!/\/fitness-ui-[^/]+\/test\.db$/.test(process.env.DATABASE_URL ?? "")) {
 
 export default defineConfig({
   testDir: "./tests",
+  testMatch: "**/*.spec.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,
@@ -20,7 +21,10 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: `npm exec prisma migrate deploy && ${process.env.NODE_ENV === "production" ? "npm run start" : "npm run dev"}`,
+    command:
+      process.env.NODE_ENV === "production"
+        ? "npm exec prisma migrate deploy && npm run start"
+        : "npm run dev",
     url: "http://localhost:8783",
     reuseExistingServer: false,
     timeout: 120_000,

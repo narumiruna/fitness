@@ -4,6 +4,7 @@
   "description": "A multi-user strength training tracker.",
   "private": true,
   "scripts": {
+    "predev": "prisma migrate deploy",
     "dev": "next dev -p 8783",
     "build": "next build",
     "start": "next start -p 8783",
@@ -14,6 +15,7 @@
     "format": "npm run biome:format -- --write",
     "typecheck": "tsc --noEmit",
     "check": "npm run biome:ci && npm run typecheck",
+    "test:db-init": "node --test tests/dev-database.test.mjs",
     "test:ui": "node tests/run-ui.mjs",
     "test:ui:production": "npm run build && node tests/run-ui.mjs --production",
     "postinstall": "prisma generate",
