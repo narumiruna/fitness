@@ -26,7 +26,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDateKey } from "@/lib/calendar";
 import { normalizeExerciseAlias } from "@/lib/exercises";
 import type { MessageKey } from "@/lib/i18n";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { equipment, muscles } from "@/lib/training";
 
@@ -44,6 +44,7 @@ export default async function ExercisesPage({
 }) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const createdExerciseId = params.created?.trim() ?? "";
@@ -126,7 +127,6 @@ export default async function ExercisesPage({
   const recent = [...usage.entries()].slice(0, 5);
   const muscleGroups = await prisma.exerciseMuscle.groupBy({
     by: ["muscle"],
-    where: { role: "PRIMARY" },
     _count: true,
     orderBy: { muscle: "asc" },
   });
@@ -397,7 +397,7 @@ export default async function ExercisesPage({
             <Card asChild>
               <section className="stack">
                 <Heading as="h2" size="4">
-                  {t("primaryMuscles")}
+                  {t("muscleGroups")}
                 </Heading>
                 {muscleGroups.map((group) => (
                   <NextLink
@@ -413,7 +413,14 @@ export default async function ExercisesPage({
                         {t(group.muscle as MessageKey)}
                       </Text>
                       <Text as="p" size="1" color="gray">
-                        {group._count} {t("exercises")}
+                        {t(
+                          group._count === 1
+                            ? "exerciseCountOne"
+                            : "exerciseCountOther",
+                        ).replace(
+                          "{count}",
+                          new Intl.NumberFormat(locale).format(group._count),
+                        )}
                       </Text>
                     </div>
                     <span aria-hidden="true">›</span>

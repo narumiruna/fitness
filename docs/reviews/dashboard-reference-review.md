@@ -6,7 +6,7 @@ Match the visual quality of the four supplied dashboard references, using actual
 
 | Reference | Route | Implemented visual treatment |
 | --- | --- | --- |
-| `ChatGPT 圖像 2026年10月11日 上午11_20_24.png` | `/exercises` | Left-aligned page header, grouped metrics, compact exercise rows with equipment and muscle metadata, primary-muscle filter links, recent usage sidebar. |
+| `ChatGPT 圖像 2026年10月11日 上午11_20_24.png` | `/exercises` | Left-aligned page header, grouped metrics, compact exercise rows with equipment and muscle metadata, muscle-group filter links, recent usage sidebar. |
 | `ChatGPT 圖像 2026年10月11日 上午11_20_19.png` | `/stats` | Overview before reports, paired volume and frequency charts, three-column distribution/volume/record cards, consistent teal chart palette. |
 | `ChatGPT 圖像 2026年10月11日 上午11_20_02.png` | `/calendar` | Compact month grid, event dots, selected-day highlight, right-hand workout details and primary action, readable agenda. |
 | `極簡健身訓練儀表板.png` | `/workouts` | Header and metrics in the main column, month-grouped history, actual-data mini calendar in the sidebar, templates and creation controls. |
@@ -61,4 +61,16 @@ All three review findings on PR #14 were independently reproduced and classified
 
 `tests/dashboard-review.spec.ts` covers computed button colors, six count/language combinations, actual duplicate exercise and alias submissions, error placement at 1440/1024/768/390 pixels, and alias/action separation. Review screenshots are saved in the corresponding `test-results/dashboard-review-*` directories. The submitted review wrapper and automated summary contain no additional requests. No items require deferral, clarification, or external action.
 
-Follow-up validation: `npm run check`, `npm run build`, `npm run test:i18n` (4 tests), `prek run -a`, and `npm run test:ui` (22 tests) passed. The browser runner uses disposable SQLite and leaves port 8784 free.
+First follow-up validation: `npm run check`, `npm run build`, `npm run test:i18n` (4 tests), `prek run -a`, and `npm run test:ui` (22 tests) passed. The browser runner uses disposable SQLite and leaves port 8784 free.
+
+### Second review follow-up
+
+| Item | Evidence before the fix | Implemented outcome |
+| --- | --- | --- |
+| `4243108055`: muscle-group/filter mismatch | A group advertised one primary exercise but its link returned two exercises, including a secondary assignment. | The sidebar is labeled “Muscle groups” and counts both primary and secondary assignments, matching the existing any-role filter. The composite key `(exerciseId, muscle)` ensures these counts represent distinct exercises per muscle. |
+| `4243108060`: muscle-group count grammar | A one-exercise group rendered `1 Exercises`. | Complete singular/plural templates render `1 exercise`, `3 exercises`, or localized Traditional Chinese labels with formatted numbers. |
+| `4243108064`: adjacent-month indicators | A visible completed workout on September 27 had no `has-workout` marker in October\u2019s mini-calendar. | Query all 42 displayed cells, but calculate the footer count only from dates within the current month. Owner and completed-state restrictions remain unchanged. |
+
+All three are independently reproduced, in-scope P2 defects introduced by the new sidebar/calendar. Existing resolved findings remain addressed. No deferrals, clarification requests, or blockers were identified. The new regression cases verify count/result consistency for mixed muscle roles, singular/plural labels in English and Traditional Chinese, adjacent-month markers, current-month totals, owner isolation, abandoned-session exclusion, the exclusive end-date boundary, and navigation to a displayed adjacent day. Screenshots cover both translated labels and adjacent-month indicators.
+
+Second follow-up validation: `npm run check`, `npm run build`, `npm run test:i18n` (4 tests), `prek run -a`, and `npm run test:ui` (25 tests) passed.

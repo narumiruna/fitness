@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { buildCalendarMonth, formatDateKey } from "../src/lib/calendar";
 import { slugifyExerciseName } from "../src/lib/exercises";
 import { prisma } from "../src/lib/prisma";
 
@@ -155,4 +156,130 @@ test("duplicate exercise and alias feedback remains directly below the header", 
   const error = await alert.boundingBox();
   expect(error?.y).toBeLessThan(300);
   await page.screenshot({ path: info.outputPath("alias-alert-1440.png") });
+});
+
+async function addMuscleExercise(muscle: string, role: string) {
+  const name = `Review ${muscle} ${role} ${randomUUID()}`;
+  const exercise = await prisma.exercise.create({
+    data: {
+      slug: slugifyExerciseName(name),
+      defaultName: name,
+      createdByUserId: userId,
+      muscles: { create: { muscle, role } },
+    },
+  });
+  exerciseIds.push(exercise.id);
+  return exercise;
+}
+
+test("muscle-group counts match primary and secondary filter results", async ({
+  page,
+}) => {
+  const primary = await addMuscleExercise("chest", "PRIMARY");
+  const secondary = await addMuscleExercise("chest", "SECONDARY");
+  await page.goto("/exercises");
+  const group = page.locator(
+    '.muscle-group-row[href="/exercises?muscle=chest"]',
+  );
+  const count = Number.parseInt(
+    await group.locator(".rt-Text.rt-r-size-1").innerText(),
+    10,
+  );
+  await group.click();
+  await expect(page).toHaveURL(/muscle=chest/);
+  await expect(page.locator(".exercise-row")).toHaveCount(count);
+  await expect(
+    page.getByRole("link", { name: primary.defaultName, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: secondary.defaultName, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".exercise-sidebar")
+      .getByRole("heading", { name: "Muscle groups", exact: true }),
+  ).toBeVisible();
+});
+
+test("muscle-group counts translate complete singular and plural labels", async ({
+  page,
+  context,
+}, info) => {
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await addMuscleExercise("calves", "PRIMARY");
+  await addMuscleExercise("hamstrings", "PRIMARY");
+  await addMuscleExercise("hamstrings", "SECONDARY");
+  await addMuscleExercise("hamstrings", "PRIMARY");
+  for (const locale of ["en", "zh-TW"]) {
+    await context.addCookies([
+      { name: "locale", value: locale, url: "http://localhost:8784" },
+    ]);
+    await page.goto("/exercises");
+    for (const [muscle, count] of [
+      ["calves", 1],
+      ["hamstrings", 3],
+    ] as const) {
+      const group = page.locator(
+        `.muscle-group-row[href="/exercises?muscle=${muscle}"]`,
+      );
+      await expect(group.locator(".rt-Text.rt-r-size-1")).toHaveText(
+        locale === "en"
+          ? `${count} ${count === 1 ? "exercise" : "exercises"}`
+          : `${count} 個動作`,
+      );
+    }
+    await page.screenshot({
+      path: info.outputPath(`muscle-counts-${locale}.png`),
+    });
+  }
+});
+
+test("mini-calendar marks adjacent-month workouts without inflating this month's count", async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  const today = new Date();
+  const calendar = buildCalendarMonth(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today,
+  );
+  const adjacent = calendar.cells.filter((day) => !day.isCurrentMonth);
+  const first = adjacent[0];
+  const last = adjacent[adjacent.length - 1];
+  await prisma.workout.createMany({
+    data: [today, first.date, last.date, calendar.endDate].map((date) => ({
+      userId,
+      date,
+    })),
+  });
+  await prisma.workout.create({
+    data: { userId, date: adjacent[1].date, state: "ABANDONED" },
+  });
+  const other = await prisma.user.create({
+    data: {
+      username: `review-other-${randomUUID()}`,
+      passwordHash: await bcrypt.hash("unused-test-password", 4),
+      workouts: { create: { date: adjacent[2].date } },
+    },
+  });
+  try {
+    await page.goto("/workouts");
+    await expect(page.locator(".mini-day")).toHaveCount(42);
+    for (const date of [today, first.date, last.date])
+      await expect(
+        page.locator(`.mini-day[aria-label="${formatDateKey(date)}"]`),
+      ).toHaveClass(/has-workout/);
+    await expect(page.locator(".mini-day.has-workout")).toHaveCount(3);
+    await expect(page.locator(".mini-calendar > .rt-Text")).toHaveText(
+      "1 workout this month",
+    );
+    await page.screenshot({
+      path: info.outputPath("adjacent-month-indicators.png"),
+    });
+    await page.locator(`.mini-day[aria-label="${last.dateKey}"]`).click();
+    await expect(page.locator(".selected-workout")).toHaveCount(1);
+  } finally {
+    await prisma.user.delete({ where: { id: other.id } });
+  }
 });

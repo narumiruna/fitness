@@ -20,11 +20,16 @@ export async function WorkoutCalendar({ userId }: { userId: string }) {
     where: {
       userId,
       state: "COMPLETED",
-      date: { gte: new Date(year, month - 1, 1), lt: new Date(year, month, 1) },
+      date: { gte: calendar.startDate, lt: calendar.endDate },
     },
     select: { date: true },
   });
   const dates = new Set(workouts.map((w) => formatDateKey(w.date)));
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 1);
+  const monthWorkoutCount = workouts.filter(
+    (w) => w.date >= monthStart && w.date < monthEnd,
+  ).length;
   const href = (y: number, m: number) => `/calendar?year=${y}&month=${m}`;
   return (
     <Card asChild>
@@ -85,12 +90,12 @@ export async function WorkoutCalendar({ userId }: { userId: string }) {
         </div>
         <Text size="2" color="teal">
           {t(
-            workouts.length === 1
+            monthWorkoutCount === 1
               ? "workoutsThisMonthOne"
               : "workoutsThisMonthOther",
           ).replace(
             "{count}",
-            new Intl.NumberFormat(locale).format(workouts.length),
+            new Intl.NumberFormat(locale).format(monthWorkoutCount),
           )}
         </Text>
       </section>
