@@ -19,12 +19,12 @@ Existing pagination, data models, language controls, account links, measurements
 
 ## Playwright evidence
 
-`tests/visual-dashboard.spec.ts` creates an isolated user, eight exercises with muscle/equipment metadata, 24 workouts, and four templates. It captures all four routes at 1440, 768, and 390 pixels, both full-page and viewport images. Each capture checks horizontal overflow and WCAG A/AA accessibility with axe. The runner uses disposable SQLite and stops its development server afterward.
+`e2e/visual-dashboard.spec.ts` creates an isolated user, eight exercises with muscle/equipment metadata, 24 workouts, and four templates. It captures all four routes at 1440, 768, and 390 pixels, both full-page and viewport images. Each capture checks horizontal overflow and WCAG A/AA accessibility with axe. The runner uses disposable SQLite and stops its development server afterward.
 
 Run:
 
 ```sh
-npm run test:ui -- tests/visual-dashboard.spec.ts
+npm run test:ui -- e2e/visual-dashboard.spec.ts
 ```
 
 Review artifacts for this implementation:
@@ -59,7 +59,7 @@ All three review findings on PR #14 were independently reproduced and classified
 | `4243051156`: visible exercise errors | A duplicate-exercise alert ended at y=3773, below a library heading at y=358. | Error states reserve the row immediately after the header; metrics and library move down without overlapping the sidebar. |
 | Additional finding: long aliases | The narrower exercise alias column allowed a long badge to overlap action buttons. | Alias badges wrap within their column; a bounds assertion protects the actions. |
 
-`tests/dashboard-review.spec.ts` covers computed button colors, six count/language combinations, actual duplicate exercise and alias submissions, error placement at 1440/1024/768/390 pixels, and alias/action separation. Review screenshots are saved in the corresponding `test-results/dashboard-review-*` directories. The submitted review wrapper and automated summary contain no additional requests. No items require deferral, clarification, or external action.
+`e2e/dashboard-review.spec.ts` covers computed button colors, six count/language combinations, actual duplicate exercise and alias submissions, error placement at 1440/1024/768/390 pixels, and alias/action separation. Review screenshots are saved in the corresponding `test-results/dashboard-review-*` directories. The submitted review wrapper and automated summary contain no additional requests. No items require deferral, clarification, or external action.
 
 First follow-up validation: `npm run check`, `npm run build`, `npm run test:i18n` (4 tests), `prek run -a`, and `npm run test:ui` (22 tests) passed. The browser runner uses disposable SQLite and leaves port 8784 free.
 

@@ -23,7 +23,7 @@ components.
 
 ```bash
 npm run test:i18n
-npm run test:ui -- tests/i18n.spec.ts
+npm run test:ui -- e2e/i18n.spec.ts
 ```
 
 ## Development
@@ -147,8 +147,8 @@ without inserting a record or setting a new challenge cookie. Retry after a
 challenge expires or use password sign-in.
 
 ```bash
-npm run test:ui -- tests/passkeys.spec.ts tests/passkey-challenges.spec.ts
-npm run test:ui:production -- tests/passkey-challenges.spec.ts
+npm run test:ui -- e2e/passkeys.spec.ts e2e/passkey-challenges.spec.ts
+npm run test:ui:production -- e2e/passkey-challenges.spec.ts
 ```
 
 The browser test uses Chrome's virtual authenticator and a disposable SQLite
@@ -256,12 +256,16 @@ or production database.
 
 ## Browser tests
 
+Keep all Playwright E2E specs in `e2e/`. Unit and integration tests, fixtures,
+and database/browser test runners remain in `tests/`.
+
 Install Google Chrome and start Docker before running the browser tests.
 Port `8784` must be free; the tests refuse to reuse an existing server. Do not
 stop another service to free a port unless you own that development service.
 
 ```bash
 npm run test:ui             # Development server
+npm run test:ui -- e2e/measurements.spec.ts # Independent measurement workflows
 npm run test:ui:production  # Build and test the production server
 ```
 
@@ -277,6 +281,11 @@ Docker.
 Tests cover account, admin, exercise, workout, template, filter, statistics, and
 calendar workflows. They check keyboard focus, themed portals, native validation,
 form values, reset behavior, user data isolation, and layouts from 320px to 1440px.
+The independent measurement tests create and remove their own accounts. They
+cover server validation and draft recovery, same-date replacement, nullable
+metrics, target persistence and clearing, delete cancellation, and rejection of
+another user's record ID.
+
 Axe checks WCAG A/AA rules on desktop and mobile views. Screenshots and failure
 traces are saved under the ignored `test-results/` directory.
 
