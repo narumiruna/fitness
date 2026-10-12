@@ -547,6 +547,63 @@ test("localized history, confirmation, and creation feedback use the selected la
   );
 });
 
+test("creation retry reuses a workout after the committed redirect response is lost", async ({
+  page,
+}) => {
+  await page.goto("/workouts/new");
+  const key = await page.locator('input[name="key"]').inputValue();
+  await page.getByLabel("Title", { exact: true }).fill("Lost redirect workout");
+  await page.getByLabel("Notes", { exact: true }).fill("Committed draft");
+  const initialCount = await prisma.workout.count({ where: { userId } });
+  await page.route("**/workouts/new", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const response = await route.fetch({ maxRedirects: 0 });
+    expect(response.ok()).toBe(true);
+    await route.abort("failed");
+  });
+  await page
+    .getByRole("button", { name: "Create workout", exact: true })
+    .click();
+  await expect(page.locator("main").getByRole("status")).toContainText(
+    "Not saved.",
+  );
+  expect(await prisma.workout.count({ where: { userId } })).toBe(
+    initialCount + 1,
+  );
+  const committed = await prisma.workout.findFirstOrThrow({
+    where: { userId, title: "Lost redirect workout" },
+  });
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    "Lost redirect workout",
+  );
+  await page.unroute("**/workouts/new");
+  // Cookie revalidation must not replace the mounted draft's idempotency key.
+  await page.getByRole("combobox", { name: "Language", exact: true }).click();
+  await page.getByRole("option", { name: "正體中文", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
+  await expect(page.locator('input[name="key"]')).toHaveValue(key);
+  await page.getByRole("combobox", { name: "語言", exact: true }).click();
+  await page.getByRole("option", { name: "English", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator('input[name="key"]')).toHaveValue(key);
+  await page
+    .getByLabel("Title", { exact: true })
+    .fill("Edited after ambiguous failure");
+  await page
+    .getByRole("button", { name: "Create workout", exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/workouts/${committed.id}$`));
+  expect(await prisma.workout.count({ where: { userId } })).toBe(
+    initialCount + 1,
+  );
+  expect(
+    (await prisma.workout.findUniqueOrThrow({ where: { id: committed.id } }))
+      .title,
+  ).toBe("Lost redirect workout");
+  await page.goto("/workouts/new");
+  await expect(page.locator('input[name="key"]')).not.toHaveValue(key);
+});
+
 test("focused creation preserves prefills and drafts, validates server-side, and retries network failure", async ({
   page,
 }, info) => {

@@ -11,11 +11,12 @@ import {
   deleteRecordedSet,
   updateRecordedSet,
 } from "@/lib/recorded-sets";
+import { createRecordedWorkout } from "@/lib/recorded-workouts";
 import { addCalendarDays } from "@/lib/training";
 import {
   createSetSchema,
+  createWorkoutDraftSchema,
   createWorkoutFromTemplateSchema,
-  createWorkoutSchema,
   deleteWorkoutTemplateSchema,
   duplicateWorkoutSchema,
   saveWorkoutTemplateSchema,
@@ -26,22 +27,15 @@ import {
 export async function createWorkoutAction(formData: FormData) {
   return loggedAction("createWorkoutAction", async () => {
     const user = await requireUser();
-    const parsed = createWorkoutSchema.safeParse({
+    const parsed = createWorkoutDraftSchema.safeParse({
+      key: formData.get("key"),
       title: optionalFormString(formData.get("title")),
       date: formData.get("date"),
       notes: optionalFormString(formData.get("notes")),
     });
 
     if (!parsed.success) return { error: "invalidWorkoutInput" as const };
-    const input = parsed.data;
-    const workout = await prisma.workout.create({
-      data: {
-        userId: user.id,
-        title: input.title,
-        date: new Date(`${input.date}T00:00:00`),
-        notes: input.notes,
-      },
-    });
+    const workout = await createRecordedWorkout(user.id, parsed.data);
 
     redirect(`/workouts/${workout.id}`);
   });

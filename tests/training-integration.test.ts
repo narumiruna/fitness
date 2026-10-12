@@ -10,6 +10,7 @@ import {
 import { prisma } from "../src/lib/prisma";
 import { suggestions } from "../src/lib/progression";
 import { updateRecordedSet } from "../src/lib/recorded-sets";
+import { createRecordedWorkout } from "../src/lib/recorded-workouts";
 import { changeSession, startSession } from "../src/lib/session-service";
 import { calculateStats } from "../src/lib/stats-calculations";
 import { updateSetSchema } from "../src/lib/validation";
@@ -736,4 +737,78 @@ test("owner-scoped training services, retries, correction, scheduling and data r
     await prisma.bodyMeasurement.count({ where: { userId: other.id } }),
     0,
   );
+});
+
+test("recorded creation deduplicates retries and concurrent writes without crossing users or live starts", async () => {
+  const user = await prisma.user.create({
+    data: { username: randomUUID(), passwordHash: "test-hash" },
+  });
+  const other = await prisma.user.create({
+    data: { username: randomUUID(), passwordHash: "test-hash" },
+  });
+  try {
+    const key = randomUUID();
+    const input = {
+      key,
+      title: "Recorded creation",
+      notes: "Original",
+      date: "2026-10-12",
+    };
+    const [first, concurrent] = await Promise.all([
+      createRecordedWorkout(user.id, input),
+      createRecordedWorkout(user.id, input),
+    ]);
+    assert.equal(first.id, concurrent.id);
+    assert.equal(await prisma.workout.count({ where: { userId: user.id } }), 1);
+    const retry = await createRecordedWorkout(user.id, {
+      ...input,
+      title: "Changed",
+      notes: "Changed",
+      date: "2026-10-13",
+    });
+    assert.equal(retry.id, first.id);
+    const original = await prisma.workout.findUniqueOrThrow({
+      where: { id: first.id },
+    });
+    assert.equal(original.title, input.title);
+    assert.equal(original.notes, input.notes);
+    assert.equal(formatDateKey(original.date), input.date);
+    assert.equal(original.state, "COMPLETED");
+    const foreign = await createRecordedWorkout(other.id, input);
+    assert.notEqual(foreign.id, first.id);
+    assert.equal(
+      (await prisma.workout.findUniqueOrThrow({ where: { id: foreign.id } }))
+        .userId,
+      other.id,
+    );
+    const distinct = await createRecordedWorkout(user.id, {
+      ...input,
+      key: randomUUID(),
+    });
+    assert.notEqual(distinct.id, first.id);
+    const live = await startSession(user.id, {
+      key,
+      source: "workout",
+      sourceId: first.id,
+      date: input.date,
+      restSeconds: 90,
+    });
+    assert.notEqual(live.id, first.id);
+    assert.equal(live.state, "ACTIVE");
+    assert.equal((await createRecordedWorkout(user.id, input)).id, first.id);
+    for (const invalid of [undefined, "", "not-a-uuid", "x".repeat(200)]) {
+      await assert.rejects(
+        createRecordedWorkout(user.id, { ...input, key: invalid }),
+      );
+    }
+    assert.equal(await prisma.workout.count({ where: { userId: user.id } }), 3);
+    assert.equal(
+      await prisma.workout.count({ where: { userId: other.id } }),
+      1,
+    );
+  } finally {
+    await prisma.user.deleteMany({
+      where: { id: { in: [user.id, other.id] } },
+    });
+  }
 });

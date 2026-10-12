@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { Button, Card, Text, TextArea, TextField } from "@radix-ui/themes";
 import NextLink from "next/link";
 import { createWorkoutAction } from "@/app/actions/workouts";
 import { PageHeader } from "@/components/dashboard";
 import { SafeForm } from "@/components/safe-form";
+import { WorkoutDraftKey } from "@/components/workout-draft-key";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey, parseDateKey } from "@/lib/calendar";
 import { getDictionary } from "@/lib/i18n";
@@ -27,6 +29,7 @@ export default async function NewWorkoutPage({
           success={t("saved")}
           errors={{ invalidWorkoutInput: t("invalidWorkoutInput") }}
         >
+          <WorkoutDraftKey initialKey={randomUUID()} />
           <Text as="label" className="field-label">
             {t("date")}
             <TextField.Root

@@ -22,6 +22,10 @@ export const createWorkoutSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
 });
 
+export const createWorkoutDraftSchema = createWorkoutSchema.extend({
+  key: z.string().uuid(),
+});
+
 export const updateWorkoutSchema = createWorkoutSchema.extend({
   workoutId: z.string().min(1),
 });
