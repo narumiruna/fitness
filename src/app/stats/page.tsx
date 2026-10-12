@@ -112,9 +112,7 @@ export default async function StatsPage({
           </Text>
           <div>
             <Button highContrast variant="soft" asChild>
-              <NextLink
-                href={hasWorkouts ? "/workouts" : "/workouts#new-workout"}
-              >
+              <NextLink href={hasWorkouts ? "/workouts" : "/workouts/new"}>
                 {t(hasWorkouts ? "workouts" : "newWorkoutAction")}
               </NextLink>
             </Button>

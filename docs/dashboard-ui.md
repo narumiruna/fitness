@@ -2,7 +2,7 @@
 
 ## Structure
 
-- Workouts: month-grouped history, filters, real totals, exercise previews, creation, and templates. Keep 20-row pagination and existing title/notes search semantics. SQLite computes the user-scoped all-time set count and volume; filters and pagination affect history, not these summary totals.
+- Workouts: month-grouped history, session-state badges, prescribed/completed progress, continue links, filters, real totals, exercise previews, focused creation at `/workouts/new`, and templates. Keep 20-row pagination and existing title/notes search semantics. SQLite computes the user-scoped all-time set count and volume; filters and pagination affect history, not these summary totals.
 - Calendar: Sunday-first, 42-cell month grid, local-date selection, all selected-day workouts, selected-date creation, and month agenda. On narrow screens, show the selected date before the agenda. Small workout markers retain accessible names and detail links.
 - Stats: URL-based ranges, six supported metrics, daily volume, Sunday-start weekly counts, exercise distribution, exercise volume, and personal records. Expand detailed totals, records, and period comparisons when needed.
 - Exercises: shared library, name/localized-name/normalized-alias search, name sorting, personal recent-use sorting, aliases, creation, and personal recent-use dates. Usage counts and dates exclude other users' workouts. SQLite computes each used exercise's count and latest date; the page does not fetch individual historical sets.
@@ -24,7 +24,7 @@ English strings remain available through `src/lib/i18n.ts`. The pure dictionary 
 - Records retain maximum weight, maximum repetitions, best set volume, and estimated 1RM (`weight × (1 + reps / 30)`), with source dates and set details. The compact record list shows maximum weight; expand Details for all four measures.
 - Recent activity remains the fixed current/prior 30-day comparison. The six-month trend remains labeled separately and uses selected-range records.
 - Do not invent duration, streaks, muscle groups, equipment, categories, favorites, scheduling, or completion status. The model does not store these fields.
-- Creation forms remain visible secondary sections, not modal workflows. Delete confirmation is reserved for destructive actions.
+- Workout creation uses a dedicated `/workouts/new` screen; calendar links preserve the selected date. Exercise creation remains a visible secondary section. Destructive deletion and session abandonment require confirmation. Current session state, draft, completion, and metric rules are documented in [Training features](training-features.md), which supersedes the original dashboard data assumptions above.
 - No migration, dependency, auth contract, or developer database change is required. SQLite persistence and all existing server action inputs remain unchanged.
 
 ## Verification

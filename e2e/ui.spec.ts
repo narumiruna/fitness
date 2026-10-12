@@ -111,11 +111,11 @@ test("setup, login failures, password validation, and session replacement", asyn
   ).toBeVisible();
   await page.goto("/calendar");
   await expect(page.getByText("No workouts this month.")).toBeVisible();
-  await page.goto("/workouts");
+  await page.goto("/workouts/new");
   await formWith(page, "Create workout")
     .getByRole("button", { name: "Create workout" })
     .click();
-  await expect(page).toHaveURL(/\/workouts\/[^/?]+$/);
+  await expect(page).toHaveURL(/\/workouts\/(?!new$)[^/?]+$/);
   const emptySelectForm = formWith(page, "Add set");
   await emptySelectForm.getByLabel("Weight (kg)", { exact: true }).fill("10");
   await emptySelectForm.getByLabel("Reps", { exact: true }).fill("2");
@@ -254,7 +254,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     page.getByText("No history for this exercise yet."),
   ).toBeVisible();
 
-  await page.goto("/workouts");
+  await page.goto("/workouts/new");
   const create = formWith(page, "Create workout");
   await create.getByLabel("Date", { exact: true }).fill("");
   expect(
@@ -271,7 +271,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     "date",
   );
   await create.getByRole("button", { name: "Create workout" }).click();
-  await expect(page).toHaveURL(/\/workouts\/[^/?]+$/);
+  await expect(page).toHaveURL(/\/workouts\/(?!new$)[^/?]+$/);
   workoutPath = new URL(page.url()).pathname;
   const workoutId = workoutPath.split("/").at(-1) ?? "";
   const edit = formWith(page, "Update workout");
@@ -709,13 +709,11 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
     .locator(".selected-date-panel")
     .getByRole("link", { name: "Create workout", exact: true })
     .click();
-  await expect(
-    page.locator("#new-workout").getByLabel("Date", { exact: true }),
-  ).toHaveValue(nextKey);
-  await page.goto("/workouts?date=2026-02-30");
-  await expect(
-    page.locator("#new-workout").getByLabel("Date", { exact: true }),
-  ).toHaveValue(formatDateKey(now));
+  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(nextKey);
+  await page.goto("/workouts/new?date=2026-02-30");
+  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(
+    formatDateKey(now),
+  );
   await page.goto("/stats");
   const allVolume = await page
     .locator(".stats-card")

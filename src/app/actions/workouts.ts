@@ -26,12 +26,14 @@ import {
 export async function createWorkoutAction(formData: FormData) {
   return loggedAction("createWorkoutAction", async () => {
     const user = await requireUser();
-    const input = createWorkoutSchema.parse({
+    const parsed = createWorkoutSchema.safeParse({
       title: optionalFormString(formData.get("title")),
       date: formData.get("date"),
       notes: optionalFormString(formData.get("notes")),
     });
 
+    if (!parsed.success) return { error: "invalidWorkoutInput" as const };
+    const input = parsed.data;
     const workout = await prisma.workout.create({
       data: {
         userId: user.id,

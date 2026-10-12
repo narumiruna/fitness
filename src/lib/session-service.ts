@@ -1,4 +1,5 @@
 import { formatDateKey, parseDateKey } from "./calendar";
+import { SessionError } from "./form-outcome";
 import { prisma } from "./prisma";
 import { transition } from "./training";
 import { sessionChangeSchema, sessionStartSchema } from "./validation";
@@ -95,7 +96,7 @@ export async function changeSession(userId: string, raw: unknown) {
       where: { id: input.workoutId, userId },
       include: { sets: true },
     });
-    if (!w) throw new Error("Session not found.");
+    if (!w) throw new SessionError("sessionUnavailable");
     // A retry of an already confirmed operation is a no-op. Other stale writes fail.
     if (
       input.command === "complete" &&
@@ -112,8 +113,7 @@ export async function changeSession(userId: string, raw: unknown) {
             abandon: "ABANDONED",
           }[input.command];
     if (requested === w.state) return;
-    if (w.version !== input.version)
-      throw new Error("Session changed. Refresh before saving.");
+    if (w.version !== input.version) throw new SessionError("sessionConflict");
     const now = new Date();
     if (input.command === "complete") {
       if (
@@ -122,7 +122,7 @@ export async function changeSession(userId: string, raw: unknown) {
         !input.actuals ||
         !w.sets.some((s) => s.id === input.setId)
       )
-        throw new Error("Cannot complete this set.");
+        throw new SessionError("sessionUnavailable");
       const lock = await tx.workout.updateMany({
         where: { id: w.id, userId, version: w.version, state: "ACTIVE" },
         data: {
@@ -130,21 +130,27 @@ export async function changeSession(userId: string, raw: unknown) {
           restDeadline: new Date(now.getTime() + w.restSeconds * 1000),
         },
       });
-      if (lock.count !== 1)
-        throw new Error("Session changed. Refresh before saving.");
+      if (lock.count !== 1) throw new SessionError("sessionConflict");
       await tx.workoutSet.update({
         where: { id: input.setId },
         data: { ...input.actuals, actualsEntered: true, completed: true },
       });
       return;
     }
+    if (w.state !== "ACTIVE" && w.state !== "PAUSED")
+      throw new SessionError("sessionUnavailable");
+    if (
+      (input.command === "pause" && w.state !== "ACTIVE") ||
+      (input.command === "resume" && w.state !== "PAUSED")
+    )
+      throw new SessionError("sessionUnavailable");
     const state = transition(w.state, input.command);
     if (
       state === "COMPLETED" &&
       w.sets.some((s) => !s.completed) &&
       !input.partial
     )
-      throw new Error("Confirm skipped sets before finishing.");
+      throw new SessionError("sessionIncomplete");
     const elapsed =
       w.state === "ACTIVE" && w.resumedAt
         ? Math.max(
@@ -163,7 +169,6 @@ export async function changeSession(userId: string, raw: unknown) {
         restDeadline: null,
       },
     });
-    if (result.count !== 1)
-      throw new Error("Session changed. Refresh before saving.");
+    if (result.count !== 1) throw new SessionError("sessionConflict");
   });
 }
