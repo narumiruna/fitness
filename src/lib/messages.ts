@@ -35,6 +35,25 @@ export const englishMessages = {
   finish: "Finish",
   abandon: "Abandon",
   complete: "Complete set",
+  continueTraining: "Continue training",
+  sessionProgress: "{completed}/{total} sets completed",
+  prescribedSets: "{count} prescribed sets",
+  finishSkipped: "Finish with skipped sets",
+  skippedDescription:
+    "This will finish the session with {count} unfinished sets skipped.",
+  abandonDescription:
+    "This will end the session. Recorded data will remain, but this session cannot be resumed.",
+  invalidSessionInput:
+    "Not saved. Check weight, reps, RIR, and notes, then retry.",
+  sessionConflict:
+    "Not saved. The session changed. Load the latest state, review it, and retry. Your draft is kept. For a confirmation, cancel and reopen it after loading.",
+  sessionIncomplete:
+    "Not saved. Some sets are unfinished. Choose Finish and confirm the skipped sets.",
+  sessionUnavailable:
+    "Not saved. This session or set is no longer available for this action.",
+  refreshSession: "Load latest session",
+  invalidWorkoutInput:
+    "Not saved. Enter a valid date, a title of at most 120 characters, and notes of at most 2,000 characters.",
   partialFinish: "I confirm finishing with skipped sets.",
   target: "Target",
   saveFailed:

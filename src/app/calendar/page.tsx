@@ -68,7 +68,7 @@ export default async function CalendarPage({
       w.date >= new Date(year, month - 1, 1) &&
       w.date < new Date(year, month, 1),
   );
-  const createHref = `/workouts?date=${selectedKey}#new-workout`;
+  const createHref = `/workouts/new?date=${selectedKey}`;
   return (
     <section className="calendar-shell">
       <PageHeader title={t("calendar")} description={t("calendarIntro")}>

@@ -5,13 +5,11 @@ import {
   Card,
   Heading,
   Text,
-  TextArea,
   TextField,
 } from "@radix-ui/themes";
 import NextLink from "next/link";
 import { Fragment } from "react";
 import {
-  createWorkoutAction,
   createWorkoutFromTemplateAction,
   deleteWorkoutTemplateAction,
   duplicateWorkoutAction,
@@ -31,7 +29,7 @@ import { WorkoutCalendar } from "@/components/workout-calendar";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey, parseDateKey } from "@/lib/calendar";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getDictionary, getLocale, type MessageKey } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { sumVolume } from "@/lib/stats-calculations";
 
@@ -67,29 +65,35 @@ export default async function WorkoutsPage({
   const params = await searchParams;
   const filters = resolveWorkoutFilters(params);
   const now = new Date();
-  const today = formatDateKey(parseDateKey(firstParam(params.date)) ?? now);
+  const today = formatDateKey(now);
   const workoutWhere = buildWorkoutWhere(user.id, filters);
-  const [filteredWorkoutCount, totalWorkoutCount, workoutsThisMonth, totals] =
-    await Promise.all([
-      prisma.workout.count({ where: workoutWhere }),
-      prisma.workout.count({ where: { userId: user.id, state: "COMPLETED" } }),
-      prisma.workout.count({
-        where: {
-          userId: user.id,
-          state: "COMPLETED",
-          date: {
-            gte: new Date(now.getFullYear(), now.getMonth(), 1),
-            lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-          },
+  const [
+    filteredWorkoutCount,
+    totalHistoryCount,
+    totalWorkoutCount,
+    workoutsThisMonth,
+    totals,
+  ] = await Promise.all([
+    prisma.workout.count({ where: workoutWhere }),
+    prisma.workout.count({ where: { userId: user.id } }),
+    prisma.workout.count({ where: { userId: user.id, state: "COMPLETED" } }),
+    prisma.workout.count({
+      where: {
+        userId: user.id,
+        state: "COMPLETED",
+        date: {
+          gte: new Date(now.getFullYear(), now.getMonth(), 1),
+          lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
         },
-      }),
-      prisma.$queryRaw<{ count: bigint | number; volume: number }[]>`
+      },
+    }),
+    prisma.$queryRaw<{ count: bigint | number; volume: number }[]>`
         SELECT COUNT(*) AS count, COALESCE(SUM(s.weight * s.reps), 0) AS volume
         FROM "WorkoutSet" AS s
         JOIN "Workout" AS w ON w.id = s."workoutId"
         WHERE w."userId" = ${user.id} AND w.state = 'COMPLETED' AND s.completed = true
       `,
-    ]);
+  ]);
   const totalPages = Math.max(1, Math.ceil(filteredWorkoutCount / pageSize));
   const currentPage = Math.min(filters.page, totalPages);
   const [workouts, exerciseOptions, templates] = await Promise.all([
@@ -97,7 +101,6 @@ export default async function WorkoutsPage({
       where: workoutWhere,
       include: {
         sets: {
-          where: { completed: true, workout: { state: "COMPLETED" } },
           include: { exercise: true },
           orderBy: { order: "asc" },
         },
@@ -121,10 +124,10 @@ export default async function WorkoutsPage({
     <section className="stack workouts-page">
       <PageHeader title={t("workouts")} description={t("workoutsIntro")}>
         <Button highContrast asChild>
-          <a href="#new-workout">
+          <NextLink href="/workouts/new">
             <PlusIcon aria-hidden="true" />
             {t("newWorkoutAction")}
-          </a>
+          </NextLink>
         </Button>
       </PageHeader>
       {totalWorkoutCount > 0 ? (
@@ -159,7 +162,7 @@ export default async function WorkoutsPage({
               </Heading>
               <Badge color="gray">{filteredWorkoutCount}</Badge>
             </div>
-            {totalWorkoutCount > 0 ? (
+            {totalHistoryCount > 0 ? (
               <form
                 action="/workouts"
                 className="history-filters"
@@ -212,7 +215,7 @@ export default async function WorkoutsPage({
             ) : null}
             {workouts.length === 0 ? (
               <EmptyState
-                title={t(totalWorkoutCount ? "noWorkoutResults" : "noWorkouts")}
+                title={t(totalHistoryCount ? "noWorkoutResults" : "noWorkouts")}
                 description={t("workoutsIntro")}
               />
             ) : (
@@ -225,8 +228,14 @@ export default async function WorkoutsPage({
                   locale,
                   { month: "long", year: "numeric" },
                 );
+                const completed = workout.sets.filter((set) => set.completed);
                 const names = [
-                  ...new Set(workout.sets.map((s) => s.exercise.defaultName)),
+                  ...new Set(
+                    (workout.state === "COMPLETED"
+                      ? completed
+                      : workout.sets
+                    ).map((s) => s.exercise.defaultName),
+                  ),
                 ];
                 return (
                   <Fragment key={workout.id}>
@@ -264,6 +273,11 @@ export default async function WorkoutsPage({
                             {workout.title || t("workout")}
                           </NextLink>
                         </Heading>
+                        <Badge
+                          color={workout.state === "ACTIVE" ? "teal" : "gray"}
+                        >
+                          {t(workout.state as MessageKey)}
+                        </Badge>
                         <Text as="p" size="2" color="gray">
                           {names.length
                             ? `${names.slice(0, 3).join(" · ")}${names.length > 3 ? ` · +${names.length - 3}` : ""}`
@@ -276,14 +290,46 @@ export default async function WorkoutsPage({
                         ) : null}
                       </div>
                       <div className="workout-card-stats">
-                        <span>
-                          {workout.sets.length} {t("sets")}
-                        </span>
-                        <span>
-                          {formatNumber(sumVolume(workout.sets))} {t("volume")}
-                        </span>
+                        {workout.state === "COMPLETED" ? (
+                          <>
+                            <span>
+                              {completed.length} {t("sets")}
+                            </span>
+                            <span>
+                              {formatNumber(sumVolume(completed))} {t("volume")}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span>
+                              {t("prescribedSets").replace(
+                                "{count}",
+                                String(workout.sets.length),
+                              )}
+                            </span>
+                            <span>
+                              {t("sessionProgress")
+                                .replace(
+                                  "{completed}",
+                                  String(completed.length),
+                                )
+                                .replace(
+                                  "{total}",
+                                  String(workout.sets.length),
+                                )}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <div className="card-actions">
+                        {workout.state === "ACTIVE" ||
+                        workout.state === "PAUSED" ? (
+                          <Button highContrast asChild size="1" variant="soft">
+                            <NextLink href={`/workouts/${workout.id}`}>
+                              {t("continueTraining")}
+                            </NextLink>
+                          </Button>
+                        ) : null}
                         {workout.state === "COMPLETED" ? (
                           <form action={duplicateWorkoutAction}>
                             <input
@@ -354,44 +400,6 @@ export default async function WorkoutsPage({
         </Card>
         <aside className="workouts-sidebar stack">
           <WorkoutCalendar userId={user.id} />
-          <Card asChild>
-            <form
-              id="new-workout"
-              action={createWorkoutAction}
-              className="form-grid create-workout-card"
-            >
-              <Heading as="h2" size="4">
-                {t("createWorkout")}
-              </Heading>
-              <Text as="label" size="2" className="field-label">
-                {t("date")}
-                <TextField.Root
-                  key={today}
-                  defaultValue={today}
-                  name="date"
-                  required
-                  type="date"
-                />
-              </Text>
-              <Text as="label" size="2" className="field-label">
-                {t("workoutTitle")}
-                <TextField.Root
-                  name="title"
-                  maxLength={120}
-                  placeholder={t("workoutTitlePlaceholder")}
-                />
-              </Text>
-              <Text as="label" size="2" className="field-label">
-                {t("notes")}
-                <TextArea
-                  name="notes"
-                  maxLength={2000}
-                  placeholder={t("workoutNotesPlaceholder")}
-                />
-              </Text>
-              <SubmitButton>{t("createWorkout")}</SubmitButton>
-            </form>
-          </Card>
           {templates.length > 0 ? (
             <Card asChild>
               <section className="stack">

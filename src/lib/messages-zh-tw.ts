@@ -37,6 +37,21 @@ export const traditionalChineseMessages = {
   finish: "結束",
   abandon: "放棄",
   complete: "完成此組",
+  continueTraining: "繼續訓練",
+  sessionProgress: "已完成 {completed}/{total} 組",
+  prescribedSets: "計畫 {count} 組",
+  finishSkipped: "略過未完成組數並結束",
+  skippedDescription: "此操作將略過 {count} 組未完成的訓練並結束本次訓練。",
+  abandonDescription:
+    "此操作將結束訓練。已記錄的資料會保留，但無法恢復本次訓練。",
+  invalidSessionInput: "未儲存。請檢查重量、次數、RIR 與備註後重試。",
+  sessionConflict:
+    "未儲存。訓練狀態已變更。請載入最新狀態，檢查後再試。草稿會保留；確認視窗請在載入後取消並重新開啟。",
+  sessionIncomplete: "未儲存。有尚未完成的組數。請選擇結束並確認略過組數。",
+  sessionUnavailable: "未儲存。此訓練或組數已無法執行此操作。",
+  refreshSession: "載入最新訓練狀態",
+  invalidWorkoutInput:
+    "未儲存。請輸入有效日期，標題最多 120 字元，備註最多 2,000 字元。",
   partialFinish: "我確認要結束訓練，並略過未完成的組數。",
   target: "目標",
   saveFailed: "未儲存。請檢查輸入，或重新整理以載入已確認的狀態，再試一次。",

@@ -3,14 +3,12 @@ import {
   Badge,
   Button,
   Card,
-  Checkbox,
   Heading,
   Text,
   TextField,
 } from "@radix-ui/themes";
 import { acceptProgressionAction } from "@/app/actions/progression";
 import {
-  changeSessionAction,
   editSessionSetAction,
   startSessionAction,
 } from "@/app/actions/sessions";
@@ -20,6 +18,7 @@ import { getDictionary, type MessageKey } from "@/lib/i18n";
 import { suggestions } from "@/lib/progression";
 import { RestTimer } from "./rest-timer";
 import { SafeForm } from "./safe-form";
+import { SessionControls } from "./session-controls";
 
 export async function StartSessionForm({
   sourceId,
@@ -90,6 +89,12 @@ export async function SessionPanel({
       </Card>
     );
   const live = workout.state === "ACTIVE" || workout.state === "PAUSED";
+  const sessionErrors = {
+    invalidSessionInput: t("invalidSessionInput"),
+    sessionConflict: t("sessionConflict"),
+    sessionIncomplete: t("sessionIncomplete"),
+    sessionUnavailable: t("sessionUnavailable"),
+  };
   const previews = await suggestions(userId, workout.id);
   return (
     <Card className="stack">
@@ -109,40 +114,26 @@ export async function SessionPanel({
         durationLabel={t("activeSeconds")}
       />
       {live ? (
-        <SafeForm
-          action={changeSessionAction}
-          error={t("saveFailed")}
-          success={t("saved")}
-        >
-          <input type="hidden" name="workoutId" value={workout.id} />
-          <input type="hidden" name="version" value={workout.version} />
-          <div className="card-actions">
-            <Button
-              highContrast
-              name="command"
-              value={workout.state === "ACTIVE" ? "pause" : "resume"}
-              type="submit"
-            >
-              {t(workout.state === "ACTIVE" ? "pause" : "resume")}
-            </Button>
-            <Button highContrast name="command" value="finish" type="submit">
-              {t("finish")}
-            </Button>
-            <Button
-              highContrast
-              name="command"
-              value="abandon"
-              type="submit"
-              variant="soft"
-            >
-              {t("abandon")}
-            </Button>
-          </div>
-          <Text as="label">
-            <Checkbox name="partial" defaultChecked={false} />{" "}
-            {t("partialFinish")}
-          </Text>
-        </SafeForm>
+        <SessionControls
+          workoutId={workout.id}
+          version={workout.version}
+          active={workout.state === "ACTIVE"}
+          skipped={workout.sets.filter((set) => !set.completed).length}
+          messages={{
+            pause: t("pause"),
+            resume: t("resume"),
+            finish: t("finish"),
+            abandon: t("abandon"),
+            cancel: t("cancel"),
+            finishSkipped: t("finishSkipped"),
+            skippedDescription: t("skippedDescription"),
+            abandonDescription: t("abandonDescription"),
+            saved: t("saved"),
+            saveFailed: t("saveFailed"),
+            refresh: t("refreshSession"),
+            errors: sessionErrors,
+          }}
+        />
       ) : null}
       {previews.map((p) => (
         <div key={p.exerciseId} className="stack">
@@ -177,7 +168,7 @@ export async function SessionPanel({
         </div>
       ))}
       {workout.sets.map((s) => (
-        <Card key={`${s.id}-${workout.version}`} className="stack">
+        <Card key={s.id} className="stack">
           <Heading as="h2" size="4">
             #{s.order} {s.exercise.defaultName}
           </Heading>
@@ -189,6 +180,8 @@ export async function SessionPanel({
           {live ? (
             <SafeForm
               action={editSessionSetAction}
+              errors={sessionErrors}
+              refreshLabel={t("refreshSession")}
               error={t("saveFailed")}
               success={t("saved")}
             >

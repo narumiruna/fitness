@@ -369,9 +369,13 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await page.goto(`/workouts/${activeId}`);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await page.getByRole("button", { name: "Finish", exact: true }).click();
-  await expect(page.getByText("Not saved.", { exact: false })).toBeVisible();
-  await page.getByLabel("I confirm finishing with skipped sets.").check();
-  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "unfinished sets skipped",
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Finish with skipped sets", exact: true })
+    .click();
   await expect
     .poll(() =>
       prisma.workout
@@ -405,6 +409,10 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     )
     .toBe(1);
   await page.getByRole("button", { name: "Abandon", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Abandon", exact: true })
+    .click();
   await expect
     .poll(() =>
       prisma.workout
