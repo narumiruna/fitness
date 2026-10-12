@@ -1,4 +1,4 @@
-import { PlusIcon, RowsIcon } from "@radix-ui/react-icons";
+import { PlusIcon } from "@radix-ui/react-icons";
 import {
   Badge,
   Button,
@@ -17,11 +17,17 @@ import {
   duplicateWorkoutAction,
 } from "@/app/actions/workouts";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { EmptyState, MetricCard, PageHeader } from "@/components/dashboard";
+import {
+  EmptyState,
+  MetricCard,
+  PageHeader,
+  StrengthIcon,
+} from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { NotesCheckbox } from "@/components/notes-checkbox";
 import { SubmitButton } from "@/components/submit-button";
 import { TemplatePlanning } from "@/components/template-planning";
+import { WorkoutCalendar } from "@/components/workout-calendar";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey, parseDateKey } from "@/lib/calendar";
@@ -113,7 +119,6 @@ export default async function WorkoutsPage({
   ]);
   return (
     <section className="stack workouts-page">
-      <TemplatePlanning userId={user.id} />
       <PageHeader title={t("workouts")} description={t("workoutsIntro")}>
         <Button highContrast asChild>
           <a href="#new-workout">
@@ -129,14 +134,17 @@ export default async function WorkoutsPage({
             value={formatInteger(totalWorkoutCount)}
           />
           <MetricCard
+            icon="volume"
             label={t("totalVolume")}
-            value={formatNumber(totals[0].volume)}
+            value={`${formatNumber(totals[0].volume)} kg`}
           />
           <MetricCard
+            icon="sets"
             label={t("totalSets")}
             value={formatInteger(Number(totals[0].count))}
           />
           <MetricCard
+            icon="calendar"
             label={t("monthWorkouts")}
             value={formatInteger(workoutsThisMonth)}
           />
@@ -245,7 +253,7 @@ export default async function WorkoutsPage({
                         </span>
                       </time>
                       <span className="row-icon">
-                        <RowsIcon aria-hidden="true" />
+                        <StrengthIcon />
                       </span>
                       <div className="workout-card-main">
                         <Heading as="h3" size="3">
@@ -257,7 +265,9 @@ export default async function WorkoutsPage({
                           </NextLink>
                         </Heading>
                         <Text as="p" size="2" color="gray">
-                          {names.length ? names.join(" · ") : t("noSets")}
+                          {names.length
+                            ? `${names.slice(0, 3).join(" · ")}${names.length > 3 ? ` · +${names.length - 3}` : ""}`
+                            : t("noSets")}
                         </Text>
                         {workout.notes ? (
                           <Text as="p" size="1" color="gray">
@@ -343,6 +353,7 @@ export default async function WorkoutsPage({
           </section>
         </Card>
         <aside className="workouts-sidebar stack">
+          <WorkoutCalendar userId={user.id} />
           <Card asChild>
             <form
               id="new-workout"
@@ -442,6 +453,10 @@ export default async function WorkoutsPage({
           ) : null}
         </aside>
       </div>
+      <details className="dashboard-tools">
+        <summary>{t("schedule")}</summary>
+        <TemplatePlanning userId={user.id} />
+      </details>
     </section>
   );
 }

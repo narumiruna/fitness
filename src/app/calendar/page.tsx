@@ -71,11 +71,6 @@ export default async function CalendarPage({
   const createHref = `/workouts?date=${selectedKey}#new-workout`;
   return (
     <section className="calendar-shell">
-      <ScheduledOccurrences
-        userId={user.id}
-        start={calendar.startDate}
-        end={calendar.endDate}
-      />
       <PageHeader title={t("calendar")} description={t("calendarIntro")}>
         <Button highContrast asChild>
           <NextLink href={createHref}>
@@ -258,7 +253,7 @@ export default async function CalendarPage({
                       {workout.notes}
                     </Text>
                   ) : null}
-                  <Button highContrast asChild variant="soft">
+                  <Button highContrast asChild>
                     <NextLink href={`/workouts/${workout.id}`}>
                       {t("viewDetails")}
                     </NextLink>
@@ -280,6 +275,11 @@ export default async function CalendarPage({
           </aside>
         </Card>
       </div>
+      <ScheduledOccurrences
+        userId={user.id}
+        start={calendar.startDate}
+        end={calendar.endDate}
+      />
     </section>
   );
 }

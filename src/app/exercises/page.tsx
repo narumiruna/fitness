@@ -14,14 +14,19 @@ import {
   createExerciseAction,
   createExerciseAliasAction,
 } from "@/app/actions/exercises";
-import { EmptyState, MetricCard, PageHeader } from "@/components/dashboard";
+import {
+  EmptyState,
+  MetricCard,
+  PageHeader,
+  StrengthIcon,
+} from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { SubmitButton } from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { formatDateKey } from "@/lib/calendar";
 import { normalizeExerciseAlias } from "@/lib/exercises";
 import type { MessageKey } from "@/lib/i18n";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { equipment, muscles } from "@/lib/training";
 
@@ -39,6 +44,7 @@ export default async function ExercisesPage({
 }) {
   const user = await requireUser();
   const t = await getDictionary();
+  const locale = await getLocale();
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const createdExerciseId = params.created?.trim() ?? "";
@@ -71,6 +77,8 @@ export default async function ExercisesPage({
         },
         include: {
           aliases: { orderBy: [{ locale: "asc" }, { alias: "asc" }] },
+          muscles: true,
+          equipment: true,
         },
         orderBy: { defaultName: sort === "desc" ? "desc" : "asc" },
       }),
@@ -117,35 +125,13 @@ export default async function ExercisesPage({
         a.defaultName.localeCompare(b.defaultName),
     );
   const recent = [...usage.entries()].slice(0, 5);
+  const muscleGroups = await prisma.exerciseMuscle.groupBy({
+    by: ["muscle"],
+    _count: true,
+    orderBy: { muscle: "asc" },
+  });
   return (
     <section className="stack exercises-page">
-      <form action="/exercises" className="card-actions">
-        <input type="hidden" name="q" value={query} />
-        <FormSelect
-          name="muscle"
-          label={t("muscle")}
-          defaultValue={params.muscle ?? "all"}
-          options={[
-            { value: "all", label: t("allExercises") },
-            ...muscles.map((m) => ({ value: m, label: t(m as MessageKey) })),
-          ]}
-        />
-        <FormSelect
-          name="equipment"
-          label={t("equipment")}
-          defaultValue={params.equipment ?? "all"}
-          options={[
-            { value: "all", label: t("allExercises") },
-            ...equipment.map((m) => ({ value: m, label: t(m as MessageKey) })),
-          ]}
-        />
-        <Button highContrast type="submit">
-          {t("applyFilters")}
-        </Button>
-        <Button highContrast asChild variant="soft">
-          <NextLink href="/exercises">{t("clearFilters")}</NextLink>
-        </Button>
-      </form>
       <PageHeader title={t("exercises")} description={t("exercisePageIntro")}>
         <Button highContrast asChild>
           <a href="#new-exercise">
@@ -166,12 +152,22 @@ export default async function ExercisesPage({
       {totalExerciseCount > 0 ? (
         <section className="stats-card-grid" aria-label={t("overview")}>
           <MetricCard
+            icon="library"
             label={t("totalExercises")}
             value={String(totalExerciseCount)}
           />
-          <MetricCard label={t("usedExercises")} value={String(usage.size)} />
-          <MetricCard label={t("aliases")} value={String(totalAliasCount)} />
           <MetricCard
+            icon="activity"
+            label={t("usedExercises")}
+            value={String(usage.size)}
+          />
+          <MetricCard
+            icon="sets"
+            label={t("aliases")}
+            value={String(totalAliasCount)}
+          />
+          <MetricCard
+            icon="calendar"
             label={t(query ? "results" : "showing")}
             value={String(exercises.length)}
           />
@@ -186,6 +182,39 @@ export default async function ExercisesPage({
               </Heading>
               <Badge color="gray">{exercises.length}</Badge>
             </div>
+            <form action="/exercises" className="library-metadata-filters">
+              <input type="hidden" name="q" value={query} />
+              <FormSelect
+                name="muscle"
+                label={t("muscle")}
+                defaultValue={params.muscle ?? "all"}
+                options={[
+                  { value: "all", label: t("allExercises") },
+                  ...muscles.map((m) => ({
+                    value: m,
+                    label: t(m as MessageKey),
+                  })),
+                ]}
+              />
+              <FormSelect
+                name="equipment"
+                label={t("equipment")}
+                defaultValue={params.equipment ?? "all"}
+                options={[
+                  { value: "all", label: t("allExercises") },
+                  ...equipment.map((m) => ({
+                    value: m,
+                    label: t(m as MessageKey),
+                  })),
+                ]}
+              />
+              <Button highContrast type="submit">
+                {t("applyFilters")}
+              </Button>
+              <Button highContrast asChild variant="soft">
+                <NextLink href="/exercises">{t("clearFilters")}</NextLink>
+              </Button>
+            </form>
             {totalExerciseCount > 0 ? (
               <form
                 className="library-filters"
@@ -246,6 +275,9 @@ export default async function ExercisesPage({
                       .join(" ")}
                     key={exercise.id}
                   >
+                    <span className="row-icon">
+                      <StrengthIcon />
+                    </span>
                     <div className="exercise-row-main">
                       <Heading as="h3" size="3">
                         <NextLink
@@ -255,6 +287,16 @@ export default async function ExercisesPage({
                           {exercise.defaultName}
                         </NextLink>
                       </Heading>
+                      <Text as="p" size="1" color="gray">
+                        {[
+                          ...exercise.muscles
+                            .filter((m) => m.role === "PRIMARY")
+                            .map((m) => t(m.muscle as MessageKey)),
+                          ...exercise.equipment.map((e) =>
+                            t(e.equipment as MessageKey),
+                          ),
+                        ].join(" · ")}
+                      </Text>
                       <div className="meta-row">
                         <Text size="1" color="gray">
                           {usage.get(exercise.id)
@@ -270,20 +312,16 @@ export default async function ExercisesPage({
                       </div>
                     </div>
                     <div className="alias-list">
-                      {exercise.aliases.length ? (
-                        exercise.aliases.map((alias) => (
-                          <Badge color="gray" variant="soft" key={alias.id}>
-                            {alias.alias}
-                            <Text size="1" color="gray">
-                              {alias.locale}
-                            </Text>
-                          </Badge>
-                        ))
-                      ) : (
-                        <Text size="2" color="gray">
-                          {t("noAliases")}
-                        </Text>
-                      )}
+                      {exercise.aliases.length
+                        ? exercise.aliases.map((alias) => (
+                            <Badge color="gray" variant="soft" key={alias.id}>
+                              {alias.alias}
+                              <Text size="1" color="gray">
+                                {alias.locale}
+                              </Text>
+                            </Badge>
+                          ))
+                        : null}
                     </div>
                     <div className="exercise-actions">
                       {user.role === "ADMIN" ||
@@ -354,7 +392,43 @@ export default async function ExercisesPage({
             )}
           </section>
         </Card>
-        <aside className="stack">
+        <aside className="stack exercise-sidebar">
+          {muscleGroups.length ? (
+            <Card asChild>
+              <section className="stack">
+                <Heading as="h2" size="4">
+                  {t("muscleGroups")}
+                </Heading>
+                {muscleGroups.map((group) => (
+                  <NextLink
+                    className="muscle-group-row title-link"
+                    key={group.muscle}
+                    href={`/exercises?muscle=${group.muscle}`}
+                  >
+                    <span className="row-icon">
+                      <StrengthIcon />
+                    </span>
+                    <div>
+                      <Text as="p" size="2" weight="medium">
+                        {t(group.muscle as MessageKey)}
+                      </Text>
+                      <Text as="p" size="1" color="gray">
+                        {t(
+                          group._count === 1
+                            ? "exerciseCountOne"
+                            : "exerciseCountOther",
+                        ).replace(
+                          "{count}",
+                          new Intl.NumberFormat(locale).format(group._count),
+                        )}
+                      </Text>
+                    </div>
+                    <span aria-hidden="true">›</span>
+                  </NextLink>
+                ))}
+              </section>
+            </Card>
+          ) : null}
           <Card asChild>
             <form
               id="new-exercise"

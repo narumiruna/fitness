@@ -78,11 +78,6 @@ export default async function StatsPage({
 
   return (
     <section className="stack stats-page">
-      <ConsistencyReport userId={user.id} year={params.year} />
-      <MuscleReport userId={user.id} />
-      <Text>
-        {t("workingVolume")}: {stats.workingVolume}
-      </Text>
       <PageHeader title={t("stats")} description={t("statsIntro")}>
         <form className="range-filter" action="/stats" key={range}>
           <FormSelect
@@ -560,6 +555,18 @@ export default async function StatsPage({
           </Card>
         </details>
       ) : null}
+      <details className="dashboard-tools" open={params.year !== undefined}>
+        <summary>
+          {t("consistency")} · {t("muscle")}
+        </summary>
+        <div className="stack">
+          <ConsistencyReport userId={user.id} year={params.year} />
+          <MuscleReport userId={user.id} />
+          <Text size="2" color="gray">
+            {t("workingVolume")}: {stats.workingVolume}
+          </Text>
+        </div>
+      </details>
     </section>
   );
 }
