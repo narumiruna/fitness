@@ -21,7 +21,7 @@ if (
 }
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./e2e",
   testMatch: "**/*.spec.ts",
   fullyParallel: false,
   workers: 1,
