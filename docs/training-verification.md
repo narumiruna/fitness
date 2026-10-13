@@ -92,4 +92,4 @@ The full source, schema, migration, test, and documentation diff was reviewed fo
 - CSV is workout interchange, not a complete account backup. Template definitions, scheduling definitions, measurements, aliases, rest deadlines, and active resume timestamps are not restored. Uploads over 5 MiB or 20,000 rows require files split at complete workout boundaries.
 - The local Markdown/CSV tools remain separate. Their existing destructive date-replacement importer is not used by the web interface.
 
-The completed nine temporary feature plans are replaced by this evidence and the delivered summaries in [the roadmap](roadmap.md). The roadmap remains maintained.
+The completed nine temporary feature plans and roadmap are removed. This delivery evidence and [Training features](training-features.md) retain the supported contracts, verification results, and release limits.
