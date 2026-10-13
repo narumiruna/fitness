@@ -1,5 +1,37 @@
 # Training roadmap delivery evidence
 
+Reverified: 2026-10-13. Base: `origin/main` at `1bd8751`. Branch: `narumi/test/roadmap-delivery-verification`.
+
+The nine features were already merged in #8, with corrections in #10 and #16. This follow-up verifies the current implementation and repairs the production browser harness; it does not implement the features again.
+
+## Current verification
+
+| Command | Result |
+| --- | --- |
+| `npm run test:training` | 15 passed |
+| `npm run test:training:sqlite` | 14 passed; legacy/empty upgrades and backup restoration passed |
+| `npm run test:training:postgres` | 14 passed; legacy/empty upgrades and backup restoration passed |
+| `npm run test:db-init` | 8 passed |
+| `npm run test:dashboard` | 8 passed |
+| `npm run test:logging` | 5 passed |
+| `npm run test:logging:docker` | 1 passed |
+| `npm run test:i18n` | 4 passed |
+| `node --import tsx --test tests/form-outcome.test.ts` | 2 passed |
+| `npm run test:ui` | 43 passed against disposable SQLite |
+| `npm run test:ui:production` | Build passed; 43 passed against disposable PostgreSQL |
+| `npm run build && node --test tests/production-ui-server.test.mjs` | Build passed; 3 passed: SIGINT, SIGTERM, and occupied-port cleanup |
+| `npm run check` | Biome and TypeScript passed |
+| `prek run -a` | Biome and TypeScript passed |
+| `git diff --check` | Passed |
+
+The first production browser run had 40 passing tests and three failures. Two passkey tests failed because the harness used HTTP while production requires HTTPS. The permission test changed a hidden DOM input that hydration could restore before submission. Final runs pass with no skipped tests or retries: the harness uses test-only TLS, and the permission test changes the submitted request and checks that both exercise records remain unchanged. The passkey test also verifies the production session cookie's Secure flag.
+
+Development tests retain `http://localhost:8784`. Production tests use `https://localhost:8784` with an ephemeral self-signed certificate, a loopback-only proxy, and a dynamically allocated loopback Next.js port. OpenSSL is required. Only the test browser ignores certificate trust errors; application origin checks and secure cookies remain enabled. Signal and occupied-port tests verify credential removal and server cleanup. No test server or disposable PostgreSQL container remains after verification. Port 8783 and production services are unchanged.
+
+Review covered the complete follow-up diff, submitted-ID authorization, TLS isolation, forwarded headers, child-process and certificate cleanup, compatibility with HTTP development tests, and documentation accuracy. No application, schema, migration, or production configuration changes were required. Generated `next-env.d.ts` changes are excluded.
+
+## Original delivery
+
 Verified: 2026-10-11. Base: `origin/main` at `4dccffd`. Branch: `narumi/feat/training-roadmap`.
 
 All nine roadmap features are implemented. This is pull-request delivery, not production deployment. [Training features](training-features.md) defines the data contracts, units, permissions, CSV format, and recovery procedure.

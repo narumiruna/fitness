@@ -1,6 +1,6 @@
 # Fitness Feature Roadmap
 
-Updated: 2026-10-11
+Updated: 2026-10-13
 
 ## Goal
 
@@ -102,7 +102,7 @@ The completion-filter recheck is part of active-mode delivery and later report i
 All feature completion checks are recorded in the delivery evidence. Completed temporary plans are removed; this roadmap remains.
 
 - Run feature tests, `npm run check`, and `npm run build`.
-- Smoke-test UI workflows at `http://localhost:8784`, including empty states, keyboard interaction, and user isolation; stop the test server afterward. Port 8783 belongs to production.
+- Smoke-test UI workflows at `http://localhost:8784` in development and `https://localhost:8784` in production-mode tests, including empty states, keyboard interaction, and user isolation; stop the test servers afterward. Production-mode tests use disposable PostgreSQL and test-only TLS. Port 8783 belongs to production.
 - For migrations, verify legacy data preservation and the documented recovery procedure.
 - For commits, run `prek run -a` and stage only intended paths.
 - Record verification results and accepted limits in the handoff. Unavailable or failed checks remain open.

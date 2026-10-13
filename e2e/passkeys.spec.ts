@@ -133,6 +133,7 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
       (cookie) => cookie.name === "fitness_session",
     );
     expect(session?.httpOnly).toBe(true);
+    expect(session?.secure).toBe(process.env.NODE_ENV === "production");
     await page.goto("/account/passkeys");
     await page.getByRole("button", { name: "Delete: Test device" }).click();
     await expect(page.getByText("No passkeys registered.")).toBeVisible();
