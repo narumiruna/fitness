@@ -145,17 +145,25 @@ test("exercise renaming preserves records and checks duplicates and permissions"
   await page.goto(`/exercises/${protectedExercise.id}`);
   await expect(page.locator("#edit-exercise")).toHaveCount(0);
   await page.goto(`/exercises/${exercise.id}`);
-  await form
-    .locator('input[name="exerciseId"]')
-    .evaluate((input: HTMLInputElement, id) => {
-      input.value = id;
-    }, protectedExercise.id);
+  // Change the submitted ID, not a DOM value that hydration can restore.
+  await page.route(`**/exercises/${exercise.id}`, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const body = route.request().postData() ?? "";
+    expect(body).toContain(exercise.id);
+    await route.continue({
+      postData: body.replaceAll(exercise.id, protectedExercise.id),
+    });
+  });
   await form.getByLabel("Default name").fill("Unauthorized rename");
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator("main").getByRole("alert")).toBeVisible();
   expect(
     await prisma.exercise.findUnique({ where: { id: protectedExercise.id } }),
   ).toMatchObject({ defaultName: "Edit Protected" });
+  expect(
+    await prisma.exercise.findUnique({ where: { id: exercise.id } }),
+  ).toMatchObject({ defaultName: "Edit Renamed" });
+  await page.unroute(`**/exercises/${exercise.id}`);
   await page.getByRole("button", { name: "Sign out" }).click();
   await login(page, "edit-admin");
   await page.goto(`/exercises/${protectedExercise.id}`);
