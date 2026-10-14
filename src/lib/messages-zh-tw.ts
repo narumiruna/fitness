@@ -2,6 +2,8 @@ import type { englishMessages } from "@/lib/messages";
 
 export const traditionalChineseMessages = {
   appName: "Fitness",
+  skipToContent: "跳至主要內容",
+  calendarWorkoutDescription: "此日期有已完成的訓練。",
   language: "語言",
   newActivity: "新增活動",
   languageChangeError: "無法切換語言，請再試一次。",
