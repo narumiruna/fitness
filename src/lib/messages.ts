@@ -1,5 +1,7 @@
 export const englishMessages = {
   appName: "Fitness",
+  skipToContent: "Skip to content",
+  calendarWorkoutDescription: "Completed workouts on this date.",
   language: "Language",
   newActivity: "New",
   languageChangeError: "Language could not be changed. Try again.",

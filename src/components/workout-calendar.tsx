@@ -55,6 +55,9 @@ export async function WorkoutCalendar({ userId }: { userId: string }) {
             </NextLink>
           </Button>
         </div>
+        <span id="mini-calendar-workout-description" className="sr-only">
+          {t("calendarWorkoutDescription")}
+        </span>
         <div className="mini-calendar-grid">
           {(
             [
@@ -74,8 +77,13 @@ export async function WorkoutCalendar({ userId }: { userId: string }) {
           {calendar.cells.map((day) => (
             <NextLink
               key={day.dateKey}
-              href={`${href(year, month)}&day=${day.dateKey}`}
+              href={`${href(day.date.getFullYear(), day.date.getMonth() + 1)}&day=${day.dateKey}#selected-date`}
               aria-label={day.dateKey}
+              aria-describedby={
+                dates.has(day.dateKey)
+                  ? "mini-calendar-workout-description"
+                  : undefined
+              }
               aria-current={day.isToday ? "date" : undefined}
               className={[
                 "mini-day",

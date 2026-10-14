@@ -35,6 +35,9 @@ export default async function RootLayout({
           radius="medium"
         >
           <Box className="shell">
+            <a className="skip-link" href="#main-content">
+              {t("skipToContent")}
+            </a>
             <Flex
               asChild
               align="center"
@@ -100,7 +103,7 @@ export default async function RootLayout({
               </header>
             </Flex>
             <Box asChild className="main">
-              <main>
+              <main id="main-content" tabIndex={-1}>
                 <PageErrorMessagesProvider
                   message={t("pageError")}
                   retry={t("tryAgain")}

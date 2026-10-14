@@ -158,6 +158,44 @@ test("duplicate exercise and alias feedback remains directly below the header", 
   await page.screenshot({ path: info.outputPath("alias-alert-1440.png") });
 });
 
+test("keyboard users can bypass the header on desktop and mobile in both languages", async ({
+  page,
+  context,
+}) => {
+  for (const locale of ["en", "zh-TW"]) {
+    await context.addCookies([
+      { name: "locale", value: locale, url: "http://localhost:8784" },
+    ]);
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/workouts");
+      await page.keyboard.press("Tab");
+      const skip = page.getByRole("link", {
+        name: locale === "en" ? "Skip to content" : "跳至主要內容",
+        exact: true,
+      });
+      await expect(skip).toBeFocused();
+      await expect(skip).toBeInViewport();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("main")).toBeFocused();
+      await expect(page.getByRole("main")).toBeInViewport();
+    }
+    const today = formatDateKey(new Date());
+    await prisma.workout.create({ data: { userId, date: new Date() } });
+    await page.goto("/workouts");
+    await expect(
+      page.locator(`.mini-day[aria-label="${today}"]`),
+    ).toHaveAccessibleDescription(
+      locale === "en"
+        ? "Completed workouts on this date."
+        : "此日期有已完成的訓練。",
+    );
+    await expect(
+      page.locator(".mini-day:not(.has-workout)").first(),
+    ).not.toHaveAttribute("aria-describedby");
+  }
+});
+
 async function addMuscleExercise(muscle: string, role: string) {
   const name = `Review ${muscle} ${role} ${randomUUID()}`;
   const exercise = await prisma.exercise.create({
@@ -277,8 +315,18 @@ test("mini-calendar marks adjacent-month workouts without inflating this month's
     await page.screenshot({
       path: info.outputPath("adjacent-month-indicators.png"),
     });
-    await page.locator(`.mini-day[aria-label="${last.dateKey}"]`).click();
+    const adjacentDay = page.locator(`.mini-day[aria-label="${last.dateKey}"]`);
+    await expect(adjacentDay).toHaveAccessibleDescription(
+      "Completed workouts on this date.",
+    );
+    await adjacentDay.click();
+    await expect(page).toHaveURL(
+      new RegExp(
+        `year=${last.date.getFullYear()}&month=${last.date.getMonth() + 1}&day=${last.dateKey}#selected-date$`,
+      ),
+    );
     await expect(page.locator(".selected-workout")).toHaveCount(1);
+    await expect(page.locator(".selected-date-panel")).toBeInViewport();
   } finally {
     await prisma.user.delete({ where: { id: other.id } });
   }
