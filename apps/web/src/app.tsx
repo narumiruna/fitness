@@ -17,6 +17,7 @@ import {
   type ReactNode,
   Suspense,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -216,7 +217,7 @@ function Shell() {
   const t = useDictionary();
   const location = useLocation();
   const previousNavigation = useRef(location.key);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousNavigation.current === location.key) return;
     previousNavigation.current = location.key;
     if (location.hash) {

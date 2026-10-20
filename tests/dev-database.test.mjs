@@ -224,6 +224,17 @@ test("development accepts a SQLite file URL for isolated tests", () => {
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(existsSync(join(directory, "custom.db")), true);
     assert.equal(existsSync(join(directory, ".cache/dev.db")), false);
+    // This fixture has no tsconfig, as in the Docker dependency-install layer.
+    for (const client of ["prisma", "prisma-sqlite"]) {
+      assert.match(
+        readFileSync(
+          join(directory, "apps/api/src/generated", client, "client.ts"),
+          "utf8",
+        ),
+        /from ["']\.\/internal\/class\.js["']/,
+        "Generated clients must support the compiled Node runtime without tsconfig inference",
+      );
+    }
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
