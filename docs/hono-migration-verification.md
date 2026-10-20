@@ -145,6 +145,10 @@ BigInt handling, and orphaned process-group cleanup. Additional CI-driven fixes:
   was arriving. An independent regression failed before this fix and passed after
   it; all 8 focused client cases pass. Malformed fragments are ignored instead
   of causing a URI error. Skip-link tests wait for SPA bootstrap before pressing Tab.
+- The range test compares rendered text with rendered text. Its old `innerText`
+  capture plus default `textContent` assertion passed before any data changed,
+  allowing interaction with a select during navigation. A browser experiment
+  reproduced this; the corrected assertion waits for the actual range result.
 - Container logging tests directly request an unauthorized private endpoint.
   Bootstrap can redirect before a private query starts; the test no longer depends
   on that request race. All original privacy/event assertions remain.

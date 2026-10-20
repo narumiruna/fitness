@@ -729,7 +729,7 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   await expect(page).toHaveURL(/range=30/);
   await expect(
     page.locator(".stats-card").filter({ hasText: "Total volume" }),
-  ).not.toHaveText(allVolume);
+  ).not.toHaveText(allVolume, { useInnerText: true });
   await expect(page.locator(".records-filter")).toContainText(
     "All-time records",
   );
