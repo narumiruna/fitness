@@ -31,6 +31,7 @@ import { getLocale } from "./lib/i18n.js";
 import { getLogger } from "./lib/logger.js";
 import { csvLimit, serializeWorkouts } from "./lib/workout-csv.js";
 import { requestLogging } from "./middleware/request-logging.js";
+import { validateProductionOrigin } from "./origin.js";
 import { withRequest } from "./request-context.js";
 import { readView } from "./views.js";
 
@@ -101,7 +102,7 @@ export function createApp(options: AppOptions = {}) {
       const trusted =
         options.trustedOrigin ??
         (process.env.NODE_ENV === "production"
-          ? process.env.PASSKEY_ORIGIN
+          ? validateProductionOrigin()
           : undefined);
       let valid = Boolean(origin && trusted && origin === trusted);
       if (!trusted && process.env.NODE_ENV !== "production")

@@ -16,6 +16,7 @@ import { storePasskeyChallenge } from "../lib/passkey-challenges.js";
 import { verifyPassword } from "../lib/password.js";
 import { prisma } from "../lib/prisma.js";
 import { passkeyNameSchema, passwordSchema } from "../lib/validation.js";
+import { validateProductionOrigin } from "../origin.js";
 import { cookies, headers } from "../request-context.js";
 
 const challengeCookie = "fitness_passkey_challenge";
@@ -25,7 +26,7 @@ async function relyingParty() {
   if (!origin) throw new ApiError(403, "FORBIDDEN");
   const url = new URL(origin);
   if (process.env.NODE_ENV === "production") {
-    if (url.protocol !== "https:" || origin !== process.env.PASSKEY_ORIGIN) {
+    if (url.protocol !== "https:" || origin !== validateProductionOrigin()) {
       throw new ApiError(403, "FORBIDDEN");
     }
   } else if (

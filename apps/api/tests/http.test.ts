@@ -117,6 +117,78 @@ test("HTTP security, features, safe page DTOs, sessions and CSV", async (t) => {
       405,
     );
   });
+  await t.test(
+    "production normalizes configured origin, not request origins",
+    async () => {
+      const previousMode = process.env.NODE_ENV;
+      const previousOrigin = process.env.PASSKEY_ORIGIN;
+      try {
+        process.env.NODE_ENV = "production";
+        const canonical = "https://localhost:8784";
+        for (const suffix of ["/", "///"]) {
+          process.env.PASSKEY_ORIGIN = `${canonical}${suffix}`;
+          const productionApp = createApp();
+          for (const action of [
+            "setLocaleAction",
+            "passkeyAuthenticationOptions",
+          ]) {
+            const request = (requestOrigin: string, extraHeaders = {}) =>
+              productionApp.request(`/api/actions/${action}`, {
+                method: "POST",
+                headers: {
+                  origin: requestOrigin,
+                  "content-type": "application/json",
+                  ...extraHeaders,
+                },
+                body: JSON.stringify(
+                  action === "setLocaleAction" ? { locale: "en" } : {},
+                ),
+              });
+            const accepted = await request(canonical);
+            assert.equal(accepted.status, 200);
+            if (action === "passkeyAuthenticationOptions") {
+              const data = actionEnvelopeSchema.parse(await accepted.json());
+              assert.equal((data.result as { rpId: string }).rpId, "localhost");
+              assert.ok(
+                accepted.headers
+                  .getSetCookie()
+                  .some((value) =>
+                    value.startsWith("fitness_passkey_challenge="),
+                  ),
+              );
+            }
+            for (const rejected of [
+              `${canonical}/`,
+              `${canonical}/path`,
+              "http://localhost:8784",
+              "https://localhost:8785",
+              "https://attacker.invalid",
+            ])
+              assert.equal(
+                (
+                  await request(rejected, {
+                    "x-forwarded-host": "localhost:8784",
+                    "x-forwarded-proto": "https",
+                  })
+                ).status,
+                403,
+              );
+            assert.equal(
+              (await request(canonical, { "sec-fetch-site": "cross-site" }))
+                .status,
+              403,
+            );
+          }
+        }
+      } finally {
+        if (previousMode === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = previousMode;
+        if (previousOrigin === undefined) delete process.env.PASSKEY_ORIGIN;
+        else process.env.PASSKEY_ORIGIN = previousOrigin;
+        await prisma.passkeyChallenge.deleteMany();
+      }
+    },
+  );
   await t.test("locale cookie and development origin isolation", async () => {
     const resolved = await app.request("/api/bootstrap", {
       headers: { "accept-language": "zh-HK,zh;q=0.8,en;q=0.5" },

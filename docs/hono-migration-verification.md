@@ -52,9 +52,10 @@ separate authorized operations.
 - Workout metadata updates without a submitted version remain a documented
   existing last-write-wins limit. Session/set versions, request keys, database
   constraints, and owner checks remain in place.
-- All cookie mutations have explicit Origin checks. Production requires exact
-  canonical HTTPS `PASSKEY_ORIGIN`; startup fails if it is missing or invalid.
-  Compose forwards it; manual deployment requires the repository variable.
+- All cookie mutations have explicit Origin checks. Production strips trailing
+  slashes from `PASSKEY_ORIGIN`, then requires a canonical HTTPS origin. Startup
+  fails if it is missing or invalid. Compose forwards it; manual deployment
+  requires the repository variable. Request Origin headers are not normalized.
 - Deployment is manual only. Code/version PR merges do not deploy. No deployment
   workflow was dispatched, package published, image published, or version tag created.
 - Expected mutation failures retain drafts and use localized inline feedback.
@@ -142,6 +143,30 @@ Sunday, January 6. Before the fix, the heading was `2029-12-30`; after the fix,
 it is `2030-01-06`. The existing zero counts remain unchanged. All 9 focused
 client tests, `npm run check`, and `npm run build` passed locally. Final PR checks
 run the expanded 53-case browser suite in both modes.
+
+### Follow-up: trailing slashes in the production origin
+
+`PASSKEY_ORIGIN` now accepts one or more trailing `/` characters. Startup, CSRF,
+and passkey checks use the same validated canonical origin. Paths, queries,
+fragments, credentials, non-HTTPS URLs, and other noncanonical values remain
+invalid. Request origins must still match exactly; forwarded headers cannot
+select the trusted origin.
+
+Local verification on 2026-10-20 passed:
+
+- `npm ci`, `npm run check`, `npm run build`, and all 64 tests in `npm test`.
+- `prek run -a` and `git diff --check`: passed.
+- `npm run test:api`: 23 tests passed with disposable SQLite.
+- `npm run test:api:postgres`: 23 tests passed with a separate disposable
+  PostgreSQL container in production mode. The runner removed the container.
+- New cases cover single/multiple trailing slashes, canonical passkey RP IDs,
+  CSRF acceptance, noncanonical/untrusted request origins, forwarded headers,
+  and cross-site rejection.
+
+The initial API attempt failed because workspace builds and generated clients
+were missing. It passed after `npm ci` and `npm run build:packages`. Browser
+workflows were not repeated for this server-only change. No production settings,
+services, or data were changed, and no deployment was performed.
 
 ### Migration review
 
