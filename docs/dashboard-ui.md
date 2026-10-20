@@ -51,7 +51,8 @@ without silently resubmitting a mutation or clearing dirty session values.
 
 ## Verification
 
-The Hono/Vite migration passed all 50 development browser tests in one run. Tests
+The Hono/Vite migration passed all 51 development browser tests and all 51
+production HTTPS browser tests in Node 24 CI, without retries or skips. Tests
 cover auth/admin/user isolation, forms and reset behavior, filters/pagination,
 calendar navigation, virtual passkeys, data import/export, draft preservation,
 retry/conflict recovery, keyboard access, axe, and responsive layouts.
@@ -60,5 +61,5 @@ Browser tests use disposable data on port 8784, refuse existing servers, and sto
 their own stack. Screenshots and traces are ignored local artifacts under
 `test-results/`; do not commit them. Development uses SQLite; production-mode
 checks require isolated PostgreSQL and HTTPS. See [current migration evidence](hono-migration-verification.md)
-for command results and blocked checks. Historical dashboard/training evidence
+for command results and the separately authorized production rollout requirements. Historical dashboard/training evidence
 must not be treated as verification of the new runtime.

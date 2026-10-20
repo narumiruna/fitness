@@ -2,10 +2,15 @@
 
 ## Status
 
-Implementation and local development verification are complete. PostgreSQL,
-production-mode browser, and container verification are blocked by the missing
-Docker daemon. Keep the PR in draft until these checks pass. This is not a
-production deployment or a claim that all plan completion criteria have passed.
+Implementation and the full verification matrix passed in
+[CI run 39443905437](https://github.com/narumiruna/fitness/actions/runs/39443905437)
+on revision `fcffee5`: all five jobs passed. [PR #20](https://github.com/narumiruna/fitness/pull/20)
+contains the final checks. No production deployment was performed.
+
+All five migration plans are complete and removed. The prior image reference was
+recovered from the existing successful deployment log without connecting to
+production services. Actual deployment and production backup/restore remain
+separate authorized operations.
 
 ## Baseline and Isolation
 
@@ -15,14 +20,19 @@ production deployment or a claim that all plan completion criteria have passed.
 - Baseline `npm ci`, `npm run check`, and `npm run build`: passed.
 - Baseline i18n/dashboard/training/logging: 4/8/15/5 tests passed.
 - Baseline isolated measurements browser tests: 3 passed.
-- Local runtime: Node 26.10.0. The production image and CI target Node 24;
-  dependency engines support it, but local results alone do not prove Node 24.
+- Local runtime: Node 26.10.0. CI verified Node 24.21.0; the separate production
+  image ran Node 24.22.0. No Node 26 production upgrade was introduced.
 - All browser tests used disposable databases, refused server reuse, and stopped
   their own stack. Ports 8784 and 8785 were free after the final full run.
 - Docker failed to connect to the configured OrbStack socket. No engine was
   started because that could also start existing production services.
-- The exact previous production image is unavailable without production access.
-  An operator must record it before any separately authorized rollout.
+- The last successful [deployment run 38538142730](https://github.com/narumiruna/fitness/actions/runs/38538142730)
+  deployed the exact baseline revision on 2026-10-14. It built local image
+  `fitness-fitness:latest` with Docker image ID
+  `sha256:b4cb78f545cd0b780caa05f6a71ca2fe1f8d5d902e11f619940b31e89cf946e6`
+  and recorded `fitness-fitness-1` recreated and started. This is a local image ID,
+  not a registry digest. Live container state and image retention were not inspected;
+  the operator must confirm and retain this image before an authorized rollout.
 
 ## Architecture and Decisions
 
@@ -32,8 +42,8 @@ production deployment or a claim that all plan completion criteria have passed.
   required; Server Action progressive enhancement is not retained. The disabled-
   JavaScript browser test verifies the visible `noscript` notice.
 - Root PostgreSQL schema and migration history remain canonical. Only the client
-  generator output path changes. SQLite remains derived and development ignores
-  inherited PostgreSQL URLs and production origins.
+  generator output path and explicit JavaScript import extension change. SQLite
+  remains derived; development ignores inherited PostgreSQL URLs and production origins.
 - Setup count/create uses a serializable transaction. Password update/revocation
   is atomic; session issuance checks the verified password hash under a user lock.
   Concurrent setup and password-change regression tests pass.
@@ -43,14 +53,14 @@ production deployment or a claim that all plan completion criteria have passed.
 - All cookie mutations have explicit Origin checks. Production requires exact
   canonical HTTPS `PASSKEY_ORIGIN`; startup fails if it is missing or invalid.
   Compose forwards it; manual deployment requires the repository variable.
-- Deployment is manual only. Code/version PR merges do not deploy. No workflow
-  was dispatched, package published, image published, or version tag created.
+- Deployment is manual only. Code/version PR merges do not deploy. No deployment
+  workflow was dispatched, package published, image published, or version tag created.
 - Expected mutation failures retain drafts and use localized inline feedback.
   Missing-record feedback replaces Next.js's generated error page. SPA bootstrap
   redirects are asynchronous; tests wait for the resolved page before branching.
   Unknown API routes stay JSON 404s, never the SPA shell.
 
-## Local Checks
+## Verification Results
 
 | Check | Actual result |
 | --- | --- |
@@ -61,16 +71,21 @@ production deployment or a claim that all plan completion criteria have passed.
 | Core timezone repeat | 18 passed in America/New_York as well as the local timezone |
 | `npm run test:api` | 21 passed on disposable SQLite; all 36 actions and 12 view schemas mapped in `apps/api/README.md` |
 | `npm run test:training:sqlite` | 14 passed, including legacy/empty upgrades, concurrency, and backup restoration |
-| `npm run test:ui` | All 50 passed in one run, 3.9 minutes, no retries or skips |
-| Non-Docker environment/lifecycle/TLS partition | 26 passed: environment and safe startup, occupied ports, child/grandchild cleanup, duplicate signals, escalation, TLS forwarding and credential cleanup |
-| `npm run test:db-init` | 26 passed; 2 Docker-dependent cleanup tests failed because the daemon is unavailable |
-| `npm run test:training:postgres` | Attempted; blocked before tests by missing Docker socket |
-| `npm run test:api:postgres` | Attempted; blocked before tests by missing Docker socket |
-| `npm run test:ui:production` | Build passed; blocked before browser tests by missing Docker socket |
-| Isolated `docker build --tag fitness-logging-test:local .` | Attempted; missing Docker socket |
-| `npm run test:logging:docker` | Attempted; missing Docker socket; no app container created |
-| `prek run -a` | Passed; rerun before the implementation commit |
+| `npm run test:ui` | All 51 passed locally; all 51 passed in Node 24 CI (4.6 minutes), no retries or skips |
+| `npm run test:db-init` | All 29 passed in CI, including both Docker cleanup cases, readiness probes, occupied ports, process groups, duplicate signals, escalation, TLS forwarding and credential cleanup |
+| `npm run test:training:postgres` | All 14 passed in CI, including upgrade, concurrency and backup restoration |
+| `npm run test:api:postgres` | All 21 passed in CI |
+| `npm run test:ui:production` | All 51 passed in CI with built assets, disposable PostgreSQL and HTTPS (4.7 minutes), no retries or skips |
+| Isolated `docker build --tag fitness-logging-test:local .` | Passed in CI; no image publication |
+| `npm run test:logging:docker` | Both tests passed: non-root startup/auth/log privacy/assets/restart, and failed migrations stopping before the API starts |
+| `prek run -a` | Passed before each implementation/test commit; repeated for the final documentation commit |
 | `git diff --check` | Passed before final staging |
+
+Local Docker commands initially failed at the missing OrbStack socket. CI supplied
+the missing isolated environment; those failures were not reported as local passes.
+Earlier CI failures exposed real startup/import/focus/test-driver issues, corrected
+before the green run above. One Prisma engine download also failed with ECONNRESET.
+No test was skipped or changed to accept failure.
 
 Browser coverage includes virtual passkey registration/authentication, invalid
 passwords/signatures, expiry/replay/removal, challenge capacity, setup/auth/admin,
@@ -91,7 +106,7 @@ signed software WebAuthn fixture stored with the old client authenticated throug
 Hono and updated its counter. SQLite backup restoration preserved representative
 records across ten models. All disposable directories and servers were removed.
 
-Schema models match the baseline after excluding the generator output path.
+Schema models match the baseline after excluding the generator configuration.
 SHA-256 checks matched all four migration SQL files and `migration_lock.toml`.
 No database migration, reset, re-seed, or historical data conversion is introduced.
 Physical biometric hardware and cross-device passkey synchronization were not
@@ -113,24 +128,37 @@ remains unconsumed on this branch.
 ## Review and Remaining Limits
 
 Review covered correctness, security, lifecycle, compatibility, regression tests,
-and scope. It found and corrected missing Docker config helpers, production-origin
-wiring, CI HTTP tests bypassing the disposable runner, calendar-date serialization,
-empty SQLite aggregate BigInt handling, and orphaned process-group cleanup.
-Repeated shutdown signals are tested because npm can forward the same signal that
-was already sent to the process group. Calendar defaults also use the API's explicit
-server-local date rather than the browser clock; the added client regression passed
-with a browser clock in a different decade (7 focused client tests passed).
+and scope. Corrections include missing Docker config helpers, production-origin
+wiring, disposable HTTP runners, calendar-date serialization, empty SQLite aggregate
+BigInt handling, and orphaned process-group cleanup. Additional CI-driven fixes:
 
-Remaining verification requires Docker or CI: Node 24 execution, PostgreSQL
-transaction behavior, production HTTPS browser workflows, native container build,
-non-root image startup/restart, and the complete database cleanup gate. Before an
-authorized deployment, configure `PASSKEY_ORIGIN`, record the deployed image, and
-restore-test a backup. Do not reset volumes or reverse SQL for this app-only change.
+- Prisma generation now sets `importFileExtension = "js"`. Docker installs before
+  copying tsconfig files; default TypeScript imports broke the compiled runtime.
+  A no-tsconfig fixture checks both generated clients.
+- Temporary port reservations destroy readiness-probe sockets. Otherwise closing
+  the reservation can wait forever. A controlled fixture reproduced the old
+  deadlock and passed after the fix.
+- Route focus uses a layout effect so it cannot close a select opened after the
+  new page is visible. Skip-link tests wait for SPA bootstrap before pressing Tab.
+- Container logging tests directly request an unauthorized private endpoint.
+  Bootstrap can redirect before a private query starts; the test no longer depends
+  on that request race. All original privacy/event assertions remain.
+- Repeated shutdown signals are tested because npm can forward a process-group
+  signal twice. Calendar defaults use the API's server-local date, not the browser
+  clock; a regression test runs with the browser clock in a different decade.
+
+Node 24, PostgreSQL, production HTTPS, native image build, non-root startup/restart,
+and the database cleanup gate are now verified in CI. Before a separately authorized
+deployment, confirm and retain the recorded prior image, configure `PASSKEY_ORIGIN`,
+and restore-test a production backup. The image reference above comes from existing
+workflow records, not a live production inspection. Do not reset volumes or reverse
+SQL for this app-only change.
 
 `npm audit` reports 5 existing dependency advisories (4 high, 1 low), mainly in the
 Prisma CLI dependency chain plus esbuild. The legacy install reported 6. No broad
 ORM/dependency major upgrade was added to hide these results. Vite also reports a
 large initial JS chunk (about 606 kB before gzip); route modules are lazy-loaded.
 
-The plans remain until all their missing evidence and required handoff checks are
-resolved. Production services and real workout data remain untouched.
+All implementation and required handoff evidence is recorded here. Production
+services and real workout data remain untouched; no rollout, publication, or version
+tagging was performed.
