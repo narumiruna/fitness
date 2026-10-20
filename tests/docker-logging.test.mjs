@@ -133,6 +133,12 @@ test("Docker login diagnostics correlate requests without logging secrets", {
     ]);
     await page.goto(`${baseURL}/workouts`);
     await page.waitForURL("**/login");
+    // Bootstrap can redirect before any private query starts. Exercise the
+    // authorization failure directly instead of depending on that request race.
+    const unauthorized = await page.request.get(
+      `${baseURL}/api/views/workouts`,
+    );
+    assert.equal(unauthorized.status(), 401);
 
     const output = docker("logs", name);
     const records = output
