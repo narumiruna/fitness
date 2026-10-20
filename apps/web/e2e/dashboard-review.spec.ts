@@ -172,11 +172,12 @@ test("keyboard users can bypass the header on desktop and mobile in both languag
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/workouts");
-      await page.keyboard.press("Tab");
       const skip = page.getByRole("link", {
         name: locale === "en" ? "Skip to content" : "跳至主要內容",
         exact: true,
       });
+      await expect(skip).toBeAttached();
+      await page.keyboard.press("Tab");
       await expect(skip).toBeFocused();
       await expect(skip).toBeInViewport();
       await page.keyboard.press("Enter");

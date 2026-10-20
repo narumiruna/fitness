@@ -15,7 +15,9 @@ function docker(...args) {
     timeout: 120_000,
   });
   assert.equal(result.status, 0, result.stderr);
-  return result.stdout.trim();
+  return (
+    args[0] === "logs" ? `${result.stdout}\n${result.stderr}` : result.stdout
+  ).trim();
 }
 
 test("Docker login diagnostics correlate requests without logging secrets", {
@@ -65,7 +67,13 @@ test("Docker login diagnostics correlate requests without logging secrets", {
       } catch {
         // Wait for migrations and server startup.
       }
-      assert.ok(attempt < 59, "Docker app did not become ready");
+      if (attempt >= 59) {
+        const startup = docker("logs", name).replace(
+          /(postgres(?:ql)?:\/\/)[^@\s]+@/g,
+          "$1[REDACTED]@",
+        );
+        assert.fail(`Docker app did not become ready:\n${startup}`);
+      }
       await setTimeout(500);
     }
     assert.notEqual(docker("exec", name, "id", "-u"), "0");
