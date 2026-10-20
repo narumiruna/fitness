@@ -214,3 +214,36 @@ test("Docker login diagnostics correlate requests without logging secrets", {
     if (networkCreated) docker("network", "rm", name);
   }
 });
+
+test("failed container migrations stop before the API starts", {
+  timeout: 120_000,
+}, () => {
+  const name = `fitness-migration-failure-test-${randomUUID()}`;
+  let created = false;
+  try {
+    docker(
+      "run",
+      "--detach",
+      "--name",
+      name,
+      "--network",
+      "none",
+      "--env",
+      "DATABASE_URL=postgresql://fitness:fitness@127.0.0.1:1/fitness?connect_timeout=1",
+      "--env",
+      "PASSKEY_ORIGIN=https://localhost:8784",
+      "fitness-logging-test:local",
+    );
+    created = true;
+    assert.notEqual(docker("wait", name), "0");
+    assert.equal(
+      docker("inspect", "--format", "{{.State.Running}}", name),
+      "false",
+    );
+    const output = docker("logs", name);
+    assert.match(output, /P1001|Can't reach database server/);
+    assert.doesNotMatch(output, /database\.client_created|server\.listening/);
+  } finally {
+    if (created) docker("rm", "--force", name);
+  }
+});

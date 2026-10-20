@@ -76,7 +76,8 @@ function stop(code) {
 }
 
 async function reserve(port) {
-  const server = createServer();
+  // Readiness probes must not keep this temporary reservation open during close.
+  const server = createServer((socket) => socket.destroy());
   server.listen(port, "127.0.0.1");
   await once(server, "listening");
   return server;

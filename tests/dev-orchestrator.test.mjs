@@ -10,7 +10,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { createServer } from "node:net";
+import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import test from "node:test";
@@ -31,6 +31,15 @@ const directory = process.env.FIXTURE_DIRECTORY;
 const record = (event) => appendFileSync(join(directory, "events"), JSON.stringify({ name, event, pid: process.pid, cwd: process.cwd(), nodeEnv: process.env.NODE_ENV }) + "\\n");
 record("started");
 if (build && process.env.FIXTURE_BUILD === "fail") process.exit(19);
+if (build && process.env.FIXTURE_BUILD === "probe") {
+  await new Promise((resolve) => {
+    const timer = setInterval(() => {
+      if (!existsSync(join(directory, "release-build"))) return;
+      clearInterval(timer);
+      resolve();
+    }, 10);
+  });
+}
 if (build && process.env.FIXTURE_BUILD !== "wait") process.exit(0);
 const worker = spawn(process.execPath, [fileURLToPath(new URL("./worker.mjs", import.meta.url)), name], { stdio: "inherit" });
 let stopping = false;
@@ -248,6 +257,33 @@ test("development orchestrator lifecycle in disposable fake workspaces", {
         );
         await run.assertClean();
       } finally {
+        await run.dispose();
+      }
+    },
+  );
+
+  await t.test(
+    "readiness probes cannot hold build reservations open",
+    async () => {
+      const run = await fixture({ FIXTURE_BUILD: "probe" });
+      let probe;
+      try {
+        await until(
+          async () =>
+            (await run.events()).some((event) => event.name === "build"),
+          "Build did not start",
+        );
+        probe = createConnection({ host: "127.0.0.1", port: 8784 });
+        probe.on("error", () => {});
+        await once(probe, "connect");
+        probe.write("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        await writeFile(join(run.directory, "release-build"), "ready");
+        await run.ready();
+        run.child.kill("SIGTERM");
+        await run.exited(143);
+        await run.assertClean();
+      } finally {
+        probe?.destroy();
         await run.dispose();
       }
     },
