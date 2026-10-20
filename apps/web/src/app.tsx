@@ -212,25 +212,33 @@ function MissingPage() {
   return <Text role="alert">{t("missingPage")}</Text>;
 }
 
+function hashTarget(hash: string) {
+  try {
+    return document.getElementById(decodeURIComponent(hash.slice(1)));
+  } catch {
+    return null;
+  }
+}
+
 function Shell() {
   const { user, locale } = useSession();
   const t = useDictionary();
   const location = useLocation();
-  const previousNavigation = useRef(location.key);
+  const previousNavigation = useRef(location);
   useLayoutEffect(() => {
-    if (previousNavigation.current === location.key) return;
-    previousNavigation.current = location.key;
+    const previous = previousNavigation.current;
+    if (previous.key === location.key) return;
+    previousNavigation.current = location;
     if (location.hash) {
-      requestAnimationFrame(() =>
-        document
-          .getElementById(decodeURIComponent(location.hash.slice(1)))
-          ?.scrollIntoView(),
-      );
+      requestAnimationFrame(() => hashTarget(location.hash)?.scrollIntoView());
     } else {
       window.scrollTo(0, 0);
-      document.getElementById("main-content")?.focus({ preventScroll: true });
+      // Same-page mutation redirects must not take focus from a control the
+      // user selected while the refreshed data was arriving.
+      if (previous.pathname !== location.pathname)
+        document.getElementById("main-content")?.focus({ preventScroll: true });
     }
-  }, [location.key, location.hash]);
+  }, [location]);
   return (
     <Box className="shell">
       <a className="skip-link" href="#main-content">
@@ -328,9 +336,7 @@ function HashNavigation() {
   const location = useLocation();
   useEffect(() => {
     if (!location.hash) return;
-    document
-      .getElementById(decodeURIComponent(location.hash.slice(1)))
-      ?.scrollIntoView();
+    hashTarget(location.hash)?.scrollIntoView();
   }, [location.hash]);
   return null;
 }

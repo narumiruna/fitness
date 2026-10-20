@@ -55,6 +55,60 @@ test("JavaScript-disabled navigation explains the SPA requirement", async ({
   }
 });
 
+test("same-page redirects keep focus and ignore malformed fragments", async ({
+  page,
+}) => {
+  await page.route("**/api/views/workouts**", (route) =>
+    route.fulfill({
+      json: {
+        ...emptyWorkouts,
+        totalWorkoutCount: new URL(route.request().url()).searchParams.has(
+          "created",
+        )
+          ? 1
+          : 0,
+      },
+    }),
+  );
+  await page.goto("/workouts");
+  const control = page.getByRole("link", { name: "New workout", exact: true });
+  await control.focus();
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("fitness:navigate", {
+        detail: "/workouts?created=confirmed",
+      }),
+    ),
+  );
+  await expect(
+    page
+      .locator(".stats-card")
+      .filter({ hasText: "Total workouts" })
+      .getByText("1", { exact: true }),
+  ).toBeVisible();
+  await expect(control).toBeFocused();
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("fitness:navigate", {
+        detail: "/workouts?created=confirmed#%E0",
+      }),
+    ),
+  );
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await expect(
+    page.getByRole("heading", { name: "Workouts", exact: true }),
+  ).toBeVisible();
+  await expect(control).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
 test("calendar defaults use the server date instead of the browser clock", async ({
   page,
 }) => {

@@ -2,10 +2,12 @@
 
 ## Status
 
-Implementation and the full verification matrix passed in
+The initial full matrix passed in
 [CI run 39443905437](https://github.com/narumiruna/fitness/actions/runs/39443905437)
-on revision `fcffee5`: all five jobs passed. [PR #20](https://github.com/narumiruna/fitness/pull/20)
-contains the final checks. No production deployment was performed.
+on revision `fcffee5`: all five jobs passed, with 51 cases in each browser mode.
+A later same-page focus regression increased each browser suite to 52 cases;
+all 52 passed locally. [PR #20 checks](https://github.com/narumiruna/fitness/pull/20/checks)
+contain the final commit's complete matrix. No production deployment was performed.
 
 All five migration plans are complete and removed. The prior image reference was
 recovered from the existing successful deployment log without connecting to
@@ -71,11 +73,11 @@ separate authorized operations.
 | Core timezone repeat | 18 passed in America/New_York as well as the local timezone |
 | `npm run test:api` | 21 passed on disposable SQLite; all 36 actions and 12 view schemas mapped in `apps/api/README.md` |
 | `npm run test:training:sqlite` | 14 passed, including legacy/empty upgrades, concurrency, and backup restoration |
-| `npm run test:ui` | All 51 passed locally; all 51 passed in Node 24 CI (4.6 minutes), no retries or skips |
+| `npm run test:ui` | All 52 passed locally (4.0 minutes); CI snapshot: 51 passed (4.6 minutes). Final PR checks run the expanded 52-case suite without retries or skips |
 | `npm run test:db-init` | All 29 passed in CI, including both Docker cleanup cases, readiness probes, occupied ports, process groups, duplicate signals, escalation, TLS forwarding and credential cleanup |
 | `npm run test:training:postgres` | All 14 passed in CI, including upgrade, concurrency and backup restoration |
 | `npm run test:api:postgres` | All 21 passed in CI |
-| `npm run test:ui:production` | All 51 passed in CI with built assets, disposable PostgreSQL and HTTPS (4.7 minutes), no retries or skips |
+| `npm run test:ui:production` | CI snapshot: 51 passed with built assets, disposable PostgreSQL and HTTPS (4.7 minutes). Final PR checks require all 52 cases without retries or skips |
 | Isolated `docker build --tag fitness-logging-test:local .` | Passed in CI; no image publication |
 | `npm run test:logging:docker` | Both tests passed: non-root startup/auth/log privacy/assets/restart, and failed migrations stopping before the API starts |
 | `prek run -a` | Passed before each implementation/test commit; repeated for the final documentation commit |
@@ -138,8 +140,11 @@ BigInt handling, and orphaned process-group cleanup. Additional CI-driven fixes:
 - Temporary port reservations destroy readiness-probe sockets. Otherwise closing
   the reservation can wait forever. A controlled fixture reproduced the old
   deadlock and passed after the fix.
-- Route focus uses a layout effect so it cannot close a select opened after the
-  new page is visible. Skip-link tests wait for SPA bootstrap before pressing Tab.
+- Cross-page route focus uses a layout effect. Same-page mutation redirects leave
+  the active control focused, even if the user selected it while refreshed data
+  was arriving. An independent regression failed before this fix and passed after
+  it; all 8 focused client cases pass. Malformed fragments are ignored instead
+  of causing a URI error. Skip-link tests wait for SPA bootstrap before pressing Tab.
 - Container logging tests directly request an unauthorized private endpoint.
   Bootstrap can redirect before a private query starts; the test no longer depends
   on that request race. All original privacy/event assertions remain.

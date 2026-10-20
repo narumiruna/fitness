@@ -51,8 +51,8 @@ without silently resubmitting a mutation or clearing dirty session values.
 
 ## Verification
 
-The Hono/Vite migration passed all 51 development browser tests and all 51
-production HTTPS browser tests in Node 24 CI, without retries or skips. Tests
+Both development and production HTTPS browser suites are required in Node 24 CI.
+They run without retries or skips. Tests
 cover auth/admin/user isolation, forms and reset behavior, filters/pagination,
 calendar navigation, virtual passkeys, data import/export, draft preservation,
 retry/conflict recovery, keyboard access, axe, and responsive layouts.
