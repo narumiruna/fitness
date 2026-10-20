@@ -1,3 +1,5 @@
+import { viewSchemas } from "@narumitw/fitness-contracts";
+import { calculateStats } from "@narumitw/fitness-core/stats-calculations";
 import { expect, test } from "@playwright/test";
 
 const user = {
@@ -133,6 +135,47 @@ test("calendar defaults use the server date instead of the browser clock", async
     "aria-label",
     "2030-01-01",
   );
+});
+
+test.describe("server-local muscle report", () => {
+  test.use({ timezoneId: "America/New_York" });
+
+  test("the heading uses the API week when the browser is still on Saturday", async ({
+    page,
+  }) => {
+    await page.clock.setSystemTime(new Date("2030-01-06T00:30:00.000Z"));
+    const view = viewSchemas.stats.parse({
+      today: "2030-01-06",
+      stats: calculateStats([], "all", new Date(2030, 0, 6)),
+      consistencyHistory: [],
+      muscleSets: [],
+    });
+    await page.route("**/api/views/stats**", (route) =>
+      route.fulfill({ json: view }),
+    );
+    await page.goto("/stats?year=2030");
+    expect(
+      await page.evaluate(() => {
+        const now = new Date();
+        return [
+          now.getFullYear(),
+          now.getMonth() + 1,
+          now.getDate(),
+          now.getDay(),
+        ];
+      }),
+    ).toEqual([2030, 1, 5, 6]);
+    const heading = page.getByRole("heading", {
+      name: "Weekly working sets by muscle: 2030-01-06",
+      exact: true,
+    });
+    await expect(heading).toBeVisible();
+    const chest = heading
+      .locator("..")
+      .getByRole("row")
+      .filter({ hasText: "Chest" });
+    await expect(chest.getByRole("cell")).toHaveText(["Chest", "0", "0"]);
+  });
 });
 
 test("malformed views fail closed and can be loaded again", async ({

@@ -1,11 +1,11 @@
 import { muscleCounts, weekKey } from "@narumitw/fitness-core/training";
 import { Card, Heading, Table, Text } from "@radix-ui/themes";
-import { usePageView } from "@/api/views";
+import { calendarDate, usePageView } from "@/api/views";
 import { type MessageKey, useDictionary } from "@/lib/i18n";
 export function MuscleReport() {
   const t = useDictionary();
-  const start = weekKey(new Date());
-  const { muscleSets: sets } = usePageView("stats");
+  const { muscleSets: sets, today } = usePageView("stats");
+  const start = weekKey(calendarDate(today));
   const counts = muscleCounts(sets);
   return (
     <Card className="stack">

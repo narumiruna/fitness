@@ -129,6 +129,22 @@ remains unconsumed on this branch.
 
 ## Review and Remaining Limits
 
+### PR review: muscle report week
+
+[Review item R1](https://github.com/narumiruna/fitness/pull/20#discussion_r4327091515)
+identified a P2 period-label defect introduced by client rendering. The muscle
+report now derives its week from the stats view's `today`, through `calendarDate`,
+as the consistency report does. No API filter, schema, or count rule changed.
+
+The browser regression uses `America/New_York` at `2030-01-06T00:30:00.000Z`.
+It checks that the browser is still on Saturday, January 5, while the API supplies
+Sunday, January 6. Before the fix, the heading was `2029-12-30`; after the fix,
+it is `2030-01-06`. The existing zero counts remain unchanged. All 9 focused
+client tests, `npm run check`, and `npm run build` passed locally. Final PR checks
+run the expanded 53-case browser suite in both modes.
+
+### Migration review
+
 Review covered correctness, security, lifecycle, compatibility, regression tests,
 and scope. Corrections include missing Docker config helpers, production-origin
 wiring, disposable HTTP runners, calendar-date serialization, empty SQLite aggregate
