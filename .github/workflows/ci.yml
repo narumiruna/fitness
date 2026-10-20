@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Unit and contract tests
+        run: npm test
+      - name: HTTP tests with disposable SQLite
+        run: npm run test:api
+      - name: Require a Changeset against main
+        if: github.event_name == 'pull_request'
+        run: |
+          npm run check:changesets -- --base origin/main
+          npm run changeset -- status --since=origin/main
+      - name: Changesets status
+        if: github.event_name == 'push'
+        run: npm run changeset -- status
+
+  databases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:packages
+      - name: Require disposable PostgreSQL support
+        run: docker info
+      - run: npm run test:db-init
+      - run: npm run test:training:sqlite
+      - run: npm run test:training:postgres
+      - run: npm run test:api:postgres
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [development, production]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - name: Require disposable PostgreSQL support
+        if: matrix.mode == 'production'
+        run: docker info
+      - name: Development browser tests with disposable SQLite
+        if: matrix.mode == 'development'
+        run: npm run test:ui
+      - name: Production HTTPS browser tests with disposable PostgreSQL
+        if: matrix.mode == 'production'
+        run: npm run test:ui:production
+      - name: Save browser failure reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-${{ matrix.mode }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  image-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - run: docker info
+      - name: Build a separate test image without publishing
+        run: docker build --tag fitness-logging-test:local .
+      - name: Isolated image startup, migration, asset, and logging smoke tests
+        run: npm run test:logging:docker

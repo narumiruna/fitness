@@ -1,293 +1,191 @@
 # Fitness
 
-A multi-user strength training tracker built with Next.js, TypeScript, Prisma,
-PostgreSQL in production, SQLite in development, Radix UI, and Biome.
+A multi-user strength training tracker built with Vite, React, Hono, TypeScript,
+Prisma, Radix UI, and Biome. PostgreSQL is used in production; development uses
+SQLite. The browser app requires JavaScript.
 
-## Languages
+## Structure
 
-Use the language selector in the header to switch between English and Traditional
-Chinese. It is available before and after sign-in. The selected language is saved
-in a cookie for one year and takes priority over the browser language. Without a
-valid saved choice, the app uses the browser's supported language preference,
-then falls back to English. Traditional Chinese tags (`zh-TW`, `zh-Hant`,
-`zh-HK`, and `zh-MO`) match `zh-TW`; Simplified Chinese tags and an unspecified
-`zh` preference do not. Dates, numbers, and document language use the same
-locale. Language changes do not translate user-entered data or change stored
-workout dates, values, or exercise names.
-
-Add English UI strings in `src/lib/messages.ts` and matching Traditional Chinese
-strings in `src/lib/messages-zh-tw.ts`. The dictionaries have the same typed keys.
-Keep message placeholders unchanged in translations. Server components use
-`getDictionary()` from `src/lib/i18n.ts`; pass translated labels to client
-components.
-
-```bash
-npm run test:i18n
-npm run test:ui -- e2e/i18n.spec.ts
+```text
+apps/web             React browser app, dictionaries, and Playwright specs
+apps/api             Hono HTTP API, services, authentication, and server tests
+packages/core        Environment-neutral training, calendar, and calculation rules
+packages/contracts   HTTP schemas, DTOs, and error codes
+prisma/              Canonical PostgreSQL schema, migrations, and development seed
+scripts/             Repository and database tools
+tests/               Integration fixtures and isolated test runners
 ```
+
+Dependencies point from apps to packages. The browser must not import Prisma or
+API implementation. See [API contracts](apps/api/README.md) for endpoints,
+permissions, serialization, and transaction behavior.
 
 ## Development
 
+Use Node.js 24 or later and npm. Run commands from the repository root:
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:8784`. The development server binds only to loopback
-and uses SQLite at `.cache/dev.db`; no Docker or PostgreSQL server is required.
-Development ignores PostgreSQL `DATABASE_URL` values, including production
-values inherited from the shell or environment files. An optional `file:` URL
-selects another SQLite file. Relative file paths resolve from the repository root.
-Development uses the same environment-file load order as Next.js.
+Open <http://127.0.0.1:8784>. Vite proxies `/api` and `/data/export` to the Hono
+server on loopback port 8785. Both ports must be free. Startup refuses occupied
+ports and does not stop another service. Shared packages are built and watched;
+shutdown stops the stack's own child processes.
 
-`npm run dev` generates both Prisma clients and synchronizes the SQLite schema
-before starting Next.js. Startup does not seed or reset accounts, delete records,
-or accept destructive schema changes. Initialization failures prevent startup.
-An empty database redirects to `/setup`, where you create a test admin account.
+Development uses `.cache/dev.db`; it ignores inherited PostgreSQL `DATABASE_URL`
+values and production `PASSKEY_ORIGIN`. An optional `file:` URL selects another
+SQLite file. Relative paths resolve from the repository root, not the current
+workspace. Environment precedence is the existing process, `.env.development.local`,
+`.env.local`, `.env.development`, then `.env`. Test mode skips `.env.local`.
 
-`prisma/schema.prisma` remains the canonical PostgreSQL schema. Client generation
-derives an ignored SQLite schema at `prisma/.dev/schema.prisma` and generates a
-separate client at `src/generated/prisma-sqlite/`. Do not edit these generated
-files. After model changes, restart development or run `npm run db:push` to
-synchronize SQLite. PostgreSQL migrations remain under `prisma/migrations/`;
-`npm run db:migrate` is a PostgreSQL migration command, not a development SQLite
-startup step. Never run it against production for development checks.
+`npm run dev` generates both Prisma clients and synchronizes SQLite before the
+servers start. It does not seed accounts, reset data, or accept destructive schema
+changes. Initialization failures prevent startup. Empty databases show `/setup`.
 
-Production still uses PostgreSQL, the existing migrations, and port `8783`.
-Do not stop production to free a test port. Browser checks use port `8784` and
-separate test data. Use a separate browser profile for manual checks if production
-also uses a loopback host, because cookies are shared across ports.
+The root `prisma/schema.prisma` remains the canonical PostgreSQL schema. SQLite's
+schema at `prisma/.dev/schema.prisma` and clients under `apps/api/src/generated/`
+are generated and ignored. Do not edit or commit them. After model changes, run
+`npm run db:push` or restart development. Existing PostgreSQL migration contents
+remain unchanged; `npm run db:migrate` requires an authorized non-production
+PostgreSQL database and is not SQLite startup.
 
-`npm install` configures Husky Git hooks through the `prepare` script.
-The pre-commit hook calls `script/pre-commit.sh` to run `biome ci` and TypeScript checks without changing files.
-Run `sh ./script/pre-commit.sh` to check manually.
+Run `npm run db:seed` explicitly to add development exercises and the `admin` /
+`admin` account. It resets that account's password. Login fields remain empty.
 
-Development seed credentials:
+## Authentication and Security
 
-- Username: `admin`
-- Password: `admin`
+The API validates authentication, role, ownership, and request payloads. Client
+route guards do not authorize requests. Passwords use bcrypt hashes; session
+records store token hashes, not raw tokens. The `fitness_session` cookie remains
+HttpOnly, SameSite=Lax, path `/`, with 30-day expiry and Secure in production.
+Password changes revoke prior sessions and issue a replacement. Existing session
+cookies and stored passkeys use the same formats as before the migration.
 
-Run `npm run db:seed` explicitly if you want the development account. This command
-sets the `admin` password to `admin` and adds sample exercises. Login fields start
-empty in development and production.
+All mutation requests require a trusted Origin, including login, setup, and locale
+changes. Missing or cross-site origins are rejected. Production requires the exact
+public HTTPS origin in `PASSKEY_ORIGIN`; forwarded host/protocol headers are not
+security inputs. Development accepts only the two documented loopback web origins.
+There is no broad credentialed CORS configuration.
 
-## Production Docker
+Open **Account → Passkeys** to register or remove a passkey. Registration requires
+the current password and user verification. Sign-in requires a WebAuthn browser
+and a device PIN, biometric check, or security key. Challenges are bound to an
+HttpOnly cookie, expire after five minutes, and can be consumed once. A database
+transaction enforces the 1,000-pending-challenge limit across app instances. Public
+keys are stored; private keys remain with the authenticator. Keep a password for
+recovery. Removing a passkey does not revoke existing sessions.
 
-`compose.yaml` and `.github/workflows/deploy.yml` manage production. Do not use
-these services for development checks. The following commands are production
-operations and require explicit production authorization:
+Use the same development hostname for registration and sign-in: `localhost` and
+`127.0.0.1` have separate passkeys. Production requires HTTPS. Browser automation
+uses virtual authenticators; it does not prove physical hardware or cross-device
+passkey synchronization.
 
+## Languages and UI
 
-```bash
-docker compose up --build -d
-docker compose logs -f fitness
-docker compose down
-```
+English and Traditional Chinese are supported before and after login. A valid
+saved locale cookie overrides supported browser preferences, then English is the
+fallback. zh-TW, zh-Hant, zh-HK, and zh-MO match Traditional Chinese; unspecified
+zh and Simplified Chinese do not. The cookie lasts one year. Dates, numbers, and
+document language use the selected locale. User text and workout date keys are
+not translated or changed.
 
-The app port `8783` is published on all host interfaces. Other devices can reach
-it at `http://<server-ip>:8783` if the host firewall permits access. Production
-session cookies require HTTPS, so use an HTTPS reverse proxy that connects to
-`http://127.0.0.1:8783` for login and account setup at `/setup`. Restrict port
-`8783` with the host firewall so it cannot bypass the proxy's access controls.
-
-The app container runs as a non-root user. Compose waits for PostgreSQL to be
-healthy, then the app applies existing Prisma migrations before startup. A
-migration failure prevents the server from starting. It does not seed development
-accounts. PostgreSQL data is stored in the `postgres-data` named volume and
-survives container replacement and `docker compose down`.
-`docker compose down -v` deletes this data.
-
-The database uses `fitness` as its username, database name, and default password
-for local use. Set `POSTGRES_PASSWORD` in `.env` before the first production start;
-use a URL-safe password because Compose includes it in `DATABASE_URL`. Changing
-this variable does not change the password of an existing database. PostgreSQL
-port `5432` is published only on the local host. If you change the password for
-local development, also set `DATABASE_URL` to the matching connection string.
-
-This PostgreSQL migration history starts a new database. Existing SQLite files
-are not imported or modified.
-
-Local environment files, databases, and workout data are excluded from the build
-context.
-
-## Passkeys
-
-Sign in with your password, open **Account**, then select **Passkeys**.
-Enter a passkey name and your current password, then select **Add passkey**.
-Use **Sign in with a passkey** on the login page for password-free sign-in.
-The account page lists your passkeys and lets you remove them. Keep your password
-for recovery if you lose access to all passkeys. Removing a passkey prevents new
-sign-ins with that key; it does not end existing sessions.
-
-Passkeys require a WebAuthn-compatible browser and a device PIN, biometric check,
-or security key with user verification. Development supports HTTP only on
-`localhost` and `127.0.0.1`. These hosts have separate passkeys; use the same host
-for registration and sign-in.
-
-Production requires HTTPS and `PASSKEY_ORIGIN` in the app process environment,
-for example `https://fitness.example.com` (no trailing slash or path). The exact
-origin includes the port if it is not the default HTTPS port. The relying party
-ID is its hostname. Do not derive this setting from forwarded request headers.
-Configure the app container environment through your authorized deployment process;
-adding a value to a host `.env` file alone does not pass it into the container.
-Apply the included PostgreSQL migration before using the feature. This change
-does not deploy or modify production services.
-
-Registration requires a valid session and the current password. Sign-in verifies
-the challenge, origin, relying party ID, signature, user handle, and user
-verification. Challenges expire after five minutes, are bound to an HttpOnly
-cookie, and can be used only once. Public keys and counters are stored in the
-database; private keys stay with the authenticator.
-
-The database stores at most 1,000 pending challenges across all app instances.
-Cleanup, the capacity check, and insertion use one serializable transaction;
-requests without cookies cannot bypass the limit. A browser can replace its prior
-challenge at capacity. If no slot is available, passkey option issuance fails
-without inserting a record or setting a new challenge cookie. Retry after a
-challenge expires or use password sign-in.
-
-```bash
-npm run test:ui -- e2e/passkeys.spec.ts e2e/passkey-challenges.spec.ts
-npm run test:ui:production -- e2e/passkey-challenges.spec.ts
-```
-
-The browser test uses Chrome's virtual authenticator and a disposable SQLite
-file. It checks registration, incorrect passwords, expired challenges, invalid
-signatures, sign-in, replay rejection, removal, and cookie-free issuance at
-capacity. Database tests check concurrent issuance, replacement, and expiry
-recovery on SQLite and disposable PostgreSQL. These tests do not verify physical
-biometric hardware or cross-device passkey synchronization.
-
-## Logging
-
-Application logs use Pino and write one JSON object per line to stdout at
-`info` level. Docker captures these records:
-
-```bash
-docker compose logs --tail=100 fitness
-docker compose logs --since=5m fitness
-npm run test:logging
-# Use a separate test image; never rebuild production for a test.
-docker build -t fitness-logging-test:local .
-npm run test:logging:docker
-```
-
-Each page or action request gets a server-generated `requestId`, also returned
-in the `x-request-id` response header. Static assets are excluded. Request logs
-record receipt, not final response status. Server actions record their name,
-duration, completion, framework control flow (including redirects), or failure.
-Authentication and action database logs share the request ID. Other database
-operations record their model, operation, duration, and failure without SQL or
-parameters. Server startup, request errors, seed, and CSV scripts also use Pino.
-Next.js startup output and Prisma CLI migration output remain in their native
-format.
-
-For a login loop, find `auth.login_succeeded`, then `session.cookie_set`.
-Check the cookie's `secure` field and the request's `protocol` and
-`originProtocol`. `session.secure_cookie_over_http` warns about HTTP access
-with a Secure cookie; some browsers permit Secure cookies on loopback hosts.
-Forwarded protocol headers are diagnostic hints, not trusted security inputs.
-On the next request, `session.missing_cookie` means no session cookie arrived.
-`session.not_found` means the cookie did not match a stored session.
-`session.expired` means the session expired. `auth.required` records the
-redirect back to login. `session.authenticated` records a valid session.
-A missing cookie alone does not prove why the browser omitted it.
-
-All five passkey actions use the action logger. Registration records
-`auth.passkey_registered` or `auth.passkey_registration_failed`; sign-in records
-`auth.passkey_login_succeeded` or `auth.passkey_login_failed`. Rejected verification
-returns `false` to the UI and records the failure outcome before `action.completed`.
-Thrown option-issuance errors, including capacity rejection, record `action.failed`.
-Passkey logs omit credential IDs, challenge values, signatures, public keys,
-passkey names, and raw verification responses.
-
-Logs do not record passwords, token values or hashes, raw headers, form data,
-query strings, workout content, database URLs, or SQL parameters. Error logs
-keep the error type, code, and stack frames but omit messages and causes because
-these can contain private data. User IDs and database session IDs are diagnostic
-identifiers, not authentication credentials. Restrict access to Docker logs and
-set retention through the deployment's logging system. No logging transport,
-log files, or new environment variables are required.
+Add matching keys and placeholders in `apps/web/src/lib/messages.ts` and
+`messages-zh-tw.ts`. Radix Themes, Primitives, and Icons provide controls and
+accessible interactions. Forms keep drafts after rejected or lost responses,
+disable duplicate submissions, and require explicit conflict recovery. The API
+uses stable request keys and database versions where the existing workflows did.
 
 ## Checks
 
+Build shared output before focused tests after a fresh installation:
+
 ```bash
-npm run check       # Biome CI and TypeScript checks
-npm run biome:ci    # Biome CI checks without changing files
-npm run biome:check # Biome formatting, lint, and import checks
-npm run biome:format # Formatting checks only
-npm run format     # Apply formatting changes
+npm run build:packages
+npm run check
+npm test
 npm run build
-npm run test:db-init # Database initialization and data preservation checks
+npm run test:api
+npm run test:api:postgres
+npm run test:db-init
+npm run test:training:sqlite
+npm run test:training:postgres
+npm run test:ui
+npm run test:ui -- apps/web/e2e/measurements.spec.ts
+npm run test:ui:production
 prek run -a
 ```
 
-Run `npm run biome:check -- --write` to apply safe Biome fixes.
+SQLite HTTP and browser tests create disposable files. PostgreSQL, production-mode
+UI, database cleanup, and container tests require Docker and use isolated test
+containers, not development or production data. Browser tests require Google
+Chrome, use port 8784, refuse to reuse servers, and clean up their own resources.
+The production-mode runner uses test TLS and a disposable PostgreSQL instance.
+Tests cover workflows, user isolation, keyboard focus, form behavior, axe checks,
+and layouts from 320px to 1440px. Failure traces/screenshots go to `test-results/`.
 
-## UI
+Use `npm run format` for formatting or `npm run biome:check -- --write` for safe
+Biome fixes. Husky runs the root check; `prek run -a` also runs lint/type checks.
+See [migration verification](docs/hono-migration-verification.md) for actual
+results and unverified paths; unavailable checks are not passed checks.
 
-Radix Themes provides shared controls, cards, tables, typography, and layout.
-The root theme uses light appearance, teal accent, and slate gray. Radix Icons
-provides navigation and action icons. The alias disclosure uses Radix Primitives.
-Calendar cells and statistical bars remain custom components styled with Themes
-and Radix Colors tokens in `src/app/globals.css`.
+## Production
 
-`src/components/form-select.tsx` preserves native form values, external form
-association, form reset behavior, and the selected label during server rendering.
-Workout set editors remount after saved values change so desktop and mobile forms
-do not retain different values. Buttons and links use `highContrast` to meet text
-contrast requirements on tinted backgrounds.
+Hono serves both the compiled browser app and API on port 8783. The app container
+runs as non-root and applies existing Prisma migrations before listening. Startup
+fails if migration, origin validation, or database connection fails. It does not
+seed development accounts. The existing PostgreSQL volume is unchanged.
 
-## Training features
+`compose.yaml`, the `fitness` Compose project, and the deployment workflow are
+production infrastructure. Building, replacing, stopping, resetting, or deploying
+these services requires explicit production authorization. The deployment
+workflow is manual only; code merges and Changesets version PRs do not deploy.
+No package publication or release tags are part of the workflow.
 
-Workout weights use kilograms. See [training features](docs/training-features.md)
-for previous-session entry, weekly consistency, set types and RIR, active sessions,
-exercise metadata, progression, schedules, measurements, app CSV, and migration recovery.
-See [delivery evidence](docs/training-verification.md) for verification results and release limits.
+Before an authorized deployment, set a URL-safe `POSTGRES_PASSWORD` and the exact
+public HTTPS `PASSKEY_ORIGIN`. Compose forwards both values; it refuses a missing
+origin. Manual GitHub deployment requires the `POSTGRES_PASSWORD` secret and
+`PASSKEY_ORIGIN` repository variable. Adding a host environment file alone does
+not configure a GitHub variable. No values are created by this migration.
 
-```bash
-npm run test:training           # Pure TypeScript rules and CSV tests
-npm run test:training:sqlite    # Disposable SQLite upgrades and integration
-npm run test:training:postgres  # Disposable PostgreSQL upgrades and integration
-```
+Use an HTTPS reverse proxy to reach port 8783 and restrict direct HTTP access with
+the host firewall. Port 8783 remains published on all host interfaces; PostgreSQL
+port 5432 remains loopback-only. Cookies are shared across ports for the same host;
+use a separate browser profile for manual development checks.
 
-The PostgreSQL command requires Docker. None of these commands uses a developer
-or production database.
+Never use production Compose for a test. To check an image, build a distinct test
+tag `fitness-logging-test:local` and use `npm run test:logging:docker`. It creates
+its own database, network, and app containers. Do not publish the image.
 
-## Browser tests
+## Logging
 
-Keep all Playwright E2E specs in `e2e/`. Unit and integration tests, fixtures,
-and database/browser test runners remain in `tests/`.
+Pino writes redacted JSON to stdout. HTTP middleware generates `requestId` and
+returns `x-request-id`; caller correlation IDs are ignored. Request, action,
+authentication, and database logs share the async request context. Logs include
+safe status/duration and cookie-presence diagnostics, not cookie values.
 
-Install Google Chrome and start Docker before running the browser tests.
-Port `8784` must be free; the tests refuse to reuse an existing server. Do not
-stop another service to free a port unless you own that development service.
+Passwords, session/challenge values or hashes, passkey material/names, request
+bodies, raw headers, query strings, workout data, database URLs, SQL parameters,
+and error messages/causes are excluded. Error type/code/stack frames remain.
+Restrict log access and configure retention through deployment infrastructure.
 
-```bash
-npm run test:ui             # Development server
-npm run test:ui -- e2e/measurements.spec.ts # Independent measurement workflows
-npm run test:ui:production  # Build and test the production server
-```
+## Training and Data
 
-`npm run test:ui` starts a development server at `http://localhost:8784` with a
-temporary SQLite file. It does not require Docker or use `.cache/dev.db`.
-`npm run test:ui:production` uses the same test port with a disposable PostgreSQL
-container and the existing migrations; it requires Docker. Neither command
-uses production data or services. The runner stops its own server and removes
-its temporary database when the run ends. `npm run test:db-init` tests SQLite
-initialization and PostgreSQL test-container cleanup; its cleanup checks require
-Docker.
+Weights use kilograms. See [training features](docs/training-features.md) and
+[training verification](docs/training-verification.md) for feature details.
+The app CSV v1 and local markdown CSV formats remain separate and unchanged.
+`/data/export` remains a private, no-store download. Import confirmation is atomic
+and retains duplicate and retry protections. Existing `workouts:export-csv` and
+`workouts:import-csv` commands remain available for explicit local data work.
 
-Tests cover account, admin, exercise, workout, template, filter, statistics, and
-calendar workflows. They check keyboard focus, themed portals, native validation,
-form values, reset behavior, user data isolation, and layouts from 320px to 1440px.
-The independent measurement tests create and remove their own accounts. They
-cover server validation and draft recovery, same-date replacement, nullable
-metrics, target persistence and clearing, delete cancellation, and rejection of
-another user's record ID.
+## Versions and Releases
 
-Axe checks WCAG A/AA rules on desktop and mobile views. Screenshots and failure
-traces are saved under the ignored `test-results/` directory.
+All four workspaces are private. Changesets manages independent versions and
+changelogs without npm publication or version tags. Add a package changeset for
+user-visible changes or an empty changeset for tooling/docs-only PRs. See
+[version-only releases](docs/releasing.md).
 
-The tests check password input types and autocomplete attributes. They do not
-access saved passwords or test a browser password manager's stored credentials.
+## License
+
+AGPL-3.0-only. The `/source` page links the repository source and license.

@@ -1,5 +1,9 @@
 # Training roadmap delivery evidence
 
+This is historical evidence for the Next.js implementation. See
+[Hono migration verification](hono-migration-verification.md) for current runtime
+results and limits; the old passing results below do not verify the migration.
+
 Reverified: 2026-10-13. Base: `origin/main` at `1bd8751`. Branch: `narumi/test/roadmap-delivery-verification`.
 
 The nine features were already merged in #8, with corrections in #10 and #16. This follow-up verifies the current implementation and repairs the production browser harness; it does not implement the features again.

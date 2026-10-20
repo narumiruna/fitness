@@ -187,13 +187,7 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
   controller.signal.throwIfAborted();
   child = spawn(
     process.execPath,
-    [
-      "--conditions=react-server",
-      "--import",
-      "tsx",
-      "--test",
-      "tests/training-integration.test.ts",
-    ],
+    ["--import", "tsx", "--test", "tests/training-integration.test.ts"],
     {
       stdio: "inherit",
       env: {

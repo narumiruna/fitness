@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
+import { createServer } from "node:net";
 import test from "node:test";
 import { setTimeout } from "node:timers/promises";
 import { chromium } from "@playwright/test";
+import { createTestTlsProxy } from "./fixtures/tls-proxy.mjs";
 import { startPostgres } from "./postgres.mjs";
 
 function docker(...args) {
@@ -21,12 +24,21 @@ test("Docker login diagnostics correlate requests without logging secrets", {
   const name = `fitness-logging-test-${randomUUID()}`;
   const postgres = await startPostgres();
   let browser;
+  let tls;
   let networkCreated = false;
   let appCreated = false;
   try {
     docker("network", "create", name);
     networkCreated = true;
     docker("network", "connect", name, postgres.name);
+    const reservation = createServer();
+    reservation.listen(0, "127.0.0.1");
+    await once(reservation, "listening");
+    const port = reservation.address().port;
+    await new Promise((resolve) => reservation.close(resolve));
+    const upstreamURL = `http://127.0.0.1:${port}`;
+    tls = await createTestTlsProxy(port);
+    const baseURL = tls.url;
     docker(
       "run",
       "--detach",
@@ -35,17 +47,20 @@ test("Docker login diagnostics correlate requests without logging secrets", {
       "--network",
       name,
       "--publish",
-      "127.0.0.1::8783",
+      `127.0.0.1:${port}:8783`,
       "--env",
       `DATABASE_URL=postgresql://fitness:fitness@${postgres.name}:5432/fitness`,
+      "--env",
+      `PASSKEY_ORIGIN=${baseURL}`,
       "fitness-logging-test:local",
     );
     appCreated = true;
-    const port = docker("port", name, "8783/tcp").split(":").at(-1);
-    const baseURL = `http://localhost:${port}`;
+    assert.equal(docker("port", name, "8783/tcp"), `127.0.0.1:${port}`);
     for (let attempt = 0; ; attempt++) {
       try {
-        const response = await fetch(`${baseURL}/setup`);
+        const response = await fetch(`${upstreamURL}/setup`, {
+          headers: { accept: "text/html" },
+        });
         if (response.ok) break;
       } catch {
         // Wait for migrations and server startup.
@@ -53,8 +68,21 @@ test("Docker login diagnostics correlate requests without logging secrets", {
       assert.ok(attempt < 59, "Docker app did not become ready");
       await setTimeout(500);
     }
+    assert.notEqual(docker("exec", name, "id", "-u"), "0");
+    const shell = await fetch(`${upstreamURL}/workouts/nested-id`, {
+      headers: { accept: "text/html" },
+    });
+    assert.equal(shell.status, 200);
+    const html = await shell.text();
+    const asset = html.match(/src="(\/assets\/[^"]+\.js)"/)?.[1];
+    assert.ok(asset, "Built browser entry is present");
+    assert.equal((await fetch(`${upstreamURL}${asset}`)).status, 200);
+    assert.equal((await fetch(`${upstreamURL}/assets/missing.js`)).status, 404);
+    const missingApi = await fetch(`${upstreamURL}/api/not-found`);
+    assert.equal(missingApi.status, 404);
+    assert.match(missingApi.headers.get("content-type"), /application\/json/);
     browser = await chromium.launch({ channel: "chrome" });
-    const page = await browser.newPage();
+    const page = await browser.newPage({ ignoreHTTPSErrors: true });
     await page.goto(`${baseURL}/setup`);
     await page.getByLabel("Username").fill("logging-test-admin");
     await page
@@ -109,11 +137,12 @@ test("Docker login diagnostics correlate requests without logging secrets", {
     assert.ok(succeeded?.requestId);
     for (const event of [
       "request.received",
+      "request.completed",
       "action.started",
       "session.created",
       "session.cookie_set",
       "session.secure_cookie_over_http",
-      "action.control_flow",
+      "action.redirect",
     ]) {
       assert.ok(
         records.some(
@@ -147,8 +176,31 @@ test("Docker login diagnostics correlate requests without logging secrets", {
       records.find((record) => record.event === "session.cookie_set").secure,
       true,
     );
+    docker("restart", name);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (
+          (
+            await fetch(`${upstreamURL}/source`, {
+              headers: { accept: "text/html" },
+            })
+          ).ok
+        )
+          break;
+      } catch {
+        /* Restart can briefly close the socket. */
+      }
+      assert.ok(attempt < 59, "Isolated app did not restart");
+      await setTimeout(500);
+    }
+    assert.equal(
+      (await postgres.pool.query('SELECT count(*) AS count FROM "User"'))
+        .rows[0].count,
+      "1",
+    );
   } finally {
     await browser?.close();
+    await tls?.stop();
     if (appCreated) docker("rm", "--force", name);
     await postgres.stop();
     if (networkCreated) docker("network", "rm", name);

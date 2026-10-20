@@ -1,9 +1,9 @@
 name: Deploy
 
+# Deployment is a separate, explicitly authorized operation.
+# Merging code or a Changesets version PR must not deploy production.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -17,12 +17,14 @@ jobs:
     runs-on: self-hosted
     env:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      PASSKEY_ORIGIN: ${{ vars.PASSKEY_ORIGIN }}
     steps:
       - uses: actions/checkout@v7
       - name: Build image
         shell: bash
         run: |
           : "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD secret}"
+          : "${PASSKEY_ORIGIN:?set PASSKEY_ORIGIN repository variable}"
           docker compose build --pull
       - name: Start services
         shell: bash

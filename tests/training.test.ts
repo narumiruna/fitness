@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  parseWorkoutCsv,
-  stringifyWorkoutCsv,
-  type WorkoutCsvRow,
-} from "../scripts/workout-csv";
-import { parseDateKey } from "../src/lib/calendar";
-import { calculateStats } from "../src/lib/stats-calculations";
+import { parseDateKey } from "@narumitw/fitness-core/calendar";
+import { calculateStats } from "@narumitw/fitness-core/stats-calculations";
 import {
   consistency,
   evaluateProgression,
@@ -14,14 +9,14 @@ import {
   muscleCounts,
   transition,
   weekKey,
-} from "../src/lib/training";
+} from "@narumitw/fitness-core/training";
 import {
   createSetSchema,
   goalSchema,
   measurementSchema,
   metadataSchema,
   sessionActualsSchema,
-} from "../src/lib/validation";
+} from "../apps/api/src/lib/validation";
 import {
   csvColumns,
   csvLimit,
@@ -31,7 +26,12 @@ import {
   serializeWorkouts,
   type TransferWorkout,
   workoutFingerprint,
-} from "../src/lib/workout-csv";
+} from "../apps/api/src/lib/workout-csv";
+import {
+  parseWorkoutCsv,
+  stringifyWorkoutCsv,
+  type WorkoutCsvRow,
+} from "../scripts/workout-csv";
 
 const date = (key: string) => parseDateKey(key) as Date;
 const set = {

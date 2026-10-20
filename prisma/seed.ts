@@ -1,10 +1,10 @@
 import {
   normalizeExerciseAlias,
   slugifyExerciseName,
-} from "../src/lib/exercises";
-import { logger } from "../src/lib/logger";
-import { hashPassword } from "../src/lib/password";
-import { prisma } from "../src/lib/prisma";
+} from "../apps/api/src/lib/exercises";
+import { logger } from "../apps/api/src/lib/logger";
+import { hashPassword } from "../apps/api/src/lib/password";
+import { prisma } from "../apps/api/src/lib/prisma";
 
 async function main() {
   logger.info({ event: "seed.started" }, "Development seed started");

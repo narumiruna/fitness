@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatMonthTitle } from "../src/lib/calendar";
-import { isSupportedLocale, resolveLocale } from "../src/lib/locales";
-import { englishMessages } from "../src/lib/messages";
-import { calculateStats } from "../src/lib/stats-calculations";
-import { dictionary, translations } from "../src/lib/translations";
+import { formatMonthTitle } from "@narumitw/fitness-core/calendar";
+import { calculateStats } from "@narumitw/fitness-core/stats-calculations";
+import { isSupportedLocale, resolveLocale } from "../apps/web/src/lib/locales";
+import { englishMessages } from "../apps/web/src/lib/messages";
+import { dictionary, translations } from "../apps/web/src/lib/translations";
 
 test("saved language overrides browser preferences", () => {
   assert.equal(resolveLocale("en", "zh-TW"), "en");

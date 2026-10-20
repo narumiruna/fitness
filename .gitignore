@@ -48,6 +48,10 @@ web_modules/
 *.tsbuildinfo
 /src/generated/prisma/
 /src/generated/prisma-sqlite/
+/apps/api/src/generated/
+/apps/api/dist/
+/apps/web/test-results/
+/apps/web/playwright-report/
 /prisma/.dev/
 
 # Optional npm cache directory

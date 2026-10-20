@@ -1,6 +1,6 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { logger } from "../src/lib/logger";
+import { logger } from "../apps/api/src/lib/logger";
 import {
   parseWorkoutLine,
   stringifyWorkoutCsv,

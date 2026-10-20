@@ -1,8 +1,8 @@
-import nextEnv from "@next/env";
 import { defineConfig } from "prisma/config";
-import { developmentDatabaseUrl } from "./src/lib/development-database";
+import { developmentDatabaseUrl } from "./apps/api/src/lib/development-database";
+import { loadEnvironment } from "./apps/api/src/lib/environment";
 
-nextEnv.loadEnvConfig(process.cwd(), true);
+loadEnvironment(undefined, "development");
 
 export default defineConfig({
   schema: "prisma/.dev/schema.prisma",

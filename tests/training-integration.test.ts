@@ -1,24 +1,44 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { basename, dirname, isAbsolute } from "node:path";
 import { after, test } from "node:test";
-import { formatDateKey, parseDateKey } from "../src/lib/calendar";
+import { formatDateKey, parseDateKey } from "@narumitw/fitness-core/calendar";
+import { calculateStats } from "@narumitw/fitness-core/stats-calculations";
+import { ApiError } from "../apps/api/src/errors";
 import {
   confirmImport,
   exportWorkouts,
   previewImport,
-} from "../src/lib/data-transfer";
-import { prisma } from "../src/lib/prisma";
-import { suggestions } from "../src/lib/progression";
-import { updateRecordedSet } from "../src/lib/recorded-sets";
-import { createRecordedWorkout } from "../src/lib/recorded-workouts";
-import { changeSession, startSession } from "../src/lib/session-service";
-import { calculateStats } from "../src/lib/stats-calculations";
-import { updateSetSchema } from "../src/lib/validation";
+} from "../apps/api/src/lib/data-transfer";
+import { prisma } from "../apps/api/src/lib/prisma";
+import { suggestions } from "../apps/api/src/lib/progression";
+import { updateRecordedSet } from "../apps/api/src/lib/recorded-sets";
+import { createRecordedWorkout } from "../apps/api/src/lib/recorded-workouts";
+import {
+  changeSession,
+  startSession,
+} from "../apps/api/src/lib/session-service";
+import { updateSetSchema } from "../apps/api/src/lib/validation";
 import {
   occurrenceFingerprint,
   serializeWorkouts,
-} from "../src/lib/workout-csv";
-import { priorSessions } from "../src/lib/workout-history";
+} from "../apps/api/src/lib/workout-csv";
+import { priorSessions } from "../apps/api/src/lib/workout-history";
+
+// Refuse direct execution against local or inherited production databases.
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const sqlitePath = databaseUrl.startsWith("file:") ? databaseUrl.slice(5) : "";
+const isolatedDatabase =
+  process.env.NODE_ENV === "production"
+    ? /^postgresql:\/\/fitness:fitness@127\.0\.0\.1:\d+\/fitness$/.test(
+        databaseUrl,
+      )
+    : isAbsolute(sqlitePath) &&
+      basename(dirname(sqlitePath)).startsWith("fitness-training-") &&
+      basename(sqlitePath) === "test.db";
+if (!isolatedDatabase) {
+  throw new Error("Run database tests through tests/run-training.mjs.");
+}
 
 const date = (key: string) => parseDateKey(key) as Date;
 after(() => prisma.$disconnect());
@@ -465,7 +485,10 @@ test("owner-scoped training services, retries, correction, scheduling and data r
       const before = await prisma.workout.count({ where: { userId: user.id } });
       await assert.rejects(
         startSession(user.id, pastInput),
-        /past scheduled occurrence/,
+        (error: unknown) =>
+          error instanceof ApiError &&
+          error.status === 409 &&
+          error.code === "CONFLICT",
       );
       assert.equal(
         await prisma.workout.count({ where: { userId: user.id } }),
