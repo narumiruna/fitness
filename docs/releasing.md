@@ -1,0 +1,117 @@
+# Version-only releases
+
+Changesets manage private workspace versions and changelogs. They do not publish
+packages, create release tags, or deploy the application.
+
+## Package policy
+
+- Start each workspace package at `1.0.0` with `private: true`.
+- Use independent versions. Do not add fixed or linked groups.
+- Set `privatePackages.version` to `true` and `privatePackages.tag` to `false`.
+- Set `updateInternalDependencies` to `patch`.
+- Keep root tooling private and outside workspace releases.
+- Apply this policy to all four packages:
+  - `@narumitw/fitness-core`
+  - `@narumitw/fitness-contracts`
+  - `@narumitw/fitness-api`
+  - `@narumitw/fitness-web`
+- List only existing workspace names in a changeset; Changesets rejects unknown
+  package names.
+- Do not add a publish script, npm token, release tag command, or automatic
+  release workflow.
+
+## Changes in a PR
+
+Each PR must add a new `.changeset/*.md` file. A change to an existing file does
+not meet this rule.
+
+For a user-visible change, run `npm run changeset` and select the affected
+packages and version types. You can also create a uniquely named file without a
+prompt:
+
+```md
+---
+"@narumitw/fitness-core": patch
+---
+
+Describe the user-visible result.
+```
+
+Use an empty changeset for tooling, documentation, or private implementation
+changes that do not need a version bump:
+
+```md
+---
+---
+```
+
+Do not require a package version bump for every private implementation edit.
+Empty changesets meet the PR presence rule without a version bump.
+
+## PR checks
+
+The verified default branch is `main`. CI must check out the PR head and fetch
+complete history, including the PR base. Use the actual PR base reference, not a
+fixed branch, for both commands:
+
+```sh
+node scripts/check-changesets.mjs --base origin/main
+npm run changeset -- status --since=origin/main
+node --test tests/changesets.test.mjs
+```
+
+The first command requires a new committed changeset relative to the merge base.
+It accepts empty changesets. It excludes `README.md`, configuration changes,
+uncommitted files, deleted files, and edits to existing changesets. The status
+command validates Changesets content and package release plans. Missing history
+or an unknown base is an error; fetch the base instead of skipping the check.
+
+## Prepare a release PR
+
+1. Create a release branch from the reviewed migration branch. Keep all release
+   operations local. Do not use the production checkout.
+2. Start with a clean working tree and run `npm ci`.
+3. Run `npm run changeset -- status` and review the release plan.
+4. Run `npm run version-packages`. This command must run `changeset version`
+   followed by `npm install --package-lock-only --ignore-scripts`. It must not run
+   publish, tagging, or deployment commands.
+5. Review package versions, changelogs, internal dependency ranges, consumed
+   changesets, and the root lockfile. All version and range values must agree.
+   Empty changesets are consumed without a package version bump.
+6. Run a clean installation, core tests, Changesets fixture tests, root checks,
+   and the application build. Run the isolated UI smoke test and stop its server.
+7. Stage only the reviewed release paths and open a manual release PR. Describe
+   the version-only result and include verification results. The release PR also
+   needs a new empty changeset because the version command consumed prior files.
+
+The deployment workflow is manual only. Code and version PR merges do not deploy
+production. Creating or merging a release PR does not authorize a deployment;
+do not dispatch the production workflow without separate authorization.
+
+## Verify the version command safely
+
+Run the version experiment in a disposable local clone of the reviewed commit:
+
+```sh
+scratch=$(mktemp -d)
+git clone --no-hardlinks --no-local . "$scratch/fitness"
+(
+  cd "$scratch/fitness"
+  npm ci
+  npm run version-packages
+  npm run changeset -- status
+  git diff --check
+  git diff -- package-lock.json packages apps .changeset
+  npm ci
+  npm run check
+  npm run build
+)
+```
+
+Confirm that a package changeset changes the intended version and changelog.
+Check that internal dependency ranges and the lockfile match the new versions.
+Repeat with an empty changeset and confirm that no package version changes.
+Compare `git status --short` and `git tag --list` in the original checkout before
+and after the experiment. Neither may change. Remove only the disposable clone
+when the review is complete. Do not run `changeset publish`, create remote tags,
+or change production services.

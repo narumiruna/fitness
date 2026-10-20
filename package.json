@@ -3,21 +3,34 @@
   "version": "1.0.0",
   "description": "A multi-user strength training tracker.",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
+    "build:packages": "npm run build --workspace @narumitw/fitness-core && npm run build --workspace @narumitw/fitness-contracts",
+    "test:core": "npm run build --workspace @narumitw/fitness-core && npm test --workspace @narumitw/fitness-core",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts",
+    "check:changesets": "node scripts/check-changesets.mjs",
+    "test:changesets": "node --test tests/changesets.test.mjs",
     "predev": "npm run db:generate && prisma db push --config prisma-dev.config.ts",
-    "dev": "NODE_ENV=development next dev -H 127.0.0.1 -p 8784",
-    "build": "next build",
-    "start": "next start -p 8783",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build:packages && npm run build --workspace @narumitw/fitness-api && npm run build --workspace @narumitw/fitness-web",
+    "start": "NODE_ENV=production sh -c 'prisma migrate deploy && exec node apps/api/dist/server.js'",
     "biome:ci": "biome ci .",
     "biome:check": "biome check .",
     "biome:format": "biome format .",
     "lint": "npm run biome:ci",
     "format": "npm run biome:format -- --write",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run build:packages && tsc --noEmit && npm run typecheck --workspaces --if-present",
     "check": "npm run biome:ci && npm run typecheck",
     "test:i18n": "node --import tsx --test tests/i18n.test.ts",
-    "test:db-init": "node --test tests/dev-database.test.mjs tests/postgres-cleanup.test.mjs",
-    "test:dashboard": "node --import tsx --test tests/dashboard.test.ts",
+    "test:db-init": "node --test --test-concurrency=1 tests/dev-database.test.mjs tests/postgres-cleanup.test.mjs tests/production-ui-server.test.mjs tests/dev-orchestrator.test.mjs tests/tls-proxy.test.mjs",
+    "test:dashboard": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx --test tests/dashboard.test.ts",
     "test:training": "node --import tsx --test tests/training.test.ts",
     "test:training:sqlite": "node tests/run-training.mjs",
     "test:training:postgres": "node tests/run-training.mjs --postgres",
@@ -32,7 +45,11 @@
     "db:push": "npm run db:generate && prisma db push --config prisma-dev.config.ts",
     "db:seed": "NODE_ENV=development tsx prisma/seed.ts",
     "workouts:export-csv": "tsx scripts/export-workouts-csv.ts",
-    "workouts:import-csv": "tsx scripts/import-workouts-csv.ts"
+    "workouts:import-csv": "tsx scripts/import-workouts-csv.ts",
+    "test:api": "node tests/run-api.mjs",
+    "test:api:postgres": "node tests/run-api.mjs --postgres",
+    "test:contracts": "npm run build:packages && npm test --workspace @narumitw/fitness-contracts",
+    "test": "npm run test:core && npm run test:contracts && npm run test:changesets && npm run test:i18n && npm run test:dashboard && npm run test:training && npm run test:logging && node --import tsx --test tests/form-outcome.test.ts"
   },
   "repository": {
     "type": "git",
@@ -50,25 +67,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@next/env": "^16.4.0",
-    "@prisma/adapter-better-sqlite3": "^7.10.0",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
-    "@radix-ui/react-icons": "^1.3.2",
-    "@radix-ui/themes": "^3.3.0",
-    "@simplewebauthn/browser": "^14.0.0",
-    "@simplewebauthn/server": "^14.0.3",
-    "bcryptjs": "^3.0.3",
-    "next": "^16.4.0",
-    "pg": "^8.23.1",
-    "pino": "^10.4.0",
-    "radix-ui": "^1.7.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "server-only": "^0.0.1",
-    "zod": "^4.6.5"
+    "@narumitw/fitness-core": "1.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.15",
     "@playwright/test": "^1.64.0",
@@ -80,6 +82,12 @@
     "husky": "^9.1.7",
     "prisma": "^7.10.0",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "bcryptjs": "^3.0.3",
+    "pg": "^8.23.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5",
+    "better-sqlite3": "^12.11.1"
   }
 }

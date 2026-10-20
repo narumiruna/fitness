@@ -5,9 +5,9 @@ import path from "node:path";
 import {
   normalizeExerciseAlias,
   slugifyExerciseName,
-} from "../src/lib/exercises";
-import { logger } from "../src/lib/logger";
-import { prisma } from "../src/lib/prisma";
+} from "../apps/api/src/lib/exercises";
+import { logger } from "../apps/api/src/lib/logger";
+import { prisma } from "../apps/api/src/lib/prisma";
 import { parseWorkoutCsv, type WorkoutCsvRow } from "./workout-csv";
 
 const inputPath = path.join(process.cwd(), "data", "workouts.csv");

@@ -1,46 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import CalendarError from "../src/app/calendar/error";
-import ExercisesError from "../src/app/exercises/error";
-import StatsError from "../src/app/stats/error";
-import WorkoutsError from "../src/app/workouts/error";
-import { PageErrorMessagesProvider } from "../src/components/page-error";
 import {
   buildCalendarMonth,
   formatDateKey,
   parseDateKey,
   resolveCalendarMonth,
-} from "../src/lib/calendar";
+} from "@narumitw/fitness-core/calendar";
 import {
   calculateStats,
   resolveStatsRange,
   type WorkoutForStats,
-} from "../src/lib/stats-calculations";
+} from "@narumitw/fitness-core/stats-calculations";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  PageError,
+  PageErrorMessagesProvider,
+} from "../apps/web/src/components/page-error";
 
-test("all dashboard error boundaries use supplied localized messages", () => {
-  for (const ErrorPage of [
-    CalendarError,
-    ExercisesError,
-    StatsError,
-    WorkoutsError,
+test("dashboard error boundaries use supplied localized messages", () => {
+  for (const messages of [
+    { message: "Localized error text", retry: "Localized retry label" },
+    { message: "This page could not be loaded.", retry: "Try again" },
   ]) {
-    for (const messages of [
-      { message: "Localized error text", retry: "Localized retry label" },
-      { message: "This page could not be loaded.", retry: "Try again" },
-    ]) {
-      const html = renderToStaticMarkup(
-        createElement(
-          PageErrorMessagesProvider,
-          messages,
-          createElement(ErrorPage, { retry: () => {} }),
-        ),
-      );
-      assert.ok(html.includes(messages.message));
-      assert.ok(html.includes(messages.retry));
-      assert.ok(html.includes('role="alert"'));
-    }
+    const html = renderToStaticMarkup(
+      createElement(
+        PageErrorMessagesProvider,
+        messages,
+        createElement(PageError, { onRetry: () => {} }),
+      ),
+    );
+    assert.ok(html.includes(messages.message));
+    assert.ok(html.includes(messages.retry));
+    assert.ok(html.includes('role="alert"'));
   }
 });
 

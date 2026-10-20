@@ -22,12 +22,15 @@ const directory = await mkdtemp(join(tmpdir(), "fitness-ui-tls-"));
 let child;
 let server;
 let interrupted = false;
-const stop = () => {
+const stop = (signal) => {
   interrupted = true;
+  if (signal) process.exitCode = signal === "SIGINT" ? 130 : 143;
   child?.kill("SIGTERM");
 };
-process.on("SIGINT", stop);
-process.on("SIGTERM", stop);
+const interrupt = () => stop("SIGINT");
+const terminate = () => stop("SIGTERM");
+process.on("SIGINT", interrupt);
+process.on("SIGTERM", terminate);
 try {
   const key = join(directory, "key.pem");
   const cert = join(directory, "cert.pem");
@@ -63,17 +66,15 @@ try {
   if (interrupted) throw new Error("Test server startup interrupted.");
   child = spawn(
     process.execPath,
-    [
-      "node_modules/next/dist/bin/next",
-      "start",
-      "-H",
-      "127.0.0.1",
-      "-p",
-      String(port),
-    ],
+    ["--import", "tsx", "apps/api/src/server.ts"],
     {
       stdio: "inherit",
-      env: { ...process.env, PASSKEY_ORIGIN: "https://localhost:8784" },
+      env: {
+        ...process.env,
+        PASSKEY_ORIGIN: "https://localhost:8784",
+        HOST: "127.0.0.1",
+        PORT: String(port),
+      },
     },
   );
   const exited = once(child, "exit");
@@ -108,8 +109,9 @@ try {
   );
   server.listen(8784, "127.0.0.1");
   await once(server, "listening");
+  console.log(`Test TLS proxy upstream: http://127.0.0.1:${port}`);
   const [code] = await exited;
-  process.exitCode = code ?? 0;
+  if (!interrupted) process.exitCode = code ?? 1;
 } finally {
   stop();
   if (child && child.exitCode === null && child.signalCode === null)
@@ -119,6 +121,6 @@ try {
     await new Promise((resolve) => server.close(resolve));
   }
   await rm(directory, { recursive: true, force: true });
-  process.removeListener("SIGINT", stop);
-  process.removeListener("SIGTERM", stop);
+  process.removeListener("SIGINT", interrupt);
+  process.removeListener("SIGTERM", terminate);
 }

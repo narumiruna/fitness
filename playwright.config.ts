@@ -24,7 +24,7 @@ const production = process.env.NODE_ENV === "production";
 const baseURL = `${production ? "https" : "http"}://localhost:8784`;
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "./apps/web/e2e",
   testMatch: "**/*.spec.ts",
   fullyParallel: false,
   workers: 1,
@@ -43,10 +43,11 @@ export default defineConfig({
     command:
       process.env.NODE_ENV === "production"
         ? "npm exec prisma migrate deploy && node tests/production-ui-server.mjs"
-        : "npm run dev",
+        : "npm run predev && exec node scripts/dev.mjs",
     url: baseURL,
     ignoreHTTPSErrors: production,
     reuseExistingServer: false,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },
     timeout: 120_000,
   },
 });

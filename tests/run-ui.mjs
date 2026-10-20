@@ -41,6 +41,7 @@ try {
         ...process.env,
         DATABASE_URL: databaseUrl,
         NODE_ENV: production ? "production" : "development",
+        PASSKEY_ORIGIN: `${production ? "https" : "http"}://localhost:8784`,
       },
     },
   );

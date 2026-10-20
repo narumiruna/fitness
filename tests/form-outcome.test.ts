@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { z } from "zod";
-import { SessionError, sessionOutcome } from "../src/lib/form-outcome";
+import { SessionError, sessionOutcome } from "../apps/api/src/lib/form-outcome";
 
 test("expected session failures are serializable codes, not raw errors", async () => {
   for (const code of [

@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql://fitness:${POSTGRES_PASSWORD:-fitness}@db:5432/fitness
+      PASSKEY_ORIGIN: ${PASSKEY_ORIGIN:?set PASSKEY_ORIGIN to the external HTTPS origin}
     ports:
       - "8783:8783"
     depends_on:
