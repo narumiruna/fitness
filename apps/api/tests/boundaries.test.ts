@@ -13,7 +13,15 @@ test("production requires one exact canonical HTTPS origin", () => {
   for (const value of [
     "",
     "http://example.test",
-    "https://example.test/",
+    "https://example.test/page///",
+    "https://example.test/?query",
+    "https://example.test/#fragment",
+    "https://example.test:443/",
+    "https://example.test/../",
+    " https://example.test/",
+    "https://example.test/ ",
+    "https://example.test\\\\",
+    "https://example.test.evil/path/",
     "https://user:secret@example.test",
     "https://example.test/page",
     "https://example.test?query",
@@ -30,6 +38,12 @@ test("production requires one exact canonical HTTPS origin", () => {
     validateProductionOrigin("https://localhost:8784"),
     "https://localhost:8784",
   );
+});
+
+test("production strips only trailing slashes from configured origins", () => {
+  for (const origin of ["https://example.test", "https://localhost:8784"])
+    for (const suffix of ["", "/", "///"])
+      assert.equal(validateProductionOrigin(`${origin}${suffix}`), origin);
 });
 
 test("environment precedence, interpolation, test local exclusion", () => {
