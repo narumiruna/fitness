@@ -83,7 +83,8 @@ be presented as a wrong password or a confirmed cancellation.
 | CI production HTTPS browser | All 109 passed in 7.8 minutes on `1957eac`, run `39831152427` |
 | CI checks / databases / image smoke | Passed on `1957eac`; database-init 29, SQLite/PostgreSQL upgrades 15 each, PostgreSQL HTTP 62 |
 | Subsequent CI repeat (`39833130662`, `9a70f88`) | Both modes had 108 passes and one test synchronization failure each; not reported passed |
-| Synchronization stress repeat | 69 passed in 3.8 minutes (`exercise-filters.spec.ts` and `ux-findings.spec.ts`, `--repeat-each=3`), with delayed queries and a longer dialog fade; current-source CI repeat pending |
+| Synchronization stress repeat | 69 passed in 3.8 minutes (`exercise-filters.spec.ts` and `ux-findings.spec.ts`, `--repeat-each=3`), with delayed queries and a longer dialog fade |
+| Final implementation CI (`39836492319`, `f116c45`) | All five jobs passed: checks, databases, image smoke, and both browser modes. Development 109 passed in 11.0 minutes; production HTTPS 109 passed in 7.8 minutes; no skips or retries |
 | Public Repository and License link reachability | Both returned HTTP 200 |
 | Runner cleanup | Final full-suite and focused runs returned zero; no listeners on 8784/8785 or runner-owned supervisor remained |
 | `prek run -a` | Passed: Biome and TypeScript; repeated before the implementation commit |
@@ -92,8 +93,9 @@ The full browser suite uses only PR files. The 7.7-minute repeat includes the
 final keyboard and zoom fixtures. A later bounded server correction for direct
 unknown browser URLs passed its HTTP and focused-browser checks; current-source
 production/development PR CI results are recorded separately. The source-verifying
-[CI run](https://github.com/narumiruna/fitness/actions/runs/39831152427) tests
-implementation revision `1957eacd390fda80c1272de4c5826998091e02ac`. Input Enter remains
+[CI run](https://github.com/narumiruna/fitness/actions/runs/39836492319) tests
+implementation/test revision `f116c45ccc1b86b201a8cdae345c563e292c2c5d`.
+The later evidence-only commit changes documentation, not that tested source. Input Enter remains
 Save-only; the visually primary Complete set requires its explicit action.
 Earlier local runs also included the
 supplied, uncommitted review audit. Those context copies are excluded from the PR
@@ -123,7 +125,8 @@ Earlier failures are retained as evidence:
   scan could capture blended colors during Radix fade-in; it now requires full
   opacity before scanning and tests a deliberately longer fade. No retry, skip,
   contrast threshold, or accessibility rule was added or relaxed. All 69 stress
-  cases passed; both failing CI outcomes remain recorded above.
+  cases passed; the final full CI repeat passed all 109 cases in each mode.
+  Both earlier failing outcomes remain recorded above.
 - The first API run failed a pre-existing test that assumes the checkout basename
   is `fitness`. Moving the isolated checkout to a directory named `fitness`
   allowed all 62 cases to pass without changing or weakening that test.
@@ -234,8 +237,9 @@ operated, release workflow dispatched, package published, or version tag created
   authentication, and deliberate dialog dismissal remain unperformed.
 - Production HTTPS verification passed in the isolated CI environment on the
   implementation revision above. Local Docker is still unavailable; no engine
-  or production service was started. A subsequent CI repeat exposed two
-  synchronization failures; current-source CI must verify their test corrections.
+  or production service was started. The final isolated CI repeat passed both
+  browser modes after the synchronization corrections. Earlier failures remain
+  recorded; they are not reclassified as passes.
 - User acceptance of the result and each remaining limit is pending.
 
 These are open requirements, not waived checks. Keep the implementation PR draft

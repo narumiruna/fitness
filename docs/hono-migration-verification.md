@@ -337,7 +337,12 @@ recovery decisions, and remaining gates. The retained
   (`39833130662`, docs-only source `9a70f88`) had one test-readiness failure in
   each browser mode, with 108 passes each, and is not reported passed. Filter
   form-commit and dialog-opacity waits now preserve all assertions; 69 controlled
-  stress cases passed across three explicit repetitions. New CI is pending.
+  stress cases passed across three explicit repetitions. Final implementation CI
+  [run 39836492319](https://github.com/narumiruna/fitness/actions/runs/39836492319)
+  passed all five jobs on `f116c45`: development 109 cases in 11.0 minutes,
+  production HTTPS 109 in 7.8 minutes, checks, databases, and image-smoke. No
+  browser skips or retries were used. Later evidence-only commits do not change
+  that tested application or test source.
 - The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
   200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
   axe, pending-close failure recovery, retained drafts, and no-duplicate-write
