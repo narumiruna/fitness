@@ -39,7 +39,11 @@ remains separate local work and open; this plan does not complete its outstandin
 ## Boundaries
 
 - Keep changes in the web app unless contextual security feedback requires a
-  small server-boundary correction. Preserve strict TypeScript and existing
+  small server-boundary correction. U08 needs a bounded production HTML-404
+  fallback so a direct unknown browser URL can render the existing recovery
+  screen. Keep status 404, non-HTML/API/machine/asset/traversal boundaries, and
+  no-store behavior; `apps/api/tests/static.test.ts` supplies HTTP evidence.
+  Preserve strict TypeScript and existing
   app-to-package dependency direction.
 - Reuse Radix Themes, existing disclosures, `ConfirmDelete`, `ActionForm`, and
   `SubmitButton`. Do not add a design system, routes, dependencies, or settings.
@@ -243,7 +247,7 @@ dialog-dismissal result.
   measurement edits, import preview/error, and administrator states. Evidence:
   assertions plus reproducible manual observations and ignored local artifact
   references; source inspection alone is not a rendered or assistive check.
-- [ ] Run `npm run check`, `npm run build`, `npm test`, and focused browser specs
+- [x] Run `npm run check`, `npm run build`, `npm test`, and focused browser specs
   after their sections; then run the complete `npm run test:ui`. Run
   `npm run test:api` if server outcomes change. Run browser commands through the
   root runner on port 8784, refuse reuse, and confirm cleanup of its own
@@ -270,7 +274,7 @@ dialog-dismissal result.
   or critical error. Do not substitute expert/model answers or automation.
   Iterate failed designs or obtain explicit acceptance of each failed target or
   unavailable check; do not claim an untested context passed.
-- [ ] Add a finding-resolution table for U01–U17 to the review report with
+- [x] Add a finding-resolution table for U01–U17 to the review report with
   changed files, regression/manual evidence, and any accepted residual risk.
   Include linked first-run, returning-user, and recovery walkthroughs. Add a
   package changeset for user-visible fixes, update affected UI documentation,

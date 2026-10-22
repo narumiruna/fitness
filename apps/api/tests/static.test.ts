@@ -64,6 +64,50 @@ test("static assets, browser routes, HEAD, API isolation and traversal", async (
         pathname,
       );
     }
+    // Browser recovery must work on a direct unknown URL, not only client navigation.
+    for (const pathname of [
+      "/not-a-browser-page",
+      "/workouts/unexpected/nested",
+    ]) {
+      const missing = await app.request(pathname, {
+        headers: { accept: "text/html" },
+      });
+      assert.equal(missing.status, 404);
+      assert.match(missing.headers.get("content-type") ?? "", /text\/html/);
+      assert.match(missing.headers.get("cache-control") ?? "", /no-store/);
+      assert.match(await missing.text(), /Fitness shell/);
+      const headMissing = await app.request(pathname, {
+        method: "HEAD",
+        headers: { accept: "text/html" },
+      });
+      assert.equal(headMissing.status, 404);
+      assert.equal(await headMissing.text(), "");
+    }
+    for (const pathname of [
+      "/assets/missing.css",
+      "/assets/missing",
+      "/missing.js",
+      "/mcp/missing",
+      "/oauth/missing",
+      "/.well-known/missing",
+      "/%5c..%5csecret",
+    ]) {
+      const response = await app.request(pathname, {
+        headers: { accept: "text/html" },
+      });
+      assert.equal(response.status, 404, pathname);
+      assert.doesNotMatch(
+        response.headers.get("content-type") ?? "",
+        /text\/html/,
+        pathname,
+      );
+      assert.doesNotMatch(await response.text(), /Fitness shell/, pathname);
+    }
+    const jsonMissing = await app.request("/not-a-browser-page", {
+      headers: { accept: "application/json" },
+    });
+    assert.equal(jsonMissing.status, 404);
+    assert.equal(await jsonMissing.text(), "Not found");
     const api = await app.request("/api/not-a-route", {
       headers: { accept: "text/html" },
     });

@@ -135,6 +135,19 @@ for (const locale of locales) {
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(
           t(signedIn ? "workouts" : "loginTitle"),
         );
+        const direct = await page.goto("/security-feedback-unknown-route");
+        expect(direct?.status()).toBe(
+          process.env.NODE_ENV === "production" ? 404 : 200,
+        );
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+          t("missingPageTitle"),
+        );
+        await expect(
+          main.getByRole("link", {
+            name: t(signedIn ? "backToWorkouts" : "signIn"),
+            exact: true,
+          }),
+        ).toHaveAttribute("href", signedIn ? "/workouts" : "/login");
       });
     }
   }

@@ -77,17 +77,18 @@ be presented as a wrong password or a confirmed cancellation.
 | Matrix repeat (`ui-ux-remediation.spec.ts`) | Four passed in 1.4 minutes after adding both-locale opening history/library assertions and sparse/long-target zoom states |
 | Final compatibility subset (`ux-findings.spec.ts` and `ui-ux-remediation.spec.ts`) | 25 passed in 2.4 minutes after preserving input Enter as Save-only |
 | Final native-zoom repeat | One case passed in 41.5 seconds, with 38 native-200%-zoom samples including empty Measurements |
-| `npm run test:ui` | All 109 tests passed in 7.4 minutes; no skips or retries |
+| Browser recovery follow-up | 32 cases passed in 2.3 minutes after adding direct unknown-URL assertions; the HTTP suite returned to 62/62 after its new recovery assertion first reproduced the plain-text defect |
+| `npm run test:ui` | All 109 tests passed in 7.4 minutes, then all 109 passed in 7.7 minutes after the final Save-only Enter correction; no skips or retries |
 | `npm run test:ui:production` | Build passed; browser runner blocked before tests because no Docker daemon was available |
 | Public Repository and License link reachability | Both returned HTTP 200 |
 | Runner cleanup | Final full-suite and focused runs returned zero; no listeners on 8784/8785 or runner-owned supervisor remained |
 | `prek run -a` | Passed: Biome and TypeScript; repeated before the implementation commit |
 
-The full browser suite uses only PR files. Later focused checks added opening
-viewport/zoom fixture assertions and verified the final compatibility correction:
-input Enter remains Save-only; the visually primary Complete set requires its
-explicit action. A new full-suite repeat and PR CI will verify that final source;
-the earlier 109-test result is not presented as that repeat. Earlier local runs also included the
+The full browser suite uses only PR files. The 7.7-minute repeat includes the
+final keyboard and zoom fixtures. A later bounded server correction for direct
+unknown browser URLs passed its HTTP and focused-browser checks; current-source
+production/development PR CI results are recorded separately. Input Enter remains
+Save-only; the visually primary Complete set requires its explicit action. Earlier local runs also included the
 supplied, uncommitted review audit. Those context copies are excluded from the PR
 and from the final full-suite count. The standalone exercise-filter regression
 asserts the corrected contract rather than importing the old defect probes.
@@ -128,7 +129,7 @@ The implementation is present for every finding. Human validation and the
 external gates below remain open; “implemented” does not mean comprehension or
 full accessibility compliance is proved.
 
-| ID | Main changed files under `apps/web/src/` | Regression evidence under `apps/web/e2e/` |
+| ID | Main changed files (web source unless qualified) | Browser regression evidence under `apps/web/e2e/` |
 | --- | --- | --- |
 | U01 | `pages/exercise.tsx`, `components/exercise-metadata.tsx` | `exercise-edit.spec.ts`: identity/history order, owner/shared states, hashes, duplicate and failed-save draft retention |
 | U02 | `components/session-panel.tsx`, `session-controls.tsx` | `ux-findings.spec.ts`: current action, Save-only, zero actuals, pause/resume, conflict, finish/abandon; `ui-ux-remediation.spec.ts`: hidden invalid input and pending-close failure recovery |
@@ -137,7 +138,7 @@ full accessibility compliance is proved.
 | U05 | `pages/workouts.tsx`, `components/template-planning.tsx` | `ui-roadmap.spec.ts`: Start training from template while schedule is closed; past-workout logging and scheduling retained |
 | U06 | `pages/exercises.tsx` | `exercise-filters.spec.ts`: all four criteria, URL/controls/results, reload, back/forward, clear and both locales |
 | U07 | `pages/source.tsx`, both dictionaries | `security-feedback.spec.ts`: named links for guest/user and both locales/viewports; public HTTP 200 checks |
-| U08 | `app.tsx`, `components/page-error.tsx` | `security-feedback.spec.ts`, `api-client.spec.ts`: distinct 403/404, unknown/missing/foreign resources, transient retry, 401 clearing, keyboard focus |
+| U08 | `app.tsx`, `components/page-error.tsx`; `apps/api/src/server.ts` | `security-feedback.spec.ts`, `api-client.spec.ts`: distinct 403/404, unknown/missing/foreign resources, transient retry, 401 clearing, keyboard focus |
 | U09 | `pages/measurements.tsx`, both dictionaries | `measurements.spec.ts`: distinct actions, replacement, validation, drafts, target clearing and deletion cancellation |
 | U10 | Public/account/calendar/stats/data pages; `components/data-import.tsx` | `ui.spec.ts`, `ui-roadmap.spec.ts`, `security-feedback.spec.ts`, `ui-ux-remediation.spec.ts`: existing tasks and reduced hierarchy, including import stages and security navigation |
 | U11 | `pages/users.tsx`, both dictionaries | `ui.spec.ts`, `ui-ux-remediation.spec.ts`: list-first outline, localized roles, unchanged stored roles and list/create-only operations |
@@ -147,6 +148,34 @@ full accessibility compliance is proved.
 | U15 | Workout/exercise/Stats pages, both dictionaries | Point-of-use unit assertions plus unchanged pure metric fixtures and browser count/scope checks |
 | U16 | `styles.css`, `components/data-import.tsx` | Disabled state, readable file/pending/preview transitions, no-write cancellation, failed-confirmation retry, duplicate import and isolation assertions; explicit destructive color regression |
 | U17 | `components/training-chart.tsx`, Measurements styles | `measurements.spec.ts`: close/sparse/long-value fixtures, reserved label outside plot, dashed line and data alternative; Stats line/bar consumer checks |
+
+## Scripted journey evidence
+
+These are reproducible test walkthroughs, not unassisted participant outcomes.
+
+1. **First-run logging:** [`ui.spec.ts`](../../apps/web/e2e/ui.spec.ts), setup and
+   all-workout-forms cases: create the first administrator → enter empty Workouts
+   → create an exercise/alias → create and edit a retrospective workout → add and
+   correct sets → open Calendar → inspect Stats and ranges. Native required-field
+   validation, date prefills, stored values, and account isolation are asserted.
+2. **Returning training:** [`ui-roadmap.spec.ts`](../../apps/web/e2e/ui-roadmap.spec.ts),
+   roadmap and zero-actuals cases, plus
+   [`ux-findings.spec.ts`](../../apps/web/e2e/ux-findings.spec.ts): use the template's
+   Start training while weekly scheduling stays closed → enter actual values
+   (including zero weight) → save or explicitly complete → pause/resume → finish
+   or abandon with the required safeguard → verify history and progress. Input
+   Enter remains Save-only; an explicit Complete action carries its submitter.
+3. **Recovery:** [`security-feedback.spec.ts`](../../apps/web/e2e/security-feedback.spec.ts)
+   and [`api-client.spec.ts`](../../apps/web/e2e/api-client.spec.ts): expired session
+   clears private state; permanent missing/forbidden outcomes offer navigation;
+   transient reads recover through retry. Failed-save, conflict-refresh, and
+   lost-response creation cases in `ux-findings.spec.ts` retain drafts and do not
+   repeat committed writes. [`ui-ux-remediation.spec.ts`](../../apps/web/e2e/ui-ux-remediation.spec.ts)
+   verifies pending-close disclosure failures, hidden invalid-input focus,
+   read-only preview/cancel, failed confirmation, and duplicate import recovery.
+   [`passkeys.spec.ts`](../../apps/web/e2e/passkeys.spec.ts) verifies deliberate app
+   confirmation cancellation and one removal with a virtual authenticator; this
+   is not a real browser-dialog dismissal or physical-device result.
 
 ## Review and recovery
 
@@ -163,11 +192,22 @@ Expert screenshot inspection confirmed a useful Stats trend before overview
 cards, a distinct disabled Preview, and readable expanded measurement controls
 at native zoom. These are expert observations, not participant results.
 
-No API contract, schema, calculation, dependency, stored role, or supported account
-operation changed. Server authorization and mutation Origin checks remain the
+No JSON API contract, schema, calculation, dependency, stored role, or supported
+account operation changed. Server authorization and mutation Origin checks remain the
 boundary. MCP consent/Connected agents routes and password recovery advice remain.
-Revert page/component, message, and matching test changes together if a regression
-is found; no database restore or migration is needed. No production service was
+A production-boundary check found that direct unknown browser URLs returned plain
+text before React could render recovery. A new HTTP assertion reproduced this
+(61 passes, one failure). `apps/api/src/server.ts` now serves the existing shell
+with status **404** for extensionless unknown browser paths requesting HTML.
+API, asset, MCP/OAuth, well-known, file-like, non-HTML, and traversal failures stay
+isolated. GET/HEAD, status, body type, no-store, and boundary assertions pass in
+all 62 HTTP cases. This adds no application route or JSON schema. PR production
+HTTPS tests verify the rendered behavior; local Docker remains unavailable.
+A separate read-only review found no issue in the fallback, status/cache handling,
+GET/HEAD semantics, or retained machine/asset/traversal boundaries.
+
+Revert page/component, server fallback, message, and matching test changes together
+if a regression is found; no database restore or migration is needed. No production service was
 operated, release workflow dispatched, package published, or version tag created.
 
 ## External gates

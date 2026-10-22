@@ -316,7 +316,7 @@ failing native client gate into a pass.
 ## Web UI/UX remediation — 2026-10-22
 
 The implementation branch `narumi/fix/web-ui-ux-remediation` starts from
-`origin/main` at `62f05a8`. It addresses U01–U17 without an API/schema change,
+`origin/main` at `62f05a8`. It addresses U01–U17 without a JSON API/schema change,
 production operation, deployment, publication, or version tag. The separate
 [remediation record](reviews/web-ui-ux-remediation.md) contains the content
 outlines, resolution table, actual command results, earlier failed attempts,
@@ -328,10 +328,10 @@ recovery decisions, and remaining gates. The retained
 - `npm test`: 76 passed. `npm run test:api`: 62 passed with disposable SQLite.
   `npm run test:training:sqlite`: 15 passed.
 - `npm run test:ui`: all 109 cases passed in 7.4 minutes, with no skips or
-  retries. A subsequent four-case matrix repeat passed after adding viewport
-  assertions and sparse/long-target zoom fixtures. A final compatibility change
-  preserves input Enter as Save-only; its 25-case subset passed in 2.4 minutes.
-  A fresh full-suite repeat and PR CI are pending for that final source.
+  retries; a fresh 109-case repeat passed in 7.7 minutes after the Save-only
+  input-Enter correction and final zoom fixtures. A later direct-unknown-URL
+  server correction passed all 62 HTTP cases and a 32-case browser subset.
+  Current-source PR CI verification is pending.
 - The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
   200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
   axe, pending-close failure recovery, retained drafts, and no-duplicate-write
@@ -342,6 +342,11 @@ recovery decisions, and remaining gates. The retained
 - `npm run test:ui:production` built successfully but was blocked before browser
   execution by an unavailable Docker daemon. No local production-mode or
   PostgreSQL check is claimed passed. CI evidence will be recorded separately.
+- A new HTTP assertion reproduced plain-text unknown browser recovery (61 passed,
+  one failed). The bounded server fallback now returns the existing HTML shell
+  with HTTP 404 for extensionless unknown browser URLs, with no-store and empty
+  HEAD bodies. JSON API, asset, machine endpoint, file-like, and traversal failures
+  retain their boundaries. All 62 HTTP cases then passed.
 - `prek run -a` passed for Biome and TypeScript and is repeated before committing.
 - Five unfamiliar participants, real screen-reader tasks, physical-device
   passkeys and deliberate browser-dialog dismissal, complete manual state
