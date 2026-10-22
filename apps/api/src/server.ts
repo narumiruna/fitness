@@ -12,7 +12,7 @@ import { validateProductionOrigin } from "./origin.js";
 import { repositoryRoot } from "./paths.js";
 
 const browserPath =
-  /^\/(?:$|login$|setup$|workouts(?:\/new|\/[^/.]+)?$|calendar$|stats$|exercises(?:\/[^/.]+)?$|measurements$|data$|source$|admin\/users$|account\/(?:password|passkeys)$)/;
+  /^\/(?:$|login$|setup$|workouts(?:\/new|\/[^/.]+)?$|calendar$|stats$|exercises(?:\/[^/.]+)?$|measurements$|data$|source$|admin\/users$|oauth\/consent$|account\/(?:password|passkeys|connections)$)/;
 export function createServerApp(
   staticRoot = path.join(repositoryRoot, "apps/web/dist"),
 ) {

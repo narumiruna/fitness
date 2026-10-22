@@ -24,6 +24,9 @@ model User {
   schedules    TemplateSchedule[]
   imports      ImportBatch[]
   passkeys     Passkey[]
+  mcpGrants    McpGrant[]
+  mcpRequests  McpAuthorizationRequest[]
+  mcpReceipts  McpWriteReceipt[]
 }
 
 model Passkey {
@@ -130,6 +133,7 @@ model Workout {
   importBatch   ImportBatch?     @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   sets          WorkoutSet[]
   user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mcpReceipts   McpWriteReceipt[]
 
   @@unique([userId, plannedDate])
   @@unique([userId, fingerprint])
@@ -257,4 +261,94 @@ model ImportBatch {
   workouts  Workout[]
 
   @@unique([userId, digest])
+}
+
+model McpClient {
+  id                String    @id
+  name              String
+  redirectUris      String
+  preRegistered     Boolean   @default(false)
+  metadataExpiresAt DateTime?
+  createdAt         DateTime  @default(now())
+  grants            McpGrant[]
+  requests          McpAuthorizationRequest[]
+}
+
+model McpAuthorizationRequest {
+  id            String    @id
+  clientId      String
+  userId        String?
+  redirectUri   String
+  resource      String
+  scopes        String
+  state         String
+  codeChallenge String
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  client        McpClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model McpGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  clientId  String
+  resource  String
+  scopes    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client    McpClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  codes     McpAuthorizationCode[]
+  tokens    McpToken[]
+
+  @@index([userId, revokedAt])
+}
+
+model McpAuthorizationCode {
+  tokenHash     String   @id
+  grantId       String
+  redirectUri   String
+  codeChallenge String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  grant         McpGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model McpToken {
+  id                String   @id @default(cuid())
+  grantId           String
+  accessTokenHash   String   @unique
+  refreshTokenHash  String   @unique
+  scopes            String
+  accessExpiresAt   DateTime
+  refreshExpiresAt  DateTime
+  refreshUsedAt     DateTime?
+  createdAt         DateTime @default(now())
+  grant             McpGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+  @@index([refreshExpiresAt])
+}
+
+model McpWriteReceipt {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    String
+  toolName    String
+  operationId String
+  payloadHash String
+  workoutId   String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout     Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, clientId, toolName, operationId])
+  @@index([workoutId])
 }

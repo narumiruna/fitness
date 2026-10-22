@@ -9,6 +9,12 @@ export {
   resolveCalendarMonth,
 } from "./calendar.js";
 export {
+  calculateMcpProgress,
+  type McpStatsSet,
+  type McpStatsWorkout,
+  summarizeMcpTraining,
+} from "./mcp-stats.js";
+export {
   calculateStats,
   type DashboardStats,
   type ExercisePersonalRecords,

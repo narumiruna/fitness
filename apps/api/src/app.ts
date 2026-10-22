@@ -30,6 +30,7 @@ import { exportWorkouts } from "./lib/data-transfer.js";
 import { getLocale } from "./lib/i18n.js";
 import { getLogger } from "./lib/logger.js";
 import { csvLimit, serializeWorkouts } from "./lib/workout-csv.js";
+import { mountMcpBrowserRoutes, mountMcpMachineRoutes } from "./mcp/routes.js";
 import { requestLogging } from "./middleware/request-logging.js";
 import { validateProductionOrigin } from "./origin.js";
 import { withRequest } from "./request-context.js";
@@ -93,9 +94,12 @@ export function createApp(options: AppOptions = {}) {
   app.use("*", async (c, next) =>
     withRequest(c, async () => {
       c.header("cache-control", "private, no-store");
+      c.header("content-security-policy", "frame-ancestors 'none'");
+      c.header("x-frame-options", "DENY");
       await next();
     }),
   );
+  mountMcpMachineRoutes(app, options.trustedOrigin);
   app.use("*", async (c, next) => {
     if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
       const origin = c.req.header("origin");
@@ -141,6 +145,7 @@ export function createApp(options: AppOptions = {}) {
       status,
     );
   });
+  mountMcpBrowserRoutes(app, options.trustedOrigin);
   app.get("/api/bootstrap", async (c) =>
     c.json(
       validateDto(bootstrapSchema, {

@@ -24,9 +24,22 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 8784,
     strictPort: true,
+    headers: {
+      "Content-Security-Policy": "frame-ancestors 'none'",
+      "X-Frame-Options": "DENY",
+    },
     proxy: {
       "/api": { target: "http://127.0.0.1:8785", changeOrigin: false },
       "/data/export": { target: "http://127.0.0.1:8785", changeOrigin: false },
+      "^/mcp(?:\\?|$)": {
+        target: "http://127.0.0.1:8785",
+        changeOrigin: false,
+      },
+      "^/oauth/(authorize|token)(?:\\?|$)": {
+        target: "http://127.0.0.1:8785",
+        changeOrigin: false,
+      },
+      "/.well-known/": { target: "http://127.0.0.1:8785", changeOrigin: false },
     },
   },
 });

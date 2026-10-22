@@ -47,6 +47,8 @@ import { SessionContext, useSession } from "./lib/session";
 import { dictionary } from "./lib/translations";
 
 const CalendarPage = lazy(() => import("./pages/calendar"));
+const ConnectionsPage = lazy(() => import("./pages/connections"));
+const McpConsentPage = lazy(() => import("./pages/mcp-consent"));
 const DataPage = lazy(() => import("./pages/data"));
 const ExercisePage = lazy(() => import("./pages/exercise"));
 const ExercisesPage = lazy(() => import("./pages/exercises"));
@@ -65,6 +67,8 @@ const WorkoutsPage = lazy(() => import("./pages/workouts"));
 export function App() {
   const [epoch, setEpoch] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
+  const consentReturn = useRef<{ path: string; arrived: boolean } | null>(null);
   const previousUser = useRef<string | null | undefined>(undefined);
   const bootstrap = useQuery({
     queryKey: ["bootstrap", epoch],
@@ -72,13 +76,43 @@ export function App() {
       request("/api/bootstrap", bootstrapSchema, { signal }),
   });
   useEffect(() => {
+    if (location.pathname === "/login") {
+      const state: unknown = location.state;
+      if (state && typeof state === "object" && "mcpConsentRequest" in state) {
+        const id = state.mcpConsentRequest;
+        consentReturn.current =
+          typeof id === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(id)
+            ? { path: `/oauth/consent?request=${id}`, arrived: false }
+            : null;
+      }
+    } else if (location.pathname === "/workouts") {
+      if (bootstrap.data?.user && consentReturn.current) {
+        if (consentReturn.current.arrived) consentReturn.current = null;
+        else {
+          consentReturn.current.arrived = true;
+          navigate(consentReturn.current.path, { replace: true });
+        }
+      }
+    } else if (
+      `${location.pathname}${location.search}` !== consentReturn.current?.path
+    )
+      consentReturn.current = null;
+  }, [location, bootstrap.data?.user, navigate]);
+  useEffect(() => {
     const clear = () => {
       previousUser.current = undefined;
       setEpoch((value) => value + 1);
     };
     const expired = () => navigate("/login", { replace: true });
-    const redirect = (event: Event) =>
-      navigate((event as CustomEvent<string>).detail);
+    const redirect = (event: Event) => {
+      let destination = (event as CustomEvent<string>).detail;
+      // Login actions can finish after the authenticated route gate has run.
+      if (destination === "/workouts" && consentReturn.current) {
+        destination = consentReturn.current.path;
+        consentReturn.current = null;
+      } else if (destination === "/login") consentReturn.current = null;
+      navigate(destination);
+    };
     window.addEventListener("fitness:clear-drafts", clear);
     window.addEventListener("fitness:expired", expired);
     window.addEventListener("fitness:navigate", redirect);
@@ -152,6 +186,7 @@ export function App() {
               }
             />
             <Route path="source" element={<SourcePage />} />
+            <Route path="oauth/consent" element={<McpConsentPage />} />
             <Route element={<ProtectedGate />}>
               <Route path="workouts" element={<WorkoutsPage />} />
               <Route path="workouts/new" element={<NewPage />} />
@@ -164,6 +199,7 @@ export function App() {
               <Route path="data" element={<DataPage />} />
               <Route path="account/password" element={<PasswordPage />} />
               <Route path="account/passkeys" element={<PasskeysPage />} />
+              <Route path="account/connections" element={<ConnectionsPage />} />
               <Route path="admin/users" element={<UsersPage />} />
             </Route>
             <Route path="*" element={<MissingPage />} />
@@ -224,6 +260,10 @@ function Shell() {
   const { user, locale } = useSession();
   const t = useDictionary();
   const location = useLocation();
+  const consentIds =
+    location.pathname === "/oauth/consent"
+      ? new URLSearchParams(location.search).getAll("request")
+      : [];
   const previousNavigation = useRef(location);
   useLayoutEffect(() => {
     const previous = previousNavigation.current;
@@ -294,7 +334,16 @@ function Shell() {
                 </>
               ) : (
                 <Link highContrast asChild>
-                  <RouterLink to="/login">{t("signIn")}</RouterLink>
+                  <RouterLink
+                    to="/login"
+                    state={
+                      consentIds.length === 1
+                        ? { mcpConsentRequest: consentIds[0] }
+                        : undefined
+                    }
+                  >
+                    {t("signIn")}
+                  </RouterLink>
                 </Link>
               )}
             </nav>

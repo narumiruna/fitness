@@ -1,5 +1,35 @@
 export const englishMessages = {
   appName: "Fitness",
+  mcpConsentTitle: "Connect an agent",
+  mcpConsentSignIn: "Sign in to review this agent's access request.",
+  mcpConsentUnavailable:
+    "This access request is invalid, expired, or no longer available. Start again from your agent.",
+  mcpRequestedPermissions: "Requested permissions",
+  mcpClientIdentity: "Client ID",
+  mcpVerifyClient:
+    "The client supplies its name. Verify its client ID before you approve access.",
+  mcpReadScope: "Read your workout records, metrics, and the exercise catalog.",
+  mcpWriteScope:
+    "Create completed workouts. This does not permit editing, deletion, or administrator access.",
+  mcpPrivacyWarning:
+    "Your records will be sent to your selected agent provider. Its retention and training policies apply. Fitness cannot control how that provider uses your records.",
+  mcpAllow: "Allow access",
+  mcpDeny: "Deny access",
+  mcpConsentFailed:
+    "Could not submit your decision. Retry, or start a new request from your agent if this request has expired.",
+  mcpConnections: "Connected agents",
+  mcpConnectionsHelp:
+    "Review connections that have access to your account. A client can have more than one connection; revoke each connection you no longer trust.",
+  mcpNoConnections: "No connected agents.",
+  mcpConnectedAt: "Connected",
+  mcpExpiresAt: "Access expires",
+  mcpRevoke: "Revoke access",
+  mcpRevokeTitle: "Revoke agent access?",
+  mcpRevokeDescription:
+    "Revoke this connection for {client}. Other connections are not changed. Records already sent to the provider cannot be recalled.",
+  mcpRevokeFailed: "Could not revoke access. Try again.",
+  mcpRevoked: "Agent access revoked.",
+
   bootstrapError: "Could not load Fitness.",
   bootstrapRetry: "Retry",
   javascriptRequired:
