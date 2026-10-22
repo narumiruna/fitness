@@ -17,6 +17,15 @@ async function choose(page: Page, trigger: Locator, name: string) {
   await trigger.click();
   await page.getByRole("option", { name, exact: true }).click();
 }
+async function openDisclosure(summary: Locator) {
+  if (
+    !(await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    ))
+  ) {
+    await summary.click();
+  }
+}
 async function login(page: Page, name: string) {
   const signOut = page.getByRole("button", { name: "Sign out", exact: true });
   if (await signOut.count()) {
@@ -167,6 +176,9 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
         .then((set) => ({ type: set?.type, rir: set?.rir })),
     )
     .toEqual({ type: "WORKING", rir: null });
+  await openDisclosure(
+    page.locator("summary").filter({ hasText: /^Save as template$/ }),
+  );
   const saveTemplate = page.locator("form").filter({
     has: page.getByRole("button", { name: "Save as template", exact: true }),
   });
@@ -209,7 +221,10 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     },
   });
   await page.goto("/workouts");
-  await page.locator(".dashboard-tools > summary").click();
+  const schedule = page.locator("summary").filter({
+    hasText: /^Weekly template schedule$/,
+  });
+  await openDisclosure(schedule);
   const rule = page
     .locator("form")
     .filter({ has: page.locator('input[name="templateId"]') })
@@ -235,9 +250,14 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
       }),
     )
     .toBe(1);
-  const start = page.locator("form").filter({
+  await schedule.click();
+  await expect(schedule.locator("..")).not.toHaveAttribute("open");
+  const start = page.locator(".template-item form").filter({
     has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
   });
+  await expect(
+    start.getByRole("button", { name: "Start training", exact: true }),
+  ).toBeVisible();
   await start
     .getByRole("button", { name: "Start training", exact: true })
     .click();
@@ -252,6 +272,9 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     activeCard.getByRole("button", { name: "Repeat", exact: true }),
   ).toHaveCount(0);
   await page.goto(`/workouts/${activeId}`);
+  await openDisclosure(
+    page.locator("summary").filter({ hasText: /^Progression suggestions$/ }),
+  );
   await expect(
     page.getByText("All prescribed working sets met their targets.", {
       exact: false,
@@ -288,8 +311,8 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .toBe(82.5);
   const actual = page
     .locator("form")
-    .filter({ has: page.locator('input[name="weight"]') })
-    .first();
+    .filter({ has: page.locator('input[name="setId"]') })
+    .filter({ has: page.locator('input[name="order"][value="1"]') });
   await expect(actual.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
     "",
   );
@@ -442,7 +465,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await expect(
     completedCard.getByRole("button", { name: "Repeat", exact: true }),
   ).toBeVisible();
-  await page.locator(".dashboard-tools > summary").click();
+  await openDisclosure(schedule);
   const removeSchedule = page.locator("form").filter({
     has: page.locator(`input[name="weekday"][value="${tomorrow.getDay()}"]`),
   });
@@ -462,6 +485,9 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
       .templateTitle,
   ).toBe("Roadmap routine");
   await page.goto(`/exercises/${exercise.id}`);
+  await openDisclosure(
+    page.locator("summary").filter({ hasText: /^Edit exercise metadata$/ }),
+  );
   const metadata = page
     .locator("form")
     .filter({ has: page.getByRole("group", { name: "Primary muscles" }) });
@@ -526,15 +552,20 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .filter({ has: page.locator('input[name="waist"]') })
     .first();
   await measurement.getByLabel("Weight (kg)", { exact: true }).fill("75");
-  await measurement.getByRole("button", { name: "Save", exact: true }).click();
+  await measurement
+    .getByRole("button", { name: "Save measurement", exact: true })
+    .click();
   await expect
     .poll(() => prisma.bodyMeasurement.count({ where: { userId: user.id } }))
     .toBe(1);
+  await openDisclosure(
+    page.locator("summary").filter({ hasText: /^Target weight \(kg\)$/ }),
+  );
   const goal = page
     .locator("form")
     .filter({ has: page.getByLabel("Target weight (kg)") });
   await goal.getByLabel("Target weight (kg)").fill("70");
-  await goal.getByRole("button", { name: "Save", exact: true }).click();
+  await goal.getByRole("button", { name: "Save target", exact: true }).click();
   await expect
     .poll(() =>
       prisma.bodyGoal
@@ -543,10 +574,12 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     )
     .toBe(70);
   await expect(
-    page.locator("svg").getByText("Target weight (kg): 70", { exact: true }),
+    page
+      .locator(".chart-target")
+      .getByText("Target weight (kg): 70", { exact: true }),
   ).toBeVisible();
   await goal.getByLabel("Target weight (kg)").fill("");
-  await goal.getByRole("button", { name: "Save", exact: true }).click();
+  await goal.getByRole("button", { name: "Save target", exact: true }).click();
   await expect
     .poll(() =>
       prisma.bodyGoal
@@ -555,11 +588,11 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     )
     .toBe(null);
   await page.getByText("Edit measurement", { exact: true }).click();
-  const editMeasurement = page.locator("details form");
+  const editMeasurement = page.locator(".measurement-edit form");
   await editMeasurement.getByLabel("Weight (kg)", { exact: true }).fill("74");
   await editMeasurement.getByLabel("Waist (cm)", { exact: true }).fill("90");
   await editMeasurement
-    .getByRole("button", { name: "Save", exact: true })
+    .getByRole("button", { name: "Save measurement", exact: true })
     .click();
   await expect
     .poll(() =>
@@ -575,7 +608,7 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     (element) => ((element as HTMLFormElement).noValidate = true),
   );
   await editMeasurement
-    .getByRole("button", { name: "Save", exact: true })
+    .getByRole("button", { name: "Save measurement", exact: true })
     .click();
   await expect(
     editMeasurement.getByText("Not saved.", { exact: false }),
@@ -719,6 +752,9 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await page.goto(`/exercises/${exercise.id}`);
   await expect(page.locator('form input[name="exerciseId"]')).toHaveCount(0);
   await page.goto(`/exercises/${noHistory.id}`);
+  await openDisclosure(
+    page.locator("summary").filter({ hasText: /^Edit exercise metadata$/ }),
+  );
   const foreignForm = page
     .locator("form")
     .filter({ has: page.getByRole("group", { name: "Primary muscles" }) });
@@ -769,8 +805,13 @@ test("saved zero-weight single-rep actuals survive revalidation, reload, and com
     },
   });
   await login(page, user.username);
-  await page.locator(".dashboard-tools > summary").click();
-  const start = page.locator("form").filter({
+  await expect(
+    page
+      .locator("summary")
+      .filter({ hasText: /^Weekly template schedule$/ })
+      .locator(".."),
+  ).not.toHaveAttribute("open");
+  const start = page.locator(".template-item form").filter({
     has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
   });
   await start

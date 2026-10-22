@@ -33,7 +33,7 @@ export function PageHeader({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children?: ReactNode;
 }) {
   return (
@@ -42,9 +42,11 @@ export function PageHeader({
         <Heading as="h1" size="8">
           {title}
         </Heading>
-        <Text as="p" size="3" color="gray">
-          {description}
-        </Text>
+        {description ? (
+          <Text as="p" size="3" color="gray">
+            {description}
+          </Text>
+        ) : null}
       </div>
       {children}
     </div>

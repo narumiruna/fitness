@@ -37,6 +37,7 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
       },
     },
   );
+  let releaseRemoval = () => {};
   try {
     await page.goto("/login");
     await page.getByLabel("Username", { exact: true }).fill(username);
@@ -139,8 +140,85 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
     expect(session?.httpOnly).toBe(true);
     expect(session?.secure).toBe(process.env.NODE_ENV === "production");
     await page.goto("/account/passkeys");
-    await page.getByRole("button", { name: "Delete: Test device" }).click();
+    let removals = 0;
+    let removalStarted = () => {};
+    const started = new Promise<void>((resolve) => {
+      removalStarted = resolve;
+    });
+    const removalGate = new Promise<void>((resolve) => {
+      releaseRemoval = resolve;
+    });
+    await page.route("**/api/actions/deletePasskey", async (route) => {
+      removals++;
+      if (removals === 1) {
+        await route.fulfill({
+          status: 503,
+          json: { error: { code: "UNAVAILABLE", requestId: "removal-test" } },
+        });
+      } else {
+        removalStarted();
+        await removalGate;
+        await route.continue();
+      }
+    });
+    const remove = page.getByRole("button", { name: "Delete: Test device" });
+    const dialog = page.getByRole("alertdialog");
+    await remove.click();
+    await expect(dialog).toHaveAccessibleName("Delete passkey: Test device?");
+    await expect(dialog).toContainText(
+      "Keep your password for account recovery.",
+    );
+    const cancel = dialog.getByRole("button", { name: "Cancel", exact: true });
+    await expect(cancel).toBeFocused();
+    await cancel.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(remove).toBeFocused();
+    expect(removals).toBe(0);
+    expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(1);
+
+    await remove.press("Enter");
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(remove).toBeFocused();
+    expect(removals).toBe(0);
+    expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(1);
+
+    await remove.click();
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "Could not remove this passkey. Retry, or cancel and reload to check its status. Keep your password for account recovery.",
+    );
+    await expect(cancel).toBeEnabled();
+    expect(removals).toBe(1);
+    expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(1);
+    await cancel.click();
+    await expect(remove).toBeFocused();
+
+    await remove.click();
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+    await started;
+    await expect(cancel).toBeDisabled();
+    await expect(
+      dialog.getByRole("button", { name: "Delete", exact: true }),
+    ).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeVisible();
+    await dialog.locator("form").evaluate((form: HTMLFormElement) => {
+      form.requestSubmit();
+      form.requestSubmit();
+    });
+    expect(removals).toBe(2);
+    expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(1);
+    releaseRemoval();
     await expect(page.getByText("No passkeys registered.")).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText(
+      "Passkey removed: Test device.",
+    );
+    await expect(
+      page.getByRole("link", { name: "Change password", exact: true }),
+    ).toBeFocused();
+    expect(removals).toBe(2);
     expect(await prisma.passkey.count({ where: { userId: user.id } })).toBe(0);
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -148,6 +226,7 @@ test("passkey registration, password checks, expiry, sign-in, replay, and remova
     await expect(page.locator("main").getByRole("alert")).toBeVisible();
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   } finally {
+    releaseRemoval();
     await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
   }
 });

@@ -11,14 +11,10 @@ import { usePageView } from "@/api/views";
 import { useDictionary } from "@/lib/i18n";
 import { FormSelect } from "./form-select";
 import { SafeForm } from "./safe-form";
-import { StartSessionForm } from "./session-panel";
 export function TemplatePlanning() {
   const t = useDictionary();
-  const {
-    planningTemplates: templates,
-    schedules: current,
-    today,
-  } = usePageView("workouts");
+  const { planningTemplates: templates, schedules: current } =
+    usePageView("workouts");
   const weekdays = [
     "weekdaySun",
     "weekdayMon",
@@ -69,11 +65,6 @@ export function TemplatePlanning() {
               <Heading as="h2" size="4">
                 {template.title}
               </Heading>
-              <StartSessionForm
-                source="template"
-                sourceId={template.id}
-                date={today}
-              />
               <Heading as="h2" size="3">
                 {t("progression")}
               </Heading>

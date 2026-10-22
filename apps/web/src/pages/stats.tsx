@@ -72,12 +72,16 @@ export default function StatsPage() {
     { label: t("workouts"), metric: "workouts", formatter: formatInteger },
     { label: t("setsMetric"), metric: "sets", formatter: formatInteger },
     { label: t("reps"), metric: "reps", formatter: formatInteger },
-    { label: t("volume"), metric: "volume", formatter: formatNumber },
+    {
+      label: `${t("volume")} (${t("volumeUnit")})`,
+      metric: "volume",
+      formatter: formatNumber,
+    },
   ];
 
   return (
     <section className="stack stats-page">
-      <PageHeader title={t("stats")} description={t("statsIntro")}>
+      <PageHeader title={t("stats")}>
         <ActionForm className="range-filter" action="/stats" key={range}>
           <FormSelect
             name="range"
@@ -101,7 +105,7 @@ export default function StatsPage() {
         </ActionForm>
       </PageHeader>
       <Text as="p" size="2" color="gray">
-        {rangeLabel} · {t("volumeDefinition")}
+        {rangeLabel}
       </Text>
 
       {!hasStats ? (
@@ -119,42 +123,13 @@ export default function StatsPage() {
         </Card>
       ) : null}
 
-      {stats.overview.totalWorkouts > 0 ? (
-        <section className="stats-card-grid" aria-label={t("overview")}>
-          <StatCard
-            label={t("totalWorkouts")}
-            value={formatInteger(stats.overview.totalWorkouts)}
-          />
-          <StatCard
-            label={t("trainingDays")}
-            value={formatInteger(stats.overview.trainingDays)}
-          />
-          <StatCard
-            label={t("totalSets")}
-            value={formatInteger(stats.overview.totalSets)}
-          />
-          <StatCard
-            label={t("totalReps")}
-            value={formatInteger(stats.overview.totalReps)}
-          />
-          <StatCard
-            label={t("totalVolume")}
-            value={formatNumber(stats.overview.totalVolume)}
-          />
-          <StatCard
-            label={t("averageVolumePerWorkout")}
-            value={formatNumber(stats.overview.averageVolumePerWorkout)}
-          />
-        </section>
-      ) : null}
-
       {hasWorkouts ? (
         <div className="charts-grid">
           {hasStats ? (
             <Card asChild>
               <section>
                 <SectionHeader
-                  title={t("volumeHistory")}
+                  title={`${t("volumeHistory")} (${t("volumeUnit")})`}
                   description={rangeLabel}
                 />
                 <TrainingChart
@@ -191,6 +166,41 @@ export default function StatsPage() {
           </Card>
         </div>
       ) : null}
+      {stats.overview.totalWorkouts > 0 ? (
+        <section className="stats-card-grid" aria-label={t("overview")}>
+          <StatCard
+            label={t("totalWorkouts")}
+            value={formatInteger(stats.overview.totalWorkouts)}
+          />
+          <StatCard
+            label={t("trainingDays")}
+            value={formatInteger(stats.overview.trainingDays)}
+          />
+          <StatCard
+            label={t("totalSets")}
+            value={formatInteger(stats.overview.totalSets)}
+          />
+          <StatCard
+            label={t("totalReps")}
+            value={formatInteger(stats.overview.totalReps)}
+          />
+          <StatCard
+            label={`${t("totalVolume")} (${t("volumeUnit")})`}
+            value={formatNumber(stats.overview.totalVolume)}
+          />
+          <StatCard
+            label={`${t("averageVolumePerWorkout")} (${t("volumeUnit")})`}
+            value={formatNumber(stats.overview.averageVolumePerWorkout)}
+          />
+        </section>
+      ) : null}
+
+      <details className="analytics-details">
+        <summary>{t("volume")}</summary>
+        <Text as="p" size="2">
+          {t("volumeDefinition")}
+        </Text>
+      </details>
       {hasStats ? (
         <div className="charts-grid three">
           <Card asChild>
@@ -254,7 +264,7 @@ export default function StatsPage() {
                       />
                     </span>
                     <span className="stats-bar-value">
-                      {formatNumber(item.volume)}
+                      {formatNumber(item.volume)} {t("volumeUnit")}
                     </span>
                   </div>
                 ))}
@@ -360,7 +370,7 @@ export default function StatsPage() {
                         />
                       </span>
                       <span className="stats-bar-value">
-                        {formatNumber(month.volume)}
+                        {formatNumber(month.volume)} {t("volumeUnit")}
                       </span>
                     </div>
                   ))}
@@ -388,11 +398,13 @@ export default function StatsPage() {
                     <article className="stack">
                       <div className="stats-list-card-header">
                         <Text weight="bold">{exercise.exerciseName}</Text>
-                        <Text>{formatNumber(exercise.volume)}</Text>
+                        <Text>
+                          {formatNumber(exercise.volume)} {t("volumeUnit")}
+                        </Text>
                       </div>
                       <div className="stats-pairs three">
                         <MetricPair
-                          label={t("volume")}
+                          label={`${t("volume")} (${t("volumeUnit")})`}
                           value={formatNumber(exercise.volume)}
                         />
                         <MetricPair
@@ -422,7 +434,7 @@ export default function StatsPage() {
                         {t("reps")}
                       </Table.ColumnHeaderCell>
                       <Table.ColumnHeaderCell>
-                        {t("volume")}
+                        {t("volume")} ({t("volumeUnit")})
                       </Table.ColumnHeaderCell>
                     </Table.Row>
                   </Table.Header>
@@ -467,7 +479,7 @@ export default function StatsPage() {
                       </div>
                       <div className="stats-pairs two">
                         <MetricPair
-                          label={t("maxWeight")}
+                          label={`${t("maxWeight")} (kg)`}
                           value={formatNumber(record.maxWeight.value)}
                           detail={formatSetDetail(record.maxWeight, locale)}
                         />
@@ -477,12 +489,12 @@ export default function StatsPage() {
                           detail={formatSetDetail(record.maxReps, locale)}
                         />
                         <MetricPair
-                          label={t("bestVolumeSet")}
+                          label={`${t("bestVolumeSet")} (${t("volumeUnit")})`}
                           value={formatNumber(record.maxVolume.value)}
                           detail={formatSetDetail(record.maxVolume, locale)}
                         />
                         <MetricPair
-                          label={t("estimatedOneRepMax")}
+                          label={`${t("estimatedOneRepMax")} (kg)`}
                           value={formatNumber(record.estimatedOneRepMax.value)}
                           detail={formatSetDetail(
                             record.estimatedOneRepMax,
@@ -523,6 +535,7 @@ export default function StatsPage() {
                           <RecordValue
                             locale={locale}
                             record={record.maxWeight}
+                            unit="kg"
                           />
                         </Table.Cell>
                         <Table.Cell>
@@ -535,12 +548,14 @@ export default function StatsPage() {
                           <RecordValue
                             locale={locale}
                             record={record.maxVolume}
+                            unit={t("volumeUnit")}
                           />
                         </Table.Cell>
                         <Table.Cell>
                           <RecordValue
                             locale={locale}
                             record={record.estimatedOneRepMax}
+                            unit="kg"
                           />
                         </Table.Cell>
                       </Table.Row>
@@ -560,7 +575,7 @@ export default function StatsPage() {
           <ConsistencyReport year={params.year} />
           <MuscleReport />
           <Text size="2" color="gray">
-            {t("workingVolume")}: {stats.workingVolume}
+            {t("workingVolume")}: {stats.workingVolume} {t("volumeUnit")}
           </Text>
         </div>
       </details>
@@ -615,7 +630,7 @@ function RecordSummary({
                 <Text size="2" weight="medium">
                   {record.exerciseName}
                 </Text>
-                <Text size="2">{formatNumber(record.maxWeight.value)}</Text>
+                <Text size="2">{formatNumber(record.maxWeight.value)} kg</Text>
                 <Text size="1" color="gray">
                   {record.maxWeight.date.toLocaleDateString(locale, {
                     month: "short",
@@ -775,13 +790,18 @@ function MetricPair({
 function RecordValue({
   record,
   locale,
+  unit,
 }: {
   record: SetRecord;
   locale: string;
+  unit?: string;
 }) {
   return (
     <span className="stats-record-value">
-      <Text weight="bold">{formatNumeric(record.value, locale, 1)}</Text>
+      <Text weight="bold">
+        {formatNumeric(record.value, locale, 1)}
+        {unit ? ` ${unit}` : ""}
+      </Text>
       <Text size="1" color="gray">
         {formatSetDetail(record, locale)}
       </Text>
@@ -790,7 +810,7 @@ function RecordValue({
 }
 
 function formatSetDetail(record: SetRecord, locale: string) {
-  return `${formatNumeric(record.weight, locale, 1)} × ${formatNumeric(record.reps, locale, 0)} · ${record.date.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
+  return `${formatNumeric(record.weight, locale, 1)} kg × ${formatNumeric(record.reps, locale, 0)} · ${record.date.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
 function formatChange(

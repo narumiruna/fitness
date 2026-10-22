@@ -312,3 +312,58 @@ The PR must remain draft until outstanding verification passes and the native
 launch failure is fixed upstream or receives an explicit accepted disposition.
 CI browser/database checks are separate evidence; passing them cannot turn a
 failing native client gate into a pass.
+
+## Web UI/UX remediation — 2026-10-22
+
+The implementation branch `narumi/fix/web-ui-ux-remediation` starts from
+`origin/main` at `62f05a8`. It addresses U01–U17 without a JSON API/schema change,
+production operation, deployment, publication, or version tag. The separate
+[remediation record](reviews/web-ui-ux-remediation.md) contains the content
+outlines, resolution table, actual command results, earlier failed attempts,
+recovery decisions, and remaining gates. The retained
+[plan](plans/2026-10-22_web-ui-ux-remediation-plan.md) is not complete.
+
+- `npm ci`, `npm run check`, and `npm run build` passed. The existing Vite
+  entry-chunk size warning remains.
+- `npm test`: 76 passed. `npm run test:api`: 62 passed with disposable SQLite.
+  `npm run test:training:sqlite`: 15 passed.
+- `npm run test:ui`: all 109 cases passed in 7.4 minutes, with no skips or
+  retries; a fresh 109-case repeat passed in 7.7 minutes after the Save-only
+  input-Enter correction and final zoom fixtures. A later direct-unknown-URL
+  server correction passed all 62 HTTP cases and a 32-case browser subset.
+  CI run `39831152427` verifies source revision `1957eac`: production HTTPS
+  passed all 109 cases in 7.8 minutes, and checks/databases/image-smoke passed.
+  Development CI was still installing Chrome at that recording. A later repeat
+  (`39833130662`, docs-only source `9a70f88`) had one test-readiness failure in
+  each browser mode, with 108 passes each, and is not reported passed. Filter
+  form-commit and dialog-opacity waits now preserve all assertions; 69 controlled
+  stress cases passed across three explicit repetitions. Final implementation CI
+  [run 39836492319](https://github.com/narumiruna/fitness/actions/runs/39836492319)
+  passed all five jobs on `f116c45`: development 109 cases in 11.0 minutes,
+  production HTTPS 109 in 7.8 minutes, checks, databases, and image-smoke. No
+  browser skips or retries were used. Later evidence-only commits do not change
+  that tested application or test source.
+- The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
+  200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
+  axe, pending-close failure recovery, retained drafts, and no-duplicate-write
+  assertions are separate from participant or screen-reader evidence.
+- The full and final focused runners returned zero. Separate checks found no
+  listeners on 8784/8785 or runner-owned supervisor after cleanup. No existing
+  service was stopped or reused.
+- `npm run test:ui:production` built successfully but was blocked before browser
+  execution by an unavailable Docker daemon. No local production-mode or
+  PostgreSQL check is claimed passed locally. The isolated CI database job passed
+  29 database-init tests, 15 upgrade tests for each provider, and 62 PostgreSQL
+  HTTP cases; its production browser job passed all 109 cases. These results
+  refer to [run 39831152427](https://github.com/narumiruna/fitness/actions/runs/39831152427)
+  on source revision `1957eac`, not a historical migration run.
+- A new HTTP assertion reproduced plain-text unknown browser recovery (61 passed,
+  one failed). The bounded server fallback now returns the existing HTML shell
+  with HTTP 404 for extensionless unknown browser URLs, with no-store and empty
+  HEAD bodies. JSON API, asset, machine endpoint, file-like, and traversal failures
+  retain their boundaries. All 62 HTTP cases then passed.
+- `prek run -a` passed for Biome and TypeScript and is repeated before committing.
+- Five unfamiliar participants, real screen-reader tasks, physical-device
+  passkeys and deliberate browser-dialog dismissal, complete manual state
+  coverage, and user acceptance remain open. The PR must remain draft until
+  evidence is supplied or each applicable limitation is explicitly accepted.

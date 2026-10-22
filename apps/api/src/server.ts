@@ -52,15 +52,22 @@ export function createServerApp(
       return c.text("Not found", 404);
     let info = await stat(filename).catch(() => null);
     let shell = false;
+    let responseStatus: 200 | 404 = 200;
     if (!info?.isFile()) {
+      const knownBrowserPath = browserPath.test(pathname);
+      // Keep machine endpoints, assets, and file-like paths out of SPA recovery.
+      const missingBrowserPath =
+        !/^\/(?:api|assets|mcp|oauth|\.well-known)(?:\/|$)/.test(pathname) &&
+        !pathname.includes(".");
       if (
-        !browserPath.test(pathname) ||
+        (!knownBrowserPath && !missingBrowserPath) ||
         !c.req.header("accept")?.includes("text/html")
       )
         return c.text("Not found", 404);
       filename = path.join(staticRoot, "index.html");
       info = await stat(filename).catch(() => null);
       shell = true;
+      responseStatus = knownBrowserPath ? 200 : 404;
     }
     if (!info?.isFile()) return c.text("Not found", 404);
     c.header(
@@ -74,8 +81,11 @@ export function createServerApp(
         ? "public, max-age=31536000, immutable"
         : "private, no-store",
     );
-    if (c.req.method === "HEAD") return c.body(null);
-    return c.body(Readable.toWeb(createReadStream(filename)) as ReadableStream);
+    if (c.req.method === "HEAD") return c.body(null, responseStatus);
+    return c.body(
+      Readable.toWeb(createReadStream(filename)) as ReadableStream,
+      responseStatus,
+    );
   });
   return app;
 }

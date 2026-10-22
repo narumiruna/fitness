@@ -85,7 +85,7 @@ test("seed and legacy import reruns preserve renamed exercise identity and prima
   await page.getByLabel("Password", { exact: true }).fill("admin");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/workouts$/);
-  await page.goto(`/exercises/${squat.id}`);
+  await page.goto(`/exercises/${squat.id}#edit-exercise`);
   const form = page.locator("#edit-exercise");
   await form.getByLabel("Default name").fill("Back Squat");
   await form.getByRole("button", { name: "Save", exact: true }).click();

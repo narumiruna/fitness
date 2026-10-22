@@ -1,5 +1,5 @@
-import { Button, Card, Text } from "@radix-ui/themes";
-import { useState } from "react";
+import { Button, Card, Heading, Text } from "@radix-ui/themes";
+import { useRef, useState } from "react";
 import { confirmImportAction, previewImportAction } from "@/api/actions";
 import { ActionForm } from "@/components/action-form";
 import { FormSelect } from "./form-select";
@@ -11,19 +11,24 @@ function upload(text: string, mappings: Record<string, string> = {}) {
   return data;
 }
 export function DataImport({ labels }: { labels: Record<string, string> }) {
+  const fileInput = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [preview, setPreview] =
     useState<Awaited<ReturnType<typeof previewImportAction>>>();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   return (
-    <Card className="stack">
+    <Card className="stack" aria-busy={busy}>
+      <Heading as="h3" size="4">
+        {preview ? labels.importReviewStep : labels.importSelectStep}
+      </Heading>
       <Text as="label">
         {labels.file}
         <input
+          ref={fileInput}
           type="file"
           accept=".csv,text/csv"
-          disabled={busy}
+          disabled={busy || !!preview}
           onChange={async (e) => {
             setPreview(undefined);
             setMessage("");
@@ -49,23 +54,28 @@ export function DataImport({ labels }: { labels: Record<string, string> }) {
           }}
         />
       </Text>
-      <Button
-        highContrast
-        disabled={!text || busy}
-        type="button"
-        onClick={async () => {
-          setBusy(true);
-          try {
-            setPreview(await previewImportAction(upload(text)));
-          } catch {
-            setMessage(labels.csvError);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        {labels.preview}
-      </Button>
+      {!preview ? (
+        <Button
+          highContrast
+          disabled={!text || busy}
+          aria-label={labels.preview}
+          loading={busy}
+          type="button"
+          onClick={async () => {
+            setBusy(true);
+            setMessage("");
+            try {
+              setPreview(await previewImportAction(upload(text)));
+            } catch {
+              setMessage(labels.csvError);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {labels.preview}
+        </Button>
+      ) : null}
       <Text role="status">{message}</Text>
       {preview ? (
         <ActionForm
@@ -83,6 +93,8 @@ export function DataImport({ labels }: { labels: Record<string, string> }) {
                 `${labels.imported}: ${result.imported}. ${labels.skipped}: ${result.skipped}.`,
               );
               setPreview(undefined);
+              setText("");
+              if (fileInput.current) fileInput.current.value = "";
             } catch {
               setMessage(labels.saveFailed);
             } finally {
@@ -121,6 +133,8 @@ export function DataImport({ labels }: { labels: Record<string, string> }) {
             highContrast
             type="submit"
             disabled={busy || preview.errors.length > 0}
+            aria-label={labels.confirmImport}
+            loading={busy}
           >
             {labels.confirmImport}
           </Button>
@@ -131,7 +145,7 @@ export function DataImport({ labels }: { labels: Record<string, string> }) {
             disabled={busy}
             onClick={() => {
               setPreview(undefined);
-              setText("");
+              setMessage("");
             }}
           >
             {labels.cancel}

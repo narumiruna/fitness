@@ -13,7 +13,7 @@ export default function SetupPage() {
             {t("setupTitle")}
           </Heading>
           <Text as="p" size="2" color="gray">
-            {t("setupIntro")}
+            {t("setupContext")}
           </Text>
         </div>
       </div>

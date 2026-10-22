@@ -87,7 +87,12 @@ test("same-page redirects keep focus and ignore malformed fragments", async ({
       .locator(".stats-card")
       .filter({ hasText: "Total workouts" })
       .getByText("1", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(1);
+  await expect(
+    page
+      .locator("details")
+      .filter({ has: page.locator(".workouts-summary-grid") }),
+  ).not.toHaveAttribute("open");
   await expect(control).toBeFocused();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));

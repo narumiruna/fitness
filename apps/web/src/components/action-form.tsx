@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { formFailureSchema } from "@/api/actions";
 import { HttpError } from "@/api/client";
 import { useDictionary } from "@/lib/i18n";
+import { revealDisclosures } from "./form-disclosure";
 
 export const FormPendingContext = createContext(false);
 export function useFormPending() {
@@ -30,6 +31,7 @@ export function ActionForm({
   action,
   children,
   onSubmit,
+  onInvalidCapture,
   resetOnSuccess = false,
   ...props
 }: ActionFormProps) {
@@ -43,6 +45,11 @@ export function ActionForm({
       <form
         {...props}
         aria-busy={pending}
+        onInvalidCapture={(event) => {
+          onInvalidCapture?.(event);
+          if (event.target instanceof HTMLElement)
+            revealDisclosures(event.target);
+        }}
         onSubmit={async (event) => {
           onSubmit?.(event);
           if (event.defaultPrevented) return;
@@ -67,9 +74,11 @@ export function ActionForm({
           try {
             const result = await action(data);
             const failure = formFailureSchema.safeParse(result);
+            if (failure.success) revealDisclosures(form);
             setMessage(failure.success ? t(failure.data.error) : "");
             if (!failure.success && resetOnSuccess) form.reset();
           } catch (error) {
+            revealDisclosures(form);
             setMessage(
               error instanceof HttpError && error.status === 409
                 ? t("sessionConflict")

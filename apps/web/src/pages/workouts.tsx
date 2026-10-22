@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Card,
+  Flex,
   Heading,
   Text,
   TextField,
@@ -19,14 +20,10 @@ import {
 import { calendarDate, usePageView } from "@/api/views";
 import { ActionForm } from "@/components/action-form";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import {
-  EmptyState,
-  MetricCard,
-  PageHeader,
-  StrengthIcon,
-} from "@/components/dashboard";
+import { EmptyState, MetricCard, StrengthIcon } from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { NotesCheckbox } from "@/components/notes-checkbox";
+import { StartSessionForm } from "@/components/session-panel";
 import { SubmitButton } from "@/components/submit-button";
 import { TemplatePlanning } from "@/components/template-planning";
 import { WorkoutCalendar } from "@/components/workout-calendar";
@@ -57,43 +54,31 @@ export default function WorkoutsPage() {
   const t = useDictionary();
   const locale = useLocale();
   const now = calendarDate(today);
+  const activeFilters = [
+    filters.month ? `${t("month")}: ${filters.month}` : "",
+    filters.exerciseId
+      ? `${t("exercise")}: ${exerciseOptions.find((exercise) => exercise.id === filters.exerciseId)?.defaultName ?? t("unknown")}`
+      : "",
+    filters.notesOnly ? t("onlyWorkoutsWithNotes") : "",
+  ].filter(Boolean);
+  const hasFilters = Boolean(filters.q || activeFilters.length);
   const formatInteger = (value: number) =>
     new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
   const formatNumber = (value: number) =>
     new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
   return (
     <section className="stack workouts-page">
-      <PageHeader title={t("workouts")} description={t("workoutsIntro")}>
+      <div className="page-header">
+        <Heading as="h1" size="8">
+          {t("workouts")}
+        </Heading>
         <Button highContrast asChild>
           <RouterLink to="/workouts/new">
             <PlusIcon aria-hidden="true" />
             {t("newWorkoutAction")}
           </RouterLink>
         </Button>
-      </PageHeader>
-      {totalWorkoutCount > 0 ? (
-        <section className="workouts-summary-grid" aria-label={t("overview")}>
-          <MetricCard
-            label={t("totalWorkouts")}
-            value={formatInteger(totalWorkoutCount)}
-          />
-          <MetricCard
-            icon="volume"
-            label={t("totalVolume")}
-            value={`${formatNumber(totals[0].volume)} kg`}
-          />
-          <MetricCard
-            icon="sets"
-            label={t("totalSets")}
-            value={formatInteger(Number(totals[0].count))}
-          />
-          <MetricCard
-            icon="calendar"
-            label={t("monthWorkouts")}
-            value={formatInteger(workoutsThisMonth)}
-          />
-        </section>
-      ) : null}
+      </div>
       <div className="workouts-layout">
         <Card asChild>
           <section className="workouts-list stack">
@@ -103,13 +88,18 @@ export default function WorkoutsPage() {
               </Heading>
               <Badge color="gray">{filteredWorkoutCount}</Badge>
             </div>
-            {totalHistoryCount > 0 ? (
-              <ActionForm
-                action="/workouts"
-                className="history-filters"
-                key={JSON.stringify(filters)}
-              >
-                <Text as="label" size="2" className="field-label search-field">
+            <ActionForm
+              action="/workouts"
+              className="stack history-query"
+              key={JSON.stringify(filters)}
+            >
+              <Flex gap="2" align="end">
+                <Text
+                  as="label"
+                  size="2"
+                  className="field-label"
+                  style={{ flex: 1, minWidth: 0 }}
+                >
                   {t("search")}
                   <TextField.Root
                     defaultValue={filters.q}
@@ -117,47 +107,58 @@ export default function WorkoutsPage() {
                     placeholder={t("workoutSearchPlaceholder")}
                   />
                 </Text>
-                <Text as="label" size="2" className="field-label">
-                  {t("month")}
-                  <TextField.Root
-                    defaultValue={filters.month}
-                    name="month"
-                    type="month"
-                  />
-                </Text>
-                <Text as="label" size="2" className="field-label">
-                  {t("exercise")}
-                  <FormSelect
-                    name="exercise"
-                    defaultValue={filters.exerciseId}
-                    label={t("exercise")}
-                    options={[
-                      { value: "", label: t("allExercises") },
-                      ...exerciseOptions.map((e) => ({
-                        value: e.id,
-                        label: e.defaultName,
-                      })),
-                    ]}
-                  />
-                </Text>
-                <Text as="label" size="2" className="checkbox-label">
-                  <NotesCheckbox defaultChecked={filters.notesOnly} />
-                  {t("onlyWorkoutsWithNotes")}
-                </Text>
+                <Button highContrast variant="soft" type="submit">
+                  {t("applyFilters")}
+                </Button>
+              </Flex>
+              <details>
+                <summary>{t("filterWorkouts")}</summary>
+                <div className="form-grid two compact-form">
+                  <Text as="label" size="2" className="field-label">
+                    {t("month")}
+                    <TextField.Root
+                      defaultValue={filters.month}
+                      name="month"
+                      type="month"
+                    />
+                  </Text>
+                  <Text as="label" size="2" className="field-label">
+                    {t("exercise")}
+                    <FormSelect
+                      name="exercise"
+                      defaultValue={filters.exerciseId}
+                      label={t("exercise")}
+                      options={[
+                        { value: "", label: t("allExercises") },
+                        ...exerciseOptions.map((exercise) => ({
+                          value: exercise.id,
+                          label: exercise.defaultName,
+                        })),
+                      ]}
+                    />
+                  </Text>
+                  <Text as="label" size="2" className="checkbox-label">
+                    <NotesCheckbox defaultChecked={filters.notesOnly} />
+                    {t("onlyWorkoutsWithNotes")}
+                  </Text>
+                </div>
+              </details>
+              {hasFilters ? (
                 <div className="toolbar-actions">
-                  <Button highContrast variant="soft" type="submit">
-                    {t("applyFilters")}
-                  </Button>
+                  {activeFilters.length ? (
+                    <Text size="2" color="gray">
+                      {activeFilters.join(" · ")}
+                    </Text>
+                  ) : null}
                   <Button highContrast asChild variant="ghost">
                     <RouterLink to="/workouts">{t("clearFilters")}</RouterLink>
                   </Button>
                 </div>
-              </ActionForm>
-            ) : null}
+              ) : null}
+            </ActionForm>
             {workouts.length === 0 ? (
               <EmptyState
                 title={t(totalHistoryCount ? "noWorkoutResults" : "noWorkouts")}
-                description={t("workoutsIntro")}
               />
             ) : (
               workouts.map((workout, index) => {
@@ -237,7 +238,8 @@ export default function WorkoutsPage() {
                               {completed.length} {t("sets")}
                             </span>
                             <span>
-                              {formatNumber(sumVolume(completed))} {t("volume")}
+                              {formatNumber(sumVolume(completed))}{" "}
+                              {t("volumeUnit")}
                             </span>
                           </>
                         ) : (
@@ -333,9 +335,39 @@ export default function WorkoutsPage() {
               </nav>
             ) : null}
             {totalWorkoutCount > 0 ? (
-              <Text as="p" size="1" color="gray">
-                {t("volumeDefinition")}
-              </Text>
+              <details className="dashboard-tools">
+                <summary>{t("overview")}</summary>
+                <Text as="p" size="2" color="gray">
+                  {t("allTime")}
+                </Text>
+                <section
+                  className="workouts-summary-grid"
+                  aria-label={t("overview")}
+                >
+                  <MetricCard
+                    label={t("totalWorkouts")}
+                    value={formatInteger(totalWorkoutCount)}
+                  />
+                  <MetricCard
+                    icon="volume"
+                    label={t("totalVolume")}
+                    value={`${formatNumber(totals[0].volume)} ${t("volumeUnit")}`}
+                  />
+                  <MetricCard
+                    icon="sets"
+                    label={t("totalSets")}
+                    value={formatInteger(Number(totals[0].count))}
+                  />
+                  <MetricCard
+                    icon="calendar"
+                    label={t("monthWorkouts")}
+                    value={formatInteger(workoutsThisMonth)}
+                  />
+                </section>
+                <Text as="p" size="1" color="gray">
+                  {t("volumeDefinition")}
+                </Text>
+              </details>
             ) : null}
           </section>
         </Card>
@@ -359,8 +391,13 @@ export default function WorkoutsPage() {
                           {template._count?.sets ?? 0} {t("sets")}
                         </Text>
                       </div>
+                      <StartSessionForm
+                        source="template"
+                        sourceId={template.id}
+                        date={today}
+                      />
                       <details>
-                        <summary>{t("createFromTemplate")}</summary>
+                        <summary>{t("createPastWorkout")}</summary>
                         <ActionForm
                           className="form-grid compact-form"
                           action={createWorkoutFromTemplateAction}

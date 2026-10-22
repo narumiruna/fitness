@@ -6,6 +6,7 @@ import {
   Button,
   Callout,
   Card,
+  Flex,
   Heading,
   Text,
   TextField,
@@ -15,12 +16,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { createExerciseAction, createExerciseAliasAction } from "@/api/actions";
 import { usePageView, useSearch } from "@/api/views";
 import { ActionForm } from "@/components/action-form";
-import {
-  EmptyState,
-  MetricCard,
-  PageHeader,
-  StrengthIcon,
-} from "@/components/dashboard";
+import { EmptyState, MetricCard, StrengthIcon } from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { SubmitButton } from "@/components/submit-button";
 import type { MessageKey } from "@/lib/i18n";
@@ -43,6 +39,18 @@ export default function ExercisesPage() {
   const createdExerciseId = params.created?.trim() ?? "";
   const sort =
     params.sort === "desc" || params.sort === "recent" ? params.sort : "asc";
+  const muscle = muscles.find((value) => value === params.muscle) ?? "all";
+  const tool = equipment.find((value) => value === params.equipment) ?? "all";
+  const hasFilters = Boolean(
+    query || sort !== "asc" || muscle !== "all" || tool !== "all",
+  );
+  const activeFilters = [
+    sort !== "asc"
+      ? `${t("sort")}: ${t(sort === "desc" ? "nameDescending" : "recentlyUsed")}`
+      : "",
+    muscle !== "all" ? `${t("muscle")}: ${t(muscle)}` : "",
+    tool !== "all" ? `${t("equipment")}: ${t(tool)}` : "",
+  ].filter(Boolean);
   const usage = new Map(
     usedExercises.map((item) => [
       item.exerciseId,
@@ -52,14 +60,17 @@ export default function ExercisesPage() {
   const recent = [...usage.entries()].slice(0, 5);
   return (
     <section className="stack exercises-page">
-      <PageHeader title={t("exercises")} description={t("exercisePageIntro")}>
+      <div className="page-header">
+        <Heading as="h1" size="8">
+          {t("exercises")}
+        </Heading>
         <Button highContrast asChild>
           <a href="#new-exercise">
             <PlusIcon aria-hidden="true" />
             {t("newExerciseAction")}
           </a>
         </Button>
-      </PageHeader>
+      </div>
       {params.error === "duplicate" || params.error === "alias" ? (
         <Callout.Root color="red" role="alert">
           <Callout.Text>
@@ -68,30 +79,6 @@ export default function ExercisesPage() {
             )}
           </Callout.Text>
         </Callout.Root>
-      ) : null}
-      {totalExerciseCount > 0 ? (
-        <section className="stats-card-grid" aria-label={t("overview")}>
-          <MetricCard
-            icon="library"
-            label={t("totalExercises")}
-            value={String(totalExerciseCount)}
-          />
-          <MetricCard
-            icon="activity"
-            label={t("usedExercises")}
-            value={String(usage.size)}
-          />
-          <MetricCard
-            icon="sets"
-            label={t("aliases")}
-            value={String(totalAliasCount)}
-          />
-          <MetricCard
-            icon="calendar"
-            label={t(query ? "results" : "showing")}
-            value={String(exercises.length)}
-          />
-        </section>
       ) : null}
       <div className="dashboard-columns">
         <Card asChild>
@@ -103,48 +90,17 @@ export default function ExercisesPage() {
               <Badge color="gray">{exercises.length}</Badge>
             </div>
             <ActionForm
+              className="stack library-query"
               action="/exercises"
-              className="library-metadata-filters"
+              key={JSON.stringify([query, sort, muscle, tool])}
             >
-              <input type="hidden" name="q" value={query} />
-              <FormSelect
-                name="muscle"
-                label={t("muscle")}
-                defaultValue={params.muscle ?? "all"}
-                options={[
-                  { value: "all", label: t("allExercises") },
-                  ...muscles.map((m) => ({
-                    value: m,
-                    label: t(m as MessageKey),
-                  })),
-                ]}
-              />
-              <FormSelect
-                name="equipment"
-                label={t("equipment")}
-                defaultValue={params.equipment ?? "all"}
-                options={[
-                  { value: "all", label: t("allExercises") },
-                  ...equipment.map((m) => ({
-                    value: m,
-                    label: t(m as MessageKey),
-                  })),
-                ]}
-              />
-              <Button highContrast type="submit">
-                {t("applyFilters")}
-              </Button>
-              <Button highContrast asChild variant="soft">
-                <RouterLink to="/exercises">{t("clearFilters")}</RouterLink>
-              </Button>
-            </ActionForm>
-            {totalExerciseCount > 0 ? (
-              <ActionForm
-                className="library-filters"
-                action="/exercises"
-                key={`${query}:${sort}`}
-              >
-                <Text as="label" size="2" className="field-label">
+              <Flex gap="2" align="end">
+                <Text
+                  as="label"
+                  size="2"
+                  className="field-label"
+                  style={{ flex: 1, minWidth: 0 }}
+                >
                   {t("search")}
                   <TextField.Root
                     name="q"
@@ -152,33 +108,68 @@ export default function ExercisesPage() {
                     placeholder={t("exerciseSearchPlaceholder")}
                   />
                 </Text>
-                <Text as="label" size="2" className="field-label">
-                  {t("sort")}
-                  <FormSelect
-                    name="sort"
-                    label={t("sort")}
-                    defaultValue={sort}
-                    options={[
-                      { value: "asc", label: t("nameAscending") },
-                      { value: "desc", label: t("nameDescending") },
-                      { value: "recent", label: t("recentlyUsed") },
-                    ]}
-                  />
-                </Text>
-                <div className="toolbar-actions">
-                  <Button highContrast variant="soft" type="submit">
-                    {t("search")}
-                  </Button>
-                  {query || sort !== "asc" ? (
-                    <Button highContrast asChild variant="ghost">
-                      <RouterLink to="/exercises">
-                        {t("clearSearch")}
-                      </RouterLink>
-                    </Button>
-                  ) : null}
+                <Button highContrast variant="soft" type="submit">
+                  {t("search")}
+                </Button>
+              </Flex>
+              <details>
+                <summary>{t("exerciseFilters")}</summary>
+                <div className="form-grid two compact-form">
+                  <Text as="label" size="2" className="field-label">
+                    {t("sort")}
+                    <FormSelect
+                      name="sort"
+                      label={t("sort")}
+                      defaultValue={sort}
+                      options={[
+                        { value: "asc", label: t("nameAscending") },
+                        { value: "desc", label: t("nameDescending") },
+                        { value: "recent", label: t("recentlyUsed") },
+                      ]}
+                    />
+                  </Text>
+                  <Text as="label" size="2" className="field-label">
+                    {t("muscle")}
+                    <FormSelect
+                      name="muscle"
+                      label={t("muscle")}
+                      defaultValue={muscle}
+                      options={[
+                        { value: "all", label: t("allMuscles") },
+                        ...muscles.map((value) => ({ value, label: t(value) })),
+                      ]}
+                    />
+                  </Text>
+                  <Text as="label" size="2" className="field-label">
+                    {t("equipment")}
+                    <FormSelect
+                      name="equipment"
+                      label={t("equipment")}
+                      defaultValue={tool}
+                      options={[
+                        { value: "all", label: t("allEquipment") },
+                        ...equipment.map((value) => ({
+                          value,
+                          label: t(value),
+                        })),
+                      ]}
+                    />
+                  </Text>
                 </div>
-              </ActionForm>
-            ) : null}
+              </details>
+              {hasFilters ? (
+                <div className="toolbar-actions">
+                  {activeFilters.length ? (
+                    <Text size="2" color="gray">
+                      {activeFilters.join(" · ")}
+                    </Text>
+                  ) : null}
+                  <Button highContrast asChild variant="ghost">
+                    <RouterLink to="/exercises">{t("clearFilters")}</RouterLink>
+                  </Button>
+                </div>
+              ) : null}
+            </ActionForm>
             {exercises.length === 0 ? (
               <EmptyState
                 title={t(
@@ -186,7 +177,6 @@ export default function ExercisesPage() {
                     ? "noExerciseResults"
                     : "noExerciseLibrary",
                 )}
-                description={t("noExerciseResultsHint")}
               />
             ) : (
               <div className="exercise-list">
@@ -315,6 +305,28 @@ export default function ExercisesPage() {
                 ))}
               </div>
             )}
+            {totalExerciseCount > 0 ? (
+              <details className="dashboard-tools">
+                <summary>{t("overview")}</summary>
+                <section className="stats-card-grid" aria-label={t("overview")}>
+                  <MetricCard
+                    icon="library"
+                    label={t("totalExercises")}
+                    value={String(totalExerciseCount)}
+                  />
+                  <MetricCard
+                    icon="activity"
+                    label={t("usedExercises")}
+                    value={String(usage.size)}
+                  />
+                  <MetricCard
+                    icon="sets"
+                    label={t("aliases")}
+                    value={String(totalAliasCount)}
+                  />
+                </section>
+              </details>
+            ) : null}
           </section>
         </Card>
         <aside className="stack exercise-sidebar">

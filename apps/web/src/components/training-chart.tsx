@@ -54,6 +54,16 @@ export function TrainingChart({
   const line = points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ");
   return (
     <div className="training-chart">
+      {target ? (
+        <p className="chart-target">
+          <span>
+            {target.label}:{" "}
+            {new Intl.NumberFormat(locale, {
+              maximumFractionDigits: 20,
+            }).format(target.value)}
+          </span>
+        </p>
+      ) : null}
       <svg viewBox={`0 0 ${width} ${height}`} aria-label={label}>
         {[0, 0.25, 0.5, 0.75, 1].map((f) => (
           <g key={f}>
@@ -87,9 +97,6 @@ export function TrainingChart({
               stroke="var(--red-9)"
               strokeDasharray="5 5"
             />
-            <text x={left} y={y(target.value) - 4} className="chart-axis">
-              {target.label}: {target.value}
-            </text>
           </g>
         ) : null}
         {kind === "line" && points.length ? (

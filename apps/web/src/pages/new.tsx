@@ -12,7 +12,7 @@ export default function NewWorkoutPage() {
   const t = useDictionary();
   return (
     <section className="stack narrow">
-      <PageHeader title={t("createWorkout")} description={t("workoutsIntro")} />
+      <PageHeader title={t("createWorkout")} />
       <Card>
         <SafeForm
           action={createWorkoutAction}

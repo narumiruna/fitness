@@ -55,7 +55,7 @@ test("default solid actions stay teal while explicit destructive accents remain 
     element.append(probe);
     const expected = getComputedStyle(probe).color;
     probe.remove();
-    return { actual: style.backgroundColor, expected };
+    return { actual: style.color, expected };
   });
   expect(colors.actual).toBe(colors.expected);
   expect(colors.actual).not.toBe("rgb(8, 117, 101)");
