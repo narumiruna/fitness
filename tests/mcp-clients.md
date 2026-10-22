@@ -58,7 +58,7 @@ The runner prints bounded JSON evidence without tokens, codes, browser cookies, 
 | --- | --- | --- |
 | Pi 1.4.0 | Installed built-in `McpServerConnection` and `signInMcpServer` with noninteractive authorization URL hooks | `2025-11-25` |
 | Codex CLI 0.163.0 | `app-server` JSON-RPC: `mcpServer/oauth/login`, `mcpServer/tool/call`, and native thread MCP inventory; no `turn/start` | Default: `2025-06-18`; separate modern run with `--enable mcp_2026_07_28`: `2026-07-28` |
-| Claude Code 2.1.303 | Noninteractive stream-json control API: `mcp_authenticate`, `mcp_status`, and `mcp_call`; no user messages | Explicit `MCP_SDK_GENERATION=v2`: `2026-07-28`; explicit `v1`: `2025-11-25` |
+| Claude Code 2.1.303 and 2.1.308 | Noninteractive stream-json control API: `mcp_authenticate`, `mcp_status`, and `mcp_call`; no user messages | Explicit `MCP_SDK_GENERATION=v2`: `2026-07-28`; explicit `v1`: `2025-11-25` |
 
 Codex uses `oauth.callback_url = "http://127.0.0.1/callback"` for the registered public client, with an OS-selected callback port. Its default legacy runtime proposes `2025-06-18`; Fitness now supports that revision, and the default-runtime workflow passes. Without a configured callback path, this Codex version creates a per-login `/callback/<random>` path, which does not match the fixed pre-registration fixture.
 
@@ -68,7 +68,9 @@ Pi uses the same built-in connection and OAuth code as the host, not an official
 
 The runner calls all seven Fitness tools. It checks read-only write denial at the HTTP `403` boundary, explicit read/write consent, atomic recording, retry, reading, bounded analysis, refresh after an expired server-side access token, browser revocation, and subsequent HTTP `401` denial. These checks passed for all five runtime rows in earlier runs on 2026-10-22. A later final-source run passed Pi and both Codex modes; Claude v1 reached its concurrent-refresh failure, while Claude v2 failed at its sequential refresh stage before revocation. The earlier successes are not a current all-host pass.
 
-It then creates a separate grant and sends two native calls after expiring its access tokens. This check passes for Pi and modern Codex. Default Codex has passed this check, but it also failed under load with a refresh-token reuse race. Claude Code 2.1.303 fails in both v1 and v2: two refresh attempts use the same token, one returns `200`, another returns `400`, and Fitness revokes the family on reuse. Both calls lose authorization. The failing default Codex run had the same result. The runner exits nonzero for these compatibility failures. It does not skip them or relax refresh-token reuse detection.
+It then creates a separate grant and sends two native calls after expiring its access tokens. Pi passes this check. Both Codex runtimes have passed it, but both also demonstrated a refresh-token reuse race in recorded runs. Claude Code 2.1.303 and the latest tested 2.1.308 fail in both v1 and v2: two refresh attempts use the same token, one returns `200`, another returns `400`, and Fitness revokes the family on reuse. Both calls lose authorization. The Codex failures have the same result. The runner exits nonzero for these compatibility failures. It does not skip them or relax refresh-token reuse detection.
+
+The 2.1.308 verification used a temporary npm prefix and its platform-native binary, selected through the test process PATH. It did not update the user's installed CLI. All five runtime rows completed their core workflow in that run; modern Codex and both Claude runtimes then failed concurrent refresh. A patch-version upgrade alone did not resolve the blocker.
 
 A representative run used these exact callback URIs:
 
@@ -84,7 +86,7 @@ Ports change on each run; the JSON output is the current evidence. Claude's `mcp
 
 ## Remaining launch gates
 
-- Fix or update Claude's and default Codex's concurrent OAuth refresh coordination, then rerun. A host-side fix must share one refresh or reload the rotated credential before another request uses it. Do not disable server-side refresh reuse detection.
+- Fix or update Claude's and Codex's concurrent OAuth refresh coordination, then rerun. A host-side fix must share one refresh or reload the rotated credential before another request uses it. Do not disable server-side refresh reuse detection.
 - Verify native Codex and Claude CIMD OAuth workflows. Native Pi CIMD passed in the separate mode above. The general five-runtime matrix still uses offline pre-registration fixtures.
 - Verify normal host session tool exposure and human approval behavior separately. No external model or interactive host workflow was run here.
 

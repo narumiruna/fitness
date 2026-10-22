@@ -139,9 +139,9 @@ Logs include safe tool names, internal principal/client IDs, request IDs, durati
 
 ## Client verification status
 
-The native compatibility fixture verifies the core OAuth and seven-tool workflows without model requests or real credentials. Pi 1.4.0, Codex CLI 0.163.0 default/modern runtimes, and Claude Code 2.1.303 v1/v2 runtimes completed these workflows. See [native test details](../tests/mcp-clients.md) for the boundary of this evidence.
+The native compatibility fixture verifies the core OAuth and seven-tool workflows without model requests or real credentials. Pi 1.4.0, Codex CLI 0.163.0 default/modern runtimes, and Claude Code 2.1.303 and 2.1.308 v1/v2 runtimes completed these workflows in recorded runs. See [native test details](../tests/mcp-clients.md) for the boundary of this evidence.
 
-The full launch gate is not green: Claude Code and intermittently default Codex can race two refresh attempts after simultaneous `401` responses. Fitness correctly revokes the family on reuse; users then need to sign in again. Do not disable reuse detection to hide this client behavior. Native CIMD OAuth setup and normal host-session permission UI remain separate unverified paths. The live public Pi metadata resolver/cache probe passed, but that is not a native CIMD OAuth flow.
+The full launch gate is not green: Claude Code 2.1.303 and 2.1.308, plus both tested Codex 0.163.0 runtimes intermittently, can race two refresh attempts after simultaneous `401` responses. Fitness correctly revokes the family on reuse; users then need to sign in again. Do not disable reuse detection to hide this client behavior. Native Pi CIMD OAuth also passed, including scope upgrade and refresh. Native Codex/Claude CIMD and normal host-session permission UI remain separate unverified paths.
 
 ## Privacy and recovery
 

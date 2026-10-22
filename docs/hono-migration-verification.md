@@ -258,17 +258,30 @@ workflow dispatched, package published, or version tag created.
 | `npm run build` | Passed for core, contracts, API, and Vite. |
 | `npm test` | Passed: 86 tests across core, contracts, Changesets, locale, dashboard, training, logging, and form outcomes. |
 | `npm run test:api` | Passed: 62 disposable SQLite tests, including exact 50,000-set analysis and rejection above the budget. |
-| `npm run test:api:postgres` | Earlier 61-case suite passed on a disposable PostgreSQL container. The later rerun with the added budget case failed before test execution with `Connection terminated unexpectedly`; do not report 62 PostgreSQL passes. |
+| `npm run test:api:postgres` | All 62 cases passed in CI run `39808061618`. Earlier local 61-case suites passed; the later local 62-case attempt failed before tests with `Connection terminated unexpectedly`. |
 | `npm run test:training:sqlite` | Passed: 15 tests, including legacy/empty upgrades, restoration, constraints, tombstones, and cascades. |
 | `npm run test:training:postgres` | Passed: the same 15 tests on a separate disposable PostgreSQL container. |
 | UTC and Asia/Taipei HTTP repeat | Earlier 60-case API suites passed under both timezones. Pure calculation fixtures also passed in UTC, Asia/Taipei, and America/New_York. |
-| `npm run test:ui -- mcp.spec.ts` | Initial six MCP browser cases passed. Later identity/frame-protection changes still require final browser verification. |
+| `npm run test:ui -- mcp.spec.ts` | Initial six MCP browser cases passed locally. Final identity/frame-protection cases passed as part of the 59-case production HTTPS CI suite. |
 | `npm run test:ui` | Not passed. One attempt was interrupted after development rebuilds caused connection errors. A stable-source retry exceeded 120 seconds in the first test's browser-context/beforeEach setup and again in teardown. Both runs were stopped, and only their own server processes were cleaned up. No existing listener was stopped to free a port. |
-| `npm run test:db-init` | Not passed locally in this run: the command hit the 300-second tool deadline; its last running lifecycle case failed during interruption. No timing assertion was relaxed. |
+| `npm run test:db-init` | All 29 cases passed in CI run `39808061618`. The local command hit the 300-second tool deadline; its last lifecycle case failed during interruption. No timing assertion was relaxed. |
 | `prek run -a` | Passed after final intended source changes and before the implementation commit. |
 | Native clients | Gate exits nonzero. See below; core-workflow passes are not a complete launch pass. |
 | Public Pi CIMD resolver | Passed: one public metadata GET and cache verification, no credentials or workout data sent. |
 | Native Pi CIMD | Passed with Pi 1.4.0 built-in client, protocol `2025-11-25`, no pre-registered client ID, seven tools, scoped consent, refresh, and revocation. |
+| `npm run test:ui:production` | All 59 cases passed in CI run `39808061618`, including final MCP identity/frame checks. |
+| CI checks and image-smoke | Passed in CI run `39808061618`. |
+
+### Complete CI matrix
+
+[CI run 39808061618](https://github.com/narumiruna/fitness/actions/runs/39808061618)
+passed all five jobs on source revision `eab0096`: checks, databases, development
+browser, production browser, and image-smoke. Both browser modes passed all 59
+cases; database-init passed 29, each training upgrade runner passed 15, and the
+PostgreSQL API suite passed 62. Local failures above are retained as local results,
+not reclassified as passes. Later evidence-only commits do not change that tested
+source. This green matrix does not include or override the failing native client
+gate.
 
 ### Native client boundary and blockers
 
@@ -286,7 +299,9 @@ responses; default Codex also showed an intermittent race in earlier runs. One
 refresh succeeds, another reuses the consumed token, and Fitness correctly revokes
 the entire family. Users must then sign in again. The native test intentionally
 retains a failing assertion; it does not skip this condition or disable replay
-revocation.
+revocation. A subsequent isolated test of the latest Claude Code 2.1.308 passed
+all core workflows but reproduced the concurrent race in both Claude runtimes;
+Codex modern also reproduced the race. No global CLI installation was changed.
 
 Native Pi CIMD passed separately using `oauth.clientRegistration = "cimd"`, with
 no client ID override. Native Codex/Claude CIMD and normal agent-session exposure
