@@ -79,7 +79,10 @@ be presented as a wrong password or a confirmed cancellation.
 | Final native-zoom repeat | One case passed in 41.5 seconds, with 38 native-200%-zoom samples including empty Measurements |
 | Browser recovery follow-up | 32 cases passed in 2.3 minutes after adding direct unknown-URL assertions; the HTTP suite returned to 62/62 after its new recovery assertion first reproduced the plain-text defect |
 | `npm run test:ui` | All 109 tests passed in 7.4 minutes, then all 109 passed in 7.7 minutes after the final Save-only Enter correction; no skips or retries |
-| `npm run test:ui:production` | Build passed; browser runner blocked before tests because no Docker daemon was available |
+| Local `npm run test:ui:production` | Build passed; browser runner blocked before tests because no Docker daemon was available |
+| CI production HTTPS browser | All 109 passed in 7.8 minutes on `1957eac`, run `39831152427` |
+| CI checks / databases / image smoke | Passed on `1957eac`; database-init 29, SQLite/PostgreSQL upgrades 15 each, PostgreSQL HTTP 62 |
+| CI development browser | Still in Chrome dependency installation when this evidence was recorded; not reported passed |
 | Public Repository and License link reachability | Both returned HTTP 200 |
 | Runner cleanup | Final full-suite and focused runs returned zero; no listeners on 8784/8785 or runner-owned supervisor remained |
 | `prek run -a` | Passed: Biome and TypeScript; repeated before the implementation commit |
@@ -87,8 +90,11 @@ be presented as a wrong password or a confirmed cancellation.
 The full browser suite uses only PR files. The 7.7-minute repeat includes the
 final keyboard and zoom fixtures. A later bounded server correction for direct
 unknown browser URLs passed its HTTP and focused-browser checks; current-source
-production/development PR CI results are recorded separately. Input Enter remains
-Save-only; the visually primary Complete set requires its explicit action. Earlier local runs also included the
+production/development PR CI results are recorded separately. The source-verifying
+[CI run](https://github.com/narumiruna/fitness/actions/runs/39831152427) tests
+implementation revision `1957eacd390fda80c1272de4c5826998091e02ac`. Input Enter remains
+Save-only; the visually primary Complete set requires its explicit action.
+Earlier local runs also included the
 supplied, uncommitted review audit. Those context copies are excluded from the PR
 and from the final full-suite count. The standalone exercise-filter regression
 asserts the corrected contract rather than importing the old defect probes.
@@ -216,8 +222,10 @@ operated, release workflow dispatched, package published, or version tag created
   not available. No one-second comprehension pass is claimed.
 - Real screen-reader task completion and physical-device passkey registration,
   authentication, and deliberate dialog dismissal remain unperformed.
-- Production HTTPS browser verification requires an available isolated Docker
-  environment; do not start production services or substitute historical CI.
+- Production HTTPS verification passed in the isolated CI environment on the
+  implementation revision above. Local Docker is still unavailable; no engine
+  or production service was started. Development CI was still installing Chrome
+  when recorded, and remains an unverified remote check.
 - User acceptance of the result and each remaining limit is pending.
 
 These are open requirements, not waived checks. Keep the implementation PR draft

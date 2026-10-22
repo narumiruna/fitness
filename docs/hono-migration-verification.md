@@ -331,7 +331,9 @@ recovery decisions, and remaining gates. The retained
   retries; a fresh 109-case repeat passed in 7.7 minutes after the Save-only
   input-Enter correction and final zoom fixtures. A later direct-unknown-URL
   server correction passed all 62 HTTP cases and a 32-case browser subset.
-  Current-source PR CI verification is pending.
+  CI run `39831152427` verifies source revision `1957eac`: production HTTPS
+  passed all 109 cases in 7.8 minutes, and checks/databases/image-smoke passed.
+  Development CI was still installing Chrome and is not claimed passed.
 - The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
   200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
   axe, pending-close failure recovery, retained drafts, and no-duplicate-write
@@ -341,7 +343,11 @@ recovery decisions, and remaining gates. The retained
   service was stopped or reused.
 - `npm run test:ui:production` built successfully but was blocked before browser
   execution by an unavailable Docker daemon. No local production-mode or
-  PostgreSQL check is claimed passed. CI evidence will be recorded separately.
+  PostgreSQL check is claimed passed locally. The isolated CI database job passed
+  29 database-init tests, 15 upgrade tests for each provider, and 62 PostgreSQL
+  HTTP cases; its production browser job passed all 109 cases. These results
+  refer to [run 39831152427](https://github.com/narumiruna/fitness/actions/runs/39831152427)
+  on source revision `1957eac`, not a historical migration run.
 - A new HTTP assertion reproduced plain-text unknown browser recovery (61 passed,
   one failed). The bounded server fallback now returns the existing HTML shell
   with HTTP 404 for extensionless unknown browser URLs, with no-store and empty
