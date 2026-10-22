@@ -333,7 +333,11 @@ recovery decisions, and remaining gates. The retained
   server correction passed all 62 HTTP cases and a 32-case browser subset.
   CI run `39831152427` verifies source revision `1957eac`: production HTTPS
   passed all 109 cases in 7.8 minutes, and checks/databases/image-smoke passed.
-  Development CI was still installing Chrome and is not claimed passed.
+  Development CI was still installing Chrome at that recording. A later repeat
+  (`39833130662`, docs-only source `9a70f88`) had one test-readiness failure in
+  each browser mode, with 108 passes each, and is not reported passed. Filter
+  form-commit and dialog-opacity waits now preserve all assertions; 69 controlled
+  stress cases passed across three explicit repetitions. New CI is pending.
 - The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
   200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
   axe, pending-close failure recovery, retained drafts, and no-duplicate-write

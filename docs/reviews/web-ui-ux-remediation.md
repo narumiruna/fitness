@@ -82,7 +82,8 @@ be presented as a wrong password or a confirmed cancellation.
 | Local `npm run test:ui:production` | Build passed; browser runner blocked before tests because no Docker daemon was available |
 | CI production HTTPS browser | All 109 passed in 7.8 minutes on `1957eac`, run `39831152427` |
 | CI checks / databases / image smoke | Passed on `1957eac`; database-init 29, SQLite/PostgreSQL upgrades 15 each, PostgreSQL HTTP 62 |
-| CI development browser | Still in Chrome dependency installation when this evidence was recorded; not reported passed |
+| Subsequent CI repeat (`39833130662`, `9a70f88`) | Both modes had 108 passes and one test synchronization failure each; not reported passed |
+| Synchronization stress repeat | 69 passed in 3.8 minutes (`exercise-filters.spec.ts` and `ux-findings.spec.ts`, `--repeat-each=3`), with delayed queries and a longer dialog fade; current-source CI repeat pending |
 | Public Repository and License link reachability | Both returned HTTP 200 |
 | Runner cleanup | Final full-suite and focused runs returned zero; no listeners on 8784/8785 or runner-owned supervisor remained |
 | `prek run -a` | Passed: Biome and TypeScript; repeated before the implementation commit |
@@ -114,6 +115,15 @@ Earlier failures are retained as evidence:
   Measurements and a mobile delete editor that the test had not opened. Added
   Radix high-contrast styling and explicit disclosure interaction; all ten cases
   passed in the repeat.
+- CI repeat `39833130662` found two intermittent test-readiness failures. The
+  filter test could observe edited values before the query response replaced its
+  keyed form, then accidentally close its disclosure. It now checks committed
+  default query text and collapsed state before editing again, opens disclosures
+  idempotently, and runs with a controlled 250 ms query delay. The dialog axe
+  scan could capture blended colors during Radix fade-in; it now requires full
+  opacity before scanning and tests a deliberately longer fade. No retry, skip,
+  contrast threshold, or accessibility rule was added or relaxed. All 69 stress
+  cases passed; both failing CI outcomes remain recorded above.
 - The first API run failed a pre-existing test that assumes the checkout basename
   is `fitness`. Moving the isolated checkout to a directory named `fitness`
   allowed all 62 cases to pass without changing or weakening that test.
@@ -224,8 +234,8 @@ operated, release workflow dispatched, package published, or version tag created
   authentication, and deliberate dialog dismissal remain unperformed.
 - Production HTTPS verification passed in the isolated CI environment on the
   implementation revision above. Local Docker is still unavailable; no engine
-  or production service was started. Development CI was still installing Chrome
-  when recorded, and remains an unverified remote check.
+  or production service was started. A subsequent CI repeat exposed two
+  synchronization failures; current-source CI must verify their test corrections.
 - User acceptance of the result and each remaining limit is pending.
 
 These are open requirements, not waived checks. Keep the implementation PR draft

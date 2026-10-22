@@ -67,10 +67,19 @@ async function expectCriteria(page: Page, form: Locator, criteria: Criteria) {
     expect(params.get(name), name).toBe(value);
     await expect(form.locator(`[name="${name}"]`)).toHaveValue(value);
   }
+  // Edited values can match before the query response commits a replacement form.
+  await expect(form.locator('input[name="q"]')).toHaveAttribute(
+    "value",
+    criteria.q,
+  );
+  await expect(form.locator("details")).not.toHaveAttribute("open");
 }
 
 async function choose(page: Page, form: Locator, name: string, value: string) {
-  await form.locator("summary").click();
+  const details = form.locator("details");
+  if (!(await details.evaluate((element) => element.hasAttribute("open"))))
+    await form.locator("summary").click();
+  await expect(details).toHaveAttribute("open", "");
   await form.getByRole("combobox", { name, exact: true }).click();
   await page.getByRole("option", { name: value, exact: true }).click();
 }
@@ -81,6 +90,11 @@ for (const locale of ["en", "zh-TW"] as const) {
     context,
   }) => {
     const t = dictionary(locale);
+    // Exercise the pending query state instead of relying on loopback response speed.
+    await page.route("**/api/views/exercises?**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await route.continue();
+    });
     await page.goto("/login");
     await page.getByLabel("Username", { exact: true }).fill(username);
     await page.getByLabel("Password", { exact: true }).fill("filter-password");

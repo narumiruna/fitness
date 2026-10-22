@@ -232,13 +232,16 @@ implementation starts.
 
 ### 7. Verify the combined changes and obtain acceptance
 
-Execution status: implementation and automated checks pass; see the remediation
-record for command results. U02 participant evidence, U08 screen-reader operation,
+Execution status: implementation and local checks pass; see the remediation
+record for command results. CI repeat `39833130662` exposed two test-readiness
+failures. The synchronization corrections passed 69 stress cases and need a new
+full CI repeat; no retry, skip, or assertion threshold was relaxed. U02 participant evidence, U08 screen-reader operation,
 and U12 deliberate physical/browser-dialog dismissal remain unverified. The full
 manual affected-state matrix, human validation, and user acceptance are not
 marked complete. Production HTTPS passed all 109 cases in CI run `39831152427`
 on source `1957eac`; local Docker remains unavailable. Development CI was still
-installing Chrome when recorded and is not claimed passed. A draft PR is the handoff, not plan
+installing Chrome at that recording; the later repeat failed one synchronization
+check in each mode. Those outcomes are retained rather than reclassified as passes. A draft PR is the handoff, not plan
 completion. Do not delete this plan or treat modeled browser errors as a real
 dialog-dismissal result.
 
@@ -249,14 +252,14 @@ dialog-dismissal result.
   measurement edits, import preview/error, and administrator states. Evidence:
   assertions plus reproducible manual observations and ignored local artifact
   references; source inspection alone is not a rendered or assistive check.
-- [x] Run `npm run check`, `npm run build`, `npm test`, and focused browser specs
+- [ ] Run `npm run check`, `npm run build`, `npm test`, and focused browser specs
   after their sections; then run the complete `npm run test:ui`. Run
   `npm run test:api` if server outcomes change. Run browser commands through the
   root runner on port 8784, refuse reuse, and confirm cleanup of its own
   processes/data. Evidence: actual command results in the remediation section
   of the report and `docs/hono-migration-verification.md`; historical review
   passes do not verify the fixes.
-- [x] Run `npm run test:ui:production` only with an already available, isolated
+- [ ] Run `npm run test:ui:production` only with an already available, isolated
   PostgreSQL/HTTPS test environment. If Docker is unavailable, record the
   blocked check and the environment needed; never report it passed or operate
   production to unblock it. Evidence: new production-mode results or explicit

@@ -571,6 +571,11 @@ test("normal finish requires no skipped-set dialog", async ({ page }) => {
 test("abandon confirmation supports keyboard cancellation, failure recovery, and one mutation", async ({
   page,
 }, info) => {
+  // Keep the fade long enough to test render readiness on fast and slow CI hosts.
+  await page.addStyleTag({
+    content:
+      ".rt-BaseDialogContent[data-state=open] { animation-duration: 600ms !important; }",
+  });
   await fillDraft(editor(page, 1));
   const abandon = page.getByRole("button", { name: "Abandon", exact: true });
   await abandon.focus();
@@ -583,6 +588,8 @@ test("abandon confirmation supports keyboard cancellation, failure recovery, and
   await expect(abandon).toBeFocused();
   await expectDraft(editor(page, 1));
   await abandon.click();
+  // Visibility alone can sample blended text colors during the Radix fade-in.
+  await expect(dialog).toHaveCSS("opacity", "1");
   await expect(
     new AxeBuilder({ page })
 
