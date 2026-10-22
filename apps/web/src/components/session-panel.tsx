@@ -74,26 +74,190 @@ export function SessionPanel({
   const { previews, today } = usePageView("workout");
   if (workout.state === "COMPLETED")
     return (
-      <Card>
-        <Heading as="h2" size="4">
-          {t("trainingSession")}
-        </Heading>
-        <StartSessionForm sourceId={workout.id} source="workout" date={today} />
+      <Card asChild>
+        <details>
+          <summary>{t("trainingSession")}</summary>
+          <StartSessionForm
+            sourceId={workout.id}
+            source="workout"
+            date={today}
+          />
+        </details>
       </Card>
     );
   const live = workout.state === "ACTIVE" || workout.state === "PAUSED";
+  const currentSetId = live
+    ? workout.sets.find((set) => !set.completed)?.id
+    : undefined;
+  const orderedSets = [...workout.sets].sort(
+    (a, b) => Number(b.id === currentSetId) - Number(a.id === currentSetId),
+  );
   const sessionErrors = {
     invalidSessionInput: t("invalidSessionInput"),
     sessionConflict: t("sessionConflict"),
     sessionIncomplete: t("sessionIncomplete"),
     sessionUnavailable: t("sessionUnavailable"),
   };
+  const controls = live ? (
+    <SessionControls
+      workoutId={workout.id}
+      version={workout.version}
+      active={workout.state === "ACTIVE"}
+      skipped={workout.sets.filter((set) => !set.completed).length}
+      messages={{
+        pause: t("pause"),
+        resume: t("resume"),
+        finish: t("finish"),
+        abandon: t("abandon"),
+        cancel: t("cancel"),
+        finishSkipped: t("finishSkipped"),
+        skippedDescription: t("skippedDescription"),
+        abandonDescription: t("abandonDescription"),
+        saved: t("saved"),
+        saveFailed: t("saveFailed"),
+        refresh: t("refreshSession"),
+        errors: sessionErrors,
+      }}
+    />
+  ) : null;
   return (
-    <Card className="stack">
-      <Heading as="h2" size="5">
-        {t("trainingSession")}
-      </Heading>
-      <Badge>{t(workout.state as MessageKey)}</Badge>
+    <Card className="stack session-panel">
+      <div className="section-heading">
+        <Heading as="h2" size="5">
+          {t("trainingSession")}
+        </Heading>
+        <Badge>{t(workout.state as MessageKey)}</Badge>
+      </div>
+      {workout.state === "PAUSED" ? controls : null}
+      <div className="stack">
+        {orderedSets.map((s) => {
+          const current = s.id === currentSetId;
+          return (
+            <Card asChild key={s.id}>
+              <details className="session-set" open={current}>
+                <summary>
+                  <Text weight="bold">
+                    {current ? `${t("currentSessionSet")}: ` : ""}#{s.order}{" "}
+                    {s.exercise?.defaultName}
+                  </Text>
+                  <br />
+                  <Text size="2" color="gray">
+                    {t("target")}: {s.targetWeight} kg × {s.targetReps} —{" "}
+                    {t(s.type as MessageKey)} —{" "}
+                    {s.completed ? t("COMPLETED") : t("planned")}
+                  </Text>
+                  {s.actualsEntered && (s.completed || !live) ? (
+                    <>
+                      <br />
+                      <Text size="2">
+                        {s.weight} kg × {s.reps}
+                      </Text>
+                    </>
+                  ) : null}
+                </summary>
+                {live ? (
+                  <SafeForm
+                    action={editSessionSetAction}
+                    errors={sessionErrors}
+                    refreshLabel={t("refreshSession")}
+                    error={t("saveFailed")}
+                    success={t("saved")}
+                  >
+                    <input type="hidden" name="workoutId" value={workout.id} />
+                    <input type="hidden" name="setId" value={s.id} />
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={workout.version}
+                    />
+                    <input
+                      type="hidden"
+                      name="exerciseId"
+                      value={s.exerciseId}
+                    />
+                    <input type="hidden" name="order" value={s.order} />
+                    <input type="hidden" name="type" value={s.type} />
+                    <div className="form-grid two">
+                      <Text as="label" className="field-label">
+                        {t("weight")}
+                        <TextField.Root
+                          name="weight"
+                          type="number"
+                          min={0}
+                          max={2000}
+                          step="0.001"
+                          defaultValue={s.actualsEntered ? s.weight : ""}
+                          required
+                        />
+                      </Text>
+                      <Text as="label" className="field-label">
+                        {t("reps")}
+                        <TextField.Root
+                          name="reps"
+                          type="number"
+                          min={1}
+                          max={1000}
+                          defaultValue={s.actualsEntered ? s.reps : ""}
+                          required
+                        />
+                      </Text>
+                    </div>
+                    <div className="card-actions">
+                      {/* Keep input Enter save-only; completion requires its explicit action. */}
+                      <Button highContrast variant="soft" type="submit">
+                        {t("save")}
+                      </Button>
+                      {!s.completed && workout.state === "ACTIVE" ? (
+                        <Button
+                          highContrast
+                          variant={current ? "solid" : "soft"}
+                          type="submit"
+                          name="command"
+                          value="complete"
+                        >
+                          {t("complete")}
+                        </Button>
+                      ) : null}
+                    </div>
+                    <details>
+                      <summary>{t("sessionOptionalFields")}</summary>
+                      <div className="form-grid">
+                        <Text as="label" className="field-label">
+                          {t("rir")}
+                          <TextField.Root
+                            name="rir"
+                            type="number"
+                            min={0}
+                            max={10}
+                            step="0.5"
+                            defaultValue={s.rir ?? ""}
+                            aria-describedby={`session-rir-help-${s.id}`}
+                          />
+                        </Text>
+                        <Text
+                          id={`session-rir-help-${s.id}`}
+                          size="2"
+                          color="gray"
+                        >
+                          {t("rirHelp")}
+                        </Text>
+                        <Text as="label" className="field-label">
+                          {t("notes")}
+                          <TextField.Root
+                            name="notes"
+                            defaultValue={s.notes ?? ""}
+                          />
+                        </Text>
+                      </div>
+                    </details>
+                  </SafeForm>
+                ) : null}
+              </details>
+            </Card>
+          );
+        })}
+      </div>
+      {workout.state === "ACTIVE" ? controls : null}
       <RestTimer
         deadline={workout.restDeadline?.toISOString() ?? null}
         label={t("restRemaining")}
@@ -105,139 +269,54 @@ export function SessionPanel({
         }
         durationLabel={t("activeSeconds")}
       />
-      {live ? (
-        <SessionControls
-          workoutId={workout.id}
-          version={workout.version}
-          active={workout.state === "ACTIVE"}
-          skipped={workout.sets.filter((set) => !set.completed).length}
-          messages={{
-            pause: t("pause"),
-            resume: t("resume"),
-            finish: t("finish"),
-            abandon: t("abandon"),
-            cancel: t("cancel"),
-            finishSkipped: t("finishSkipped"),
-            skippedDescription: t("skippedDescription"),
-            abandonDescription: t("abandonDescription"),
-            saved: t("saved"),
-            saveFailed: t("saveFailed"),
-            refresh: t("refreshSession"),
-            errors: sessionErrors,
-          }}
-        />
+      {previews.length > 0 ? (
+        <details>
+          <summary>{t("progression")}</summary>
+          <div className="stack">
+            {previews.map((p) => (
+              <div key={p.exerciseId} className="stack">
+                <Heading as="h3" size="3">
+                  {
+                    workout.sets.find((s) => s.exerciseId === p.exerciseId)
+                      ?.exercise?.defaultName
+                  }
+                </Heading>
+                <Text>
+                  {t(p.reason as MessageKey)} {p.sourceDate?.slice(0, 10)}{" "}
+                  {p.weight !== null
+                    ? `${p.weight} kg (+${p.increment} kg)`
+                    : ""}
+                </Text>
+                {p.weight !== null ? (
+                  <SafeForm
+                    action={acceptProgressionAction}
+                    error={t("saveFailed")}
+                    success={t("saved")}
+                  >
+                    <input type="hidden" name="workoutId" value={workout.id} />
+                    <input
+                      type="hidden"
+                      name="exerciseId"
+                      value={p.exerciseId}
+                    />
+                    <input
+                      type="hidden"
+                      name="sourceId"
+                      value={p.sourceId ?? ""}
+                    />
+                    <input type="hidden" name="version" value={p.version} />
+                    <input type="hidden" name="weight" value={p.weight} />
+                    <Button highContrast variant="soft" type="submit">
+                      {t("acceptSuggestion")}
+                    </Button>
+                    <Text>{t("rejectSuggestion")}</Text>
+                  </SafeForm>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </details>
       ) : null}
-      {previews.map((p) => (
-        <div key={p.exerciseId} className="stack">
-          <Heading as="h2" size="3">
-            {t("progression")}:{" "}
-            {
-              workout.sets.find((s) => s.exerciseId === p.exerciseId)?.exercise
-                ?.defaultName
-            }
-          </Heading>
-          <Text>
-            {t(p.reason as MessageKey)} {p.sourceDate?.slice(0, 10)}{" "}
-            {p.weight !== null ? `${p.weight} kg (+${p.increment} kg)` : ""}
-          </Text>
-          {p.weight !== null ? (
-            <SafeForm
-              action={acceptProgressionAction}
-              error={t("saveFailed")}
-              success={t("saved")}
-            >
-              <input type="hidden" name="workoutId" value={workout.id} />
-              <input type="hidden" name="exerciseId" value={p.exerciseId} />
-              <input type="hidden" name="sourceId" value={p.sourceId ?? ""} />
-              <input type="hidden" name="version" value={p.version} />
-              <input type="hidden" name="weight" value={p.weight} />
-              <Button highContrast type="submit">
-                {t("acceptSuggestion")}
-              </Button>
-              <Text>{t("rejectSuggestion")}</Text>
-            </SafeForm>
-          ) : null}
-        </div>
-      ))}
-      {workout.sets.map((s) => (
-        <Card key={s.id} className="stack">
-          <Heading as="h2" size="4">
-            #{s.order} {s.exercise?.defaultName}
-          </Heading>
-          <Text>
-            {t("target")}: {s.targetWeight} kg × {s.targetReps} —{" "}
-            {t(s.type as MessageKey)} —{" "}
-            {s.completed ? t("COMPLETED") : t("planned")}
-          </Text>
-          {live ? (
-            <SafeForm
-              action={editSessionSetAction}
-              errors={sessionErrors}
-              refreshLabel={t("refreshSession")}
-              error={t("saveFailed")}
-              success={t("saved")}
-            >
-              <input type="hidden" name="workoutId" value={workout.id} />
-              <input type="hidden" name="setId" value={s.id} />
-              <input type="hidden" name="version" value={workout.version} />
-              <input type="hidden" name="exerciseId" value={s.exerciseId} />
-              <input type="hidden" name="order" value={s.order} />
-              <input type="hidden" name="type" value={s.type} />
-              <Text as="label">
-                {t("weight")}
-                <TextField.Root
-                  name="weight"
-                  type="number"
-                  min={0}
-                  max={2000}
-                  step="0.001"
-                  defaultValue={s.actualsEntered ? s.weight : ""}
-                  required
-                />
-              </Text>
-              <Text as="label">
-                {t("reps")}
-                <TextField.Root
-                  name="reps"
-                  type="number"
-                  min={1}
-                  max={1000}
-                  defaultValue={s.actualsEntered ? s.reps : ""}
-                  required
-                />
-              </Text>
-              <Text as="label">
-                {t("rir")}
-                <TextField.Root
-                  name="rir"
-                  type="number"
-                  min={0}
-                  max={10}
-                  step="0.5"
-                  defaultValue={s.rir ?? ""}
-                />
-              </Text>
-              <Text as="label">
-                {t("notes")}
-                <TextField.Root name="notes" defaultValue={s.notes ?? ""} />
-              </Text>
-              <Button highContrast type="submit">
-                {t("save")}
-              </Button>
-              {!s.completed && workout.state === "ACTIVE" ? (
-                <Button
-                  highContrast
-                  type="submit"
-                  name="command"
-                  value="complete"
-                >
-                  {t("complete")}
-                </Button>
-              ) : null}
-            </SafeForm>
-          ) : null}
-        </Card>
-      ))}
     </Card>
   );
 }

@@ -41,7 +41,11 @@ import { ActionForm } from "./components/action-form";
 import { StrengthIcon } from "./components/dashboard";
 import { LanguageSelect } from "./components/language-select";
 import { Navigation } from "./components/navigation";
-import { PageErrorMessagesProvider } from "./components/page-error";
+import {
+  PageError,
+  PageErrorMessagesProvider,
+  PageUnavailable,
+} from "./components/page-error";
 import { useDictionary } from "./lib/i18n";
 import { SessionContext, useSession } from "./lib/session";
 import { dictionary } from "./lib/translations";
@@ -244,8 +248,7 @@ function ProtectedGate() {
   );
 }
 function MissingPage() {
-  const t = useDictionary();
-  return <Text role="alert">{t("missingPage")}</Text>;
+  return <PageUnavailable />;
 }
 
 function hashTarget(hash: string) {
@@ -355,14 +358,9 @@ function Shell() {
           <PageErrorMessagesProvider
             message={t("pageError")}
             retry={t("tryAgain")}
+            title={t("pageLoadErrorTitle")}
           >
-            <PageBoundary
-              key={location.pathname}
-              message={t("pageError")}
-              missing={t("missingPage")}
-              forbidden={t("accessDenied")}
-              retry={t("tryAgain")}
-            >
+            <PageBoundary key={location.pathname}>
               <Suspense
                 fallback={
                   <div role="status">
@@ -391,13 +389,7 @@ function HashNavigation() {
 }
 
 class PageBoundary extends Component<
-  {
-    children: ReactNode;
-    message: string;
-    missing: string;
-    forbidden: string;
-    retry: string;
-  },
+  { children: ReactNode },
   { error: Error | null }
 > {
   state: { error: Error | null } = { error: null };
@@ -411,24 +403,19 @@ class PageBoundary extends Component<
     const { error } = this.state;
     if (!error) return this.props.children;
     const status = error instanceof HttpError ? error.status : 0;
+    if (status === 403 || status === 404)
+      return <PageUnavailable forbidden={status === 403} />;
     return (
-      <div className="stack">
-        <Text role="alert">
-          {status === 404
-            ? this.props.missing
-            : status === 403
-              ? this.props.forbidden
-              : this.props.message}
-        </Text>
-        <Button
-          onClick={async () => {
-            await queryClient.resetQueries({ queryKey: ["view"] });
-            this.setState({ error: null });
-          }}
-        >
-          {this.props.retry}
-        </Button>
-      </div>
+      <PageError
+        onRetry={async () => {
+          await queryClient.resetQueries({ queryKey: ["view"] });
+          this.setState({ error: null }, () => {
+            document
+              .getElementById("main-content")
+              ?.focus({ preventScroll: true });
+          });
+        }}
+      />
     );
   }
 }

@@ -1,27 +1,74 @@
 import { equipment, muscles } from "@narumitw/fitness-core/training";
-import { Button, Card, Checkbox, Heading, Text } from "@radix-ui/themes";
+import { Button, Card, Checkbox, Text } from "@radix-ui/themes";
+import { useLayoutEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { saveMetadataAction } from "@/api/actions";
 import { usePageView } from "@/api/views";
 import { type MessageKey, useDictionary } from "@/lib/i18n";
 import { SafeForm } from "./safe-form";
-export function ExerciseMetadata({
-  id,
-  canEdit,
-}: {
-  id: string;
-  canEdit: boolean;
-}) {
+
+export function ExerciseMetadataSummary() {
   const t = useDictionary();
-  const { exercise: e } = usePageView("exercise");
+  const { exercise } = usePageView("exercise");
+  const primary = (exercise.muscles ?? []).filter(
+    (row) => row.role === "PRIMARY",
+  );
+  const secondary = (exercise.muscles ?? []).filter(
+    (row) => row.role === "SECONDARY",
+  );
   return (
-    <Card className="stack">
-      <Heading as="h2" size="5">
-        {t("metadata")}
-      </Heading>
-      <Text size="2">{t("metadataHelp")}</Text>
-      {canEdit ? (
+    <section className="meta-row" aria-label={t("metadata")}>
+      <Text size="2" color="gray">
+        {t("primaryMuscles")}:{" "}
+        {primary.map((row) => t(row.muscle as MessageKey)).join(", ") ||
+          t("unknown")}
+      </Text>
+      {secondary.length ? (
+        <Text size="2" color="gray">
+          {t("secondaryMuscles")}:{" "}
+          {secondary.map((row) => t(row.muscle as MessageKey)).join(", ")}
+        </Text>
+      ) : null}
+      <Text size="2" color="gray">
+        {t("equipment")}:{" "}
+        {(exercise.equipment ?? [])
+          .map((row) => t(row.equipment as MessageKey))
+          .join(", ") || t("unknown")}
+      </Text>
+    </section>
+  );
+}
+
+export function ExerciseMetadata({ id }: { id: string }) {
+  const t = useDictionary();
+  const { exercise } = usePageView("exercise");
+  const { hash } = useLocation();
+  const editor = useRef<HTMLDetailsElement>(null);
+  useLayoutEffect(() => {
+    if (hash === "#edit-exercise-metadata" && editor.current) {
+      editor.current.open = true;
+      editor.current.scrollIntoView();
+    }
+  }, [hash]);
+  return (
+    <Card asChild>
+      <details
+        id="edit-exercise-metadata"
+        ref={editor}
+        className="dashboard-tools"
+      >
+        <summary>{t("editExerciseMetadata")}</summary>
+        <Text as="p" size="2">
+          {t("metadataHelp")}
+        </Text>
         <SafeForm
-          action={saveMetadataAction}
+          action={async (data) => {
+            try {
+              return await saveMetadataAction(data);
+            } finally {
+              if (editor.current) editor.current.open = true;
+            }
+          }}
           error={t("saveFailed")}
           success={t("saved")}
         >
@@ -31,32 +78,32 @@ export function ExerciseMetadata({
               <legend>
                 {t(role === "PRIMARY" ? "primaryMuscles" : "secondaryMuscles")}
               </legend>
-              {muscles.map((m) => (
-                <Text as="label" key={m} style={{ display: "block" }}>
+              {muscles.map((muscle) => (
+                <Text as="label" key={muscle} style={{ display: "block" }}>
                   <Checkbox
                     name={role === "PRIMARY" ? "primary" : "secondary"}
-                    value={m}
-                    defaultChecked={(e.muscles ?? []).some(
-                      (row) => row.muscle === m && row.role === role,
+                    value={muscle}
+                    defaultChecked={(exercise.muscles ?? []).some(
+                      (row) => row.muscle === muscle && row.role === role,
                     )}
                   />{" "}
-                  {t(m)}
+                  {t(muscle)}
                 </Text>
               ))}
             </fieldset>
           ))}
           <fieldset>
             <legend>{t("equipment")}</legend>
-            {equipment.map((v) => (
-              <Text as="label" key={v} style={{ display: "block" }}>
+            {equipment.map((tool) => (
+              <Text as="label" key={tool} style={{ display: "block" }}>
                 <Checkbox
                   name="equipment"
-                  value={v}
-                  defaultChecked={(e.equipment ?? []).some(
-                    (row) => row.equipment === v,
+                  value={tool}
+                  defaultChecked={(exercise.equipment ?? []).some(
+                    (row) => row.equipment === tool,
                   )}
                 />{" "}
-                {t(v)}
+                {t(tool)}
               </Text>
             ))}
           </fieldset>
@@ -64,20 +111,7 @@ export function ExerciseMetadata({
             {t("save")}
           </Button>
         </SafeForm>
-      ) : (
-        <Text>
-          {(e.muscles ?? [])
-            .map(
-              (m) =>
-                `${t(m.muscle as MessageKey)} (${t(m.role === "PRIMARY" ? "primary" : "secondary")})`,
-            )
-            .join(", ") || t("unknown")}{" "}
-          —{" "}
-          {(e.equipment ?? [])
-            .map((v) => t(v.equipment as MessageKey))
-            .join(", ") || t("unknown")}
-        </Text>
-      )}
+      </details>
     </Card>
   );
 }

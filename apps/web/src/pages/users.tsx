@@ -1,7 +1,6 @@
 import {
   Button,
   Card,
-  Grid,
   Heading,
   Table,
   Text,
@@ -25,7 +24,35 @@ export default function UsersPage() {
           </Heading>
         </div>
       </div>
-      <Grid columns={{ initial: "1", md: "2" }} gap="4">
+
+      <Card asChild>
+        <div>
+          <div className="table-scroll">
+            <Table.Root variant="surface">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeaderCell>
+                    {t("username")}
+                  </Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{t("role")}</Table.ColumnHeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {users.map((user) => (
+                  <Table.Row key={user?.id}>
+                    <Table.Cell>{user.username}</Table.Cell>
+                    <Table.Cell>
+                      {t(user.role === "ADMIN" ? "roleAdmin" : "roleUser")}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </div>
+        </div>
+      </Card>
+      <details className="admin-create">
+        <summary>{t("createUser")}</summary>
         <Card asChild>
           <ActionForm
             action={createUserAction}
@@ -49,8 +76,8 @@ export default function UsersPage() {
                 name="role"
                 label={t("role")}
                 options={[
-                  { value: "USER", label: "USER" },
-                  { value: "ADMIN", label: "ADMIN" },
+                  { value: "USER", label: t("roleUser") },
+                  { value: "ADMIN", label: t("roleAdmin") },
                 ]}
               />
             </Text>
@@ -59,31 +86,7 @@ export default function UsersPage() {
             </Button>
           </ActionForm>
         </Card>
-        <Card asChild>
-          <div>
-            <div className="table-scroll">
-              <Table.Root variant="surface">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeaderCell>
-                      {t("username")}
-                    </Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>{t("role")}</Table.ColumnHeaderCell>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {users.map((user) => (
-                    <Table.Row key={user?.id}>
-                      <Table.Cell>{user.username}</Table.Cell>
-                      <Table.Cell>{user?.role}</Table.Cell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
-            </div>
-          </div>
-        </Card>
-      </Grid>
+      </details>
     </section>
   );
 }

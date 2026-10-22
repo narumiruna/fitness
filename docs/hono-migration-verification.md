@@ -312,3 +312,38 @@ The PR must remain draft until outstanding verification passes and the native
 launch failure is fixed upstream or receives an explicit accepted disposition.
 CI browser/database checks are separate evidence; passing them cannot turn a
 failing native client gate into a pass.
+
+## Web UI/UX remediation — 2026-10-22
+
+The implementation branch `narumi/fix/web-ui-ux-remediation` starts from
+`origin/main` at `62f05a8`. It addresses U01–U17 without an API/schema change,
+production operation, deployment, publication, or version tag. The separate
+[remediation record](reviews/web-ui-ux-remediation.md) contains the content
+outlines, resolution table, actual command results, earlier failed attempts,
+recovery decisions, and remaining gates. The retained
+[plan](plans/2026-10-22_web-ui-ux-remediation-plan.md) is not complete.
+
+- `npm ci`, `npm run check`, and `npm run build` passed. The existing Vite
+  entry-chunk size warning remains.
+- `npm test`: 76 passed. `npm run test:api`: 62 passed with disposable SQLite.
+  `npm run test:training:sqlite`: 15 passed.
+- `npm run test:ui`: all 109 cases passed in 7.4 minutes, with no skips or
+  retries. A subsequent four-case matrix repeat passed after adding viewport
+  assertions and sparse/long-target zoom fixtures. A final compatibility change
+  preserves input Enter as Save-only; its 25-case subset passed in 2.4 minutes.
+  A fresh full-suite repeat and PR CI are pending for that final source.
+- The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
+  200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
+  axe, pending-close failure recovery, retained drafts, and no-duplicate-write
+  assertions are separate from participant or screen-reader evidence.
+- The full and final focused runners returned zero. Separate checks found no
+  listeners on 8784/8785 or runner-owned supervisor after cleanup. No existing
+  service was stopped or reused.
+- `npm run test:ui:production` built successfully but was blocked before browser
+  execution by an unavailable Docker daemon. No local production-mode or
+  PostgreSQL check is claimed passed. CI evidence will be recorded separately.
+- `prek run -a` passed for Biome and TypeScript and is repeated before committing.
+- Five unfamiliar participants, real screen-reader tasks, physical-device
+  passkeys and deliberate browser-dialog dismissal, complete manual state
+  coverage, and user acceptance remain open. The PR must remain draft until
+  evidence is supplied or each applicable limitation is explicitly accepted.

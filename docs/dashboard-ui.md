@@ -25,6 +25,16 @@ The app does not render authenticated pages before bootstrap. Query/error states
 use localized feedback, and `PageErrorMessagesProvider` supplies error/retry text.
 Locale changes update document language and number/date labels, not stored keys.
 
+## Page hierarchy
+
+- Keep search and useful history/library rows before secondary overview and filter details. Show active criteria and a local clear action even when optional controls are collapsed.
+- Put exercise identity and personal history before editors. Put recorded workout results and sets before reuse/configuration tools.
+- In active training, group current weight/reps with primary Complete set; keep Save and optional RIR/notes secondary. Resume is primary when paused.
+- Keep Start training beside its template, separate from past-workout logging and weekly scheduling.
+- Use distinct measurement/target actions. Keep measurement tables locally scrollable and target labels outside the chart plot.
+- Show kg load and localized kg × reps volume units at point of use. Preserve metric definitions and calculation rules.
+- Use named confirmation for passkey removal. Preserve operation-specific security feedback and account recovery advice.
+
 ## Data rules
 
 - Weights use kilograms; see [Training features](training-features.md) for the supported data contract.
@@ -42,8 +52,11 @@ and explicit delete/abandon confirmation remain supported. Query invalidation
 replaces framework revalidation. Failed mutations retain drafts and do not retry
 automatically. Stable creation keys recover committed writes after a lost response.
 
-Expected API errors use stable codes and localized inline feedback. A missing
-record has a localized route error rather than a Next.js-generated page. Duplicate
+Expected API errors use stable codes and localized inline feedback. Permanent
+missing/forbidden outcomes have a localized heading and local recovery link;
+transient read failures retain explicit retry. A 401 still clears private state.
+Failed saves and native validation open containing disclosures so users can reach
+the feedback and correction controls without losing drafts. Duplicate
 alias feedback retains the open disclosure and entered text. A deliberately
 invalid hidden resource ID causes no write; reloading restores confirmed state.
 Query failures expose **Try again**. Conflict recovery refreshes confirmed data

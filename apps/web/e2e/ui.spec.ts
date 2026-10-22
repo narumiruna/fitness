@@ -46,6 +46,14 @@ function formWith(page: Page, button: string) {
     .filter({ has: page.getByRole("button", { name: button, exact: true }) });
 }
 
+async function openDisclosure(page: Page, label: string) {
+  const summary = page
+    .locator("details > summary")
+    .filter({ hasText: new RegExp(`^${label}$`) });
+  if (!(await summary.locator("..").evaluate((el) => el.hasAttribute("open"))))
+    await summary.click();
+}
+
 async function formData(form: Locator) {
   return form.evaluate((element) =>
     Object.fromEntries(new FormData(element as HTMLFormElement)),
@@ -130,7 +138,7 @@ test("setup, login failures, password validation, and session replacement", asyn
     .click();
   expect(await prisma.workoutSet.count()).toBe(0);
   await page
-    .locator(".page-header")
+    .locator(".workout-page > .card-actions")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page
@@ -181,8 +189,11 @@ test("setup, login failures, password validation, and session replacement", asyn
   await page
     .getByRole("button", { name: "Change password", exact: true })
     .click();
-  await expect(page).toHaveURL(/error=invalid/);
-  await expect(page.locator("main").getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("Confirm password")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await expect(page.locator("main").getByRole("alert")).toContainText("match");
   await page.getByLabel("Current password").fill("admin");
   await page.getByLabel("New password").fill("admin-new-password");
   await page.getByLabel("Confirm password").fill("admin-new-password");
@@ -246,7 +257,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await page.getByLabel("Search", { exact: true }).fill("Chest press");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.locator(".exercise-row")).toHaveCount(1);
-  await page.getByRole("link", { name: "Clear", exact: true }).click();
+  await page.getByRole("link", { name: "Clear filters", exact: true }).click();
   await expect(page.locator(".exercise-row")).toHaveCount(2);
   await expect(page.getByLabel("Search", { exact: true })).toHaveValue("");
   await page.goto(exercisePath);
@@ -274,6 +285,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect(page).toHaveURL(/\/workouts\/(?!new$)[^/?]+$/);
   workoutPath = new URL(page.url()).pathname;
   const workoutId = workoutPath.split("/").at(-1) ?? "";
+  await openDisclosure(page, "Edit workout");
   const edit = formWith(page, "Update workout");
   await edit.getByLabel("Title", { exact: true }).fill("UI workout edited");
   await edit.getByRole("button", { name: "Update workout" }).click();
@@ -348,6 +360,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobile = page.locator(".mobile-list article").first();
+  await mobile.locator("details > summary").click();
   await expect(mobile.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
     "70",
   );
@@ -364,6 +377,11 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await page
     .locator(".mobile-list article")
     .last()
+    .locator("details > summary")
+    .click();
+  await page
+    .locator(".mobile-list article")
+    .last()
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page
@@ -373,6 +391,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect(page.locator(".mobile-list article")).toHaveCount(1);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(first.locator('input[name="weight"]')).toHaveValue("75");
+  await openDisclosure(page, "Save as template");
   const template = formWith(page, "Save as template");
   await template.getByLabel("Template name").fill("UI template");
   await template.getByRole("button", { name: "Save as template" }).click();
@@ -381,7 +400,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect(page).not.toHaveURL(new RegExp(`${workoutId}$`));
   await expect(page.locator(".desktop-table tbody tr")).toHaveCount(1);
   await page
-    .locator(".page-header")
+    .locator(".workout-page > .card-actions")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page
@@ -408,7 +427,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     .click();
   await expect(page.getByText("No sets yet.", { exact: true })).toBeVisible();
   await page
-    .locator(".page-header")
+    .locator(".workout-page > .card-actions")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page
@@ -447,6 +466,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect(page.locator(".workout-card")).toHaveCount(3);
   await page.getByRole("link", { name: "Previous", exact: true }).click();
   await expect(page.locator(".workout-card")).toHaveCount(20);
+  await openDisclosure(page, "Filter workouts");
   const filters = formWith(page, "Apply filters");
   await expect(filters.getByRole("combobox")).toHaveText("All exercises");
   expect((await formData(filters)).exercise).toBe("");
@@ -466,6 +486,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await choose(page, filters.getByRole("combobox"), "Squat");
   await filters.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.locator(".workout-card")).toHaveCount(1);
+  await openDisclosure(page, "Filter workouts");
   await expect(filters.getByRole("combobox")).toHaveText("Squat");
   await choose(page, filters.getByRole("combobox"), "All exercises");
   await filters.getByRole("checkbox").uncheck();
@@ -473,6 +494,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   expect(new URL(page.url()).searchParams.get("exercise")).toBe("");
   expect(new URL(page.url()).searchParams.has("notes")).toBe(false);
   await page.getByRole("link", { name: "Clear filters" }).click();
+  await openDisclosure(page, "Filter workouts");
   await expect(filters.getByRole("combobox")).toHaveText("All exercises");
   await expect(filters.getByLabel("Search", { exact: true })).toHaveValue("");
   await expect(filters.getByLabel("Month", { exact: true })).toHaveValue("");
@@ -515,10 +537,10 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     await page.locator(".calendar-day.outside-month").count(),
   ).toBeGreaterThan(0);
   await expect(page.locator(".calendar-day.today")).toHaveCount(1);
-  await page.getByRole("link", { name: "Previous", exact: true }).click();
+  await page.getByRole("link", { name: "Previous month", exact: true }).click();
   await expect(page).toHaveURL(/year=.*month=/);
   const previousUrl = page.url();
-  await page.getByRole("link", { name: "Next", exact: true }).click();
+  await page.getByRole("link", { name: "Next month", exact: true }).click();
   await expect(page).not.toHaveURL(previousUrl);
   await page.getByRole("link", { name: "Today", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar$/);
@@ -539,6 +561,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
 test("admin roles and user data isolation", async ({ page }) => {
   await login(page);
   await page.goto("/admin/users");
+  await openDisclosure(page, "Create user");
   const create = formWith(page, "Create user");
   await create.getByLabel("Username").fill("member");
   await create.getByLabel("Password", { exact: true }).fill("member-password");
@@ -549,7 +572,7 @@ test("admin roles and user data isolation", async ({ page }) => {
   ).toBeVisible();
   await create.getByLabel("Username").fill("second-admin");
   await create.getByLabel("Password", { exact: true }).fill("admin-password");
-  await choose(page, create.getByRole("combobox"), "ADMIN");
+  await choose(page, create.getByRole("combobox"), "Administrator");
   await create.getByRole("button", { name: "Create user" }).click();
   await expect(
     page.getByRole("cell", { name: "second-admin", exact: true }),
@@ -561,7 +584,7 @@ test("admin roles and user data isolation", async ({ page }) => {
       })
     ).role,
   ).toBe("ADMIN");
-  await expect(create.getByRole("combobox")).toHaveText("USER");
+  await expect(create.getByRole("combobox")).toHaveText("Member");
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await login(page, "member", "member-password");
@@ -674,13 +697,13 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
     .locator(".workout-card")
     .filter({ hasText: "Evening session" });
   await expect(row).toContainText("Bench Press");
-  await expect(row).toContainText("200 Volume");
+  await expect(row).toContainText("200 kg × reps");
   await row.getByRole("link", { name: "View", exact: true }).click();
   await expect(
     page.locator(".primary-nav [aria-current=page]"),
   ).toHaveAttribute("href", "/workouts");
   const deleteTrigger = page
-    .locator(".page-header")
+    .locator(".workout-page > .card-actions")
     .getByRole("button", { name: "Delete", exact: true });
   await deleteTrigger.click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
@@ -711,7 +734,7 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
   ).toHaveAttribute("aria-label", nextKey);
   await page
     .locator(".selected-date-panel")
-    .getByRole("link", { name: "Create workout", exact: true })
+    .getByRole("link", { name: /^Create workout/ })
     .click();
   await expect(page.getByLabel("Date", { exact: true })).toHaveValue(nextKey);
   await page.goto("/workouts/new?date=2026-02-30");

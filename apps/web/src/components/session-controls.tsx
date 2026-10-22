@@ -50,12 +50,19 @@ export function SessionControls({
             highContrast
             name="command"
             value={active ? "pause" : "resume"}
+            variant={active ? "soft" : "solid"}
             type="submit"
           >
             {active ? messages.pause : messages.resume}
           </Button>
           {skipped === 0 ? (
-            <Button highContrast name="command" value="finish" type="submit">
+            <Button
+              highContrast
+              name="command"
+              value="finish"
+              variant={active ? "solid" : "soft"}
+              type="submit"
+            >
               {messages.finish}
             </Button>
           ) : null}

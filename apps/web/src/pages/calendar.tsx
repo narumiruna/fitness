@@ -12,7 +12,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { calendarDate, usePageView, useSearch } from "@/api/views";
 import { EmptyState, PageHeader } from "@/components/dashboard";
 import { ScheduledOccurrences } from "@/components/scheduled-occurrences";
-import { useDictionary, useLocale } from "@/lib/i18n";
+import { type MessageKey, useDictionary, useLocale } from "@/lib/i18n";
 
 export default function CalendarPage() {
   const { workouts, today: serverToday } = usePageView("calendar");
@@ -45,7 +45,7 @@ export default function CalendarPage() {
   const createHref = `/workouts/new?date=${selectedKey}`;
   return (
     <section className="calendar-shell">
-      <PageHeader title={t("calendar")} description={t("calendarIntro")}>
+      <PageHeader title={t("calendar")}>
         <Button highContrast asChild>
           <RouterLink to={createHref}>
             <PlusIcon aria-hidden="true" />
@@ -64,7 +64,7 @@ export default function CalendarPage() {
                 <div className="calendar-actions">
                   <Button highContrast asChild variant="soft">
                     <RouterLink to={calendarHref(calendar.previous)}>
-                      {t("previous")}
+                      {t("previousMonth")}
                     </RouterLink>
                   </Button>
                   <Button highContrast asChild variant="soft">
@@ -72,7 +72,7 @@ export default function CalendarPage() {
                   </Button>
                   <Button highContrast asChild variant="soft">
                     <RouterLink to={calendarHref(calendar.next)}>
-                      {t("next")}
+                      {t("nextMonth")}
                     </RouterLink>
                   </Button>
                 </div>
@@ -127,6 +127,7 @@ export default function CalendarPage() {
                                 {workout.title || t("workout")}
                               </span>
                               <span className="calendar-workout-meta">
+                                {t(workout.state as MessageKey)} ·{" "}
                                 {workout.sets.length} {t("sets")}
                               </span>
                             </RouterLink>
@@ -212,6 +213,9 @@ export default function CalendarPage() {
                     ].join(" · ") || t("noSets")}
                   </Text>
                   <div className="meta-row">
+                    <Badge color={workout.state === "ACTIVE" ? "teal" : "gray"}>
+                      {t(workout.state as MessageKey)}
+                    </Badge>
                     <Badge color="gray">
                       {workout.sets.length} {t("sets")}
                     </Badge>
@@ -223,7 +227,7 @@ export default function CalendarPage() {
                     </Badge>
                   </div>
                   {workout.notes ? (
-                    <Text as="p" size="2">
+                    <Text as="p" size="2" className="calendar-note-preview">
                       {workout.notes}
                     </Text>
                   ) : null}
@@ -240,7 +244,11 @@ export default function CalendarPage() {
             <Button highContrast asChild variant="outline">
               <RouterLink to={createHref}>
                 <PlusIcon aria-hidden="true" />
-                {t("createWorkout")}
+                {t("createWorkout")} ·{" "}
+                {selected.toLocaleDateString(locale, {
+                  month: "short",
+                  day: "numeric",
+                })}
               </RouterLink>
             </Button>
             <Text as="p" size="1" color="gray">

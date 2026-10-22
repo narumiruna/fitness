@@ -49,16 +49,7 @@ export default function LoginPage() {
           </Button>
         </ActionForm>
       </Card>
-      <PasskeyForm
-        mode="authenticate"
-        labels={{
-          button: t("passkeySignIn"),
-          error: t("passkeyError"),
-          name: t("passkeyName"),
-          password: t("currentPassword"),
-          success: t("passkeyAdded"),
-        }}
-      />
+      <PasskeyForm mode="authenticate" />
     </section>
   );
 }

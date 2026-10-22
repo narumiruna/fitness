@@ -92,12 +92,27 @@ test.afterEach(async () => {
 });
 test.afterAll(async () => prisma.$disconnect());
 
-function editors(page: Page) {
+function editor(page: Page, order: number) {
   return page
     .locator("form")
-    .filter({ has: page.locator('input[name="setId"]') });
+    .filter({ has: page.locator('input[name="setId"]') })
+    .filter({ has: page.locator(`input[name="order"][value="${order}"]`) });
+}
+async function openDisclosure(summary: Locator) {
+  if (
+    !(await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    ))
+  ) {
+    await summary.click();
+  }
+}
+async function openEditor(form: Locator) {
+  await openDisclosure(form.locator("..").locator(":scope > summary"));
 }
 async function fillDraft(form: Locator) {
+  await openEditor(form);
+  await openDisclosure(form.locator("details > summary"));
   await form.getByLabel("Weight (kg)", { exact: true }).fill("73");
   await form.getByLabel("Reps", { exact: true }).fill("7");
   await form.getByLabel("Reps in reserve (RIR)", { exact: true }).fill("1.5");
@@ -116,6 +131,249 @@ async function expectDraft(form: Locator) {
   );
 }
 
+for (const labels of [
+  {
+    locale: "en",
+    complete: "Complete set",
+    save: "Save",
+    resume: "Resume",
+    sets: "Sets",
+    add: "Add set",
+    edit: "Edit workout",
+    template: "Save as template",
+    training: "Training session",
+    volume: "Total volume",
+    unit: "kg × reps",
+  },
+  {
+    locale: "zh-TW",
+    complete: "完成此組",
+    save: "儲存",
+    resume: "繼續",
+    sets: "組數",
+    add: "新增一組",
+    edit: "編輯訓練",
+    template: "儲存為範本",
+    training: "訓練階段",
+    volume: "總訓練量",
+    unit: "kg × 次數",
+  },
+]) {
+  test(`current action is clear in active and paused workouts (${labels.locale})`, async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([
+      { name: "locale", value: labels.locale, url: "http://localhost:8784" },
+    ]);
+    await page.reload();
+    const panel = page.locator(".session-panel");
+    const first = editor(page, 1);
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect(
+        first.getByRole("button", { name: labels.complete, exact: true }),
+      ).toBeInViewport();
+      await expect(
+        first.getByRole("button", { name: labels.save, exact: true }),
+      ).toHaveClass(/rt-variant-soft/);
+      await expect(
+        panel.locator("button.rt-variant-solid:visible"),
+      ).toHaveCount(1);
+      await expect(first.locator('input[name="rir"]')).not.toBeVisible();
+      await expect(first.locator('input[name="notes"]')).not.toBeVisible();
+      await expect(
+        editor(page, 2).getByLabel(labels.locale === "en" ? "Reps" : "次數", {
+          exact: true,
+        }),
+      ).not.toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+    await prisma.workout.update({
+      where: { id: workoutId },
+      data: { state: "PAUSED" },
+    });
+    await page.reload();
+    await expect(
+      panel.getByRole("button", { name: labels.resume, exact: true }),
+    ).toBeInViewport();
+    await expect(
+      panel.getByRole("button", { name: labels.resume, exact: true }),
+    ).toHaveClass(/rt-variant-solid/);
+    await expect(
+      panel.getByRole("button", { name: labels.complete, exact: true }),
+    ).toHaveCount(0);
+    await expect(panel.locator("button.rt-variant-solid:visible")).toHaveCount(
+      1,
+    );
+  });
+
+  test(`completed results precede logging and secondary tools (${labels.locale})`, async ({
+    page,
+    context,
+  }) => {
+    await prisma.workout.update({
+      where: { id: workoutId },
+      data: { state: "COMPLETED" },
+    });
+    await prisma.workoutSet.updateMany({
+      where: { workoutId },
+      data: { completed: true, actualsEntered: true, weight: 80, reps: 8 },
+    });
+    await context.addCookies([
+      { name: "locale", value: labels.locale, url: "http://localhost:8784" },
+    ]);
+    await page.reload();
+    const sets = page.getByRole("heading", { name: labels.sets, exact: true });
+    const add = page.getByRole("heading", { name: labels.add, exact: true });
+    const edit = page.locator("summary").filter({ hasText: labels.edit });
+    const template = page
+      .locator("summary")
+      .filter({ hasText: labels.template });
+    const training = page
+      .locator("summary")
+      .filter({ hasText: labels.training });
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect(sets).toBeInViewport();
+      expect(
+        await sets.evaluate((el) => el.getBoundingClientRect().top),
+      ).toBeLessThan(
+        await add.evaluate((el) => el.getBoundingClientRect().top),
+      );
+      expect(
+        await add.evaluate((el) => el.getBoundingClientRect().top),
+      ).toBeLessThan(
+        await edit.evaluate((el) => el.getBoundingClientRect().top),
+      );
+      expect(
+        await edit.evaluate((el) => el.getBoundingClientRect().top),
+      ).toBeLessThan(
+        await template.evaluate((el) => el.getBoundingClientRect().top),
+      );
+      expect(
+        await template.evaluate((el) => el.getBoundingClientRect().top),
+      ).toBeLessThan(
+        await training.evaluate((el) => el.getBoundingClientRect().top),
+      );
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+    await expect(
+      page.getByText(`${labels.volume}: 1,280 ${labels.unit}`, { exact: true }),
+    ).toBeVisible();
+    await expect(edit.locator("..")).not.toHaveAttribute("open");
+    await expect(template.locator("..")).not.toHaveAttribute("open");
+    await expect(training.locator("..")).not.toHaveAttribute("open");
+  });
+}
+
+test("Save and input Enter retain optional fields without completing the current set", async ({
+  page,
+}) => {
+  const first = editor(page, 1);
+  await fillDraft(first);
+  await first.locator("details > summary").click();
+  await expect(first.locator('input[name="rir"]')).not.toBeVisible();
+  await first.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(first.getByRole("status")).toHaveText("Saved.");
+  expect(
+    await prisma.workoutSet.findFirstOrThrow({
+      where: { workoutId, order: 1 },
+    }),
+  ).toMatchObject({
+    weight: 73,
+    reps: 7,
+    rir: 1.5,
+    notes: "Unsaved draft",
+    actualsEntered: true,
+    completed: false,
+  });
+  await expect(
+    first.getByRole("button", { name: "Complete set", exact: true }),
+  ).toBeVisible();
+  await expect(first.locator('input[name="rir"]')).not.toBeVisible();
+  await first.getByLabel("Weight (kg)", { exact: true }).fill("74");
+  await first.getByLabel("Reps", { exact: true }).press("Enter");
+  await expect
+    .poll(
+      async () =>
+        (await prisma.workout.findUniqueOrThrow({ where: { id: workoutId } }))
+          .version,
+    )
+    .toBe(2);
+  expect(
+    await prisma.workoutSet.findFirstOrThrow({
+      where: { workoutId, order: 1 },
+    }),
+  ).toMatchObject({ weight: 74, completed: false, rir: 1.5 });
+});
+
+test("current set completion keeps native submitter data and blocks duplicate writes", async ({
+  page,
+}) => {
+  const first = editor(page, 1);
+  await fillDraft(first);
+  await first.locator("details > summary").click();
+  let writes = 0;
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/actions/editSessionSetAction", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    writes++;
+    await gate;
+    await route.continue();
+  });
+  const complete = first.getByRole("button", {
+    name: "Complete set",
+    exact: true,
+  });
+  await complete.focus();
+  await page.keyboard.press("Enter");
+  await expect(complete).toBeDisabled();
+  await expect(
+    first.getByRole("button", { name: "Save", exact: true }),
+  ).toBeDisabled();
+  await first.evaluate((element) => {
+    const form = element as HTMLFormElement;
+    form.requestSubmit(
+      form.querySelector('button[name="command"]') as HTMLButtonElement,
+    );
+  });
+  release();
+  await expect
+    .poll(
+      async () =>
+        (await prisma.workout.findUniqueOrThrow({ where: { id: workoutId } }))
+          .version,
+    )
+    .toBe(1);
+  expect(writes).toBe(1);
+  expect(
+    await prisma.workoutSet.findFirstOrThrow({
+      where: { workoutId, order: 1 },
+    }),
+  ).toMatchObject({
+    weight: 73,
+    reps: 7,
+    rir: 1.5,
+    notes: "Unsaved draft",
+    completed: true,
+  });
+  await expect(
+    editor(page, 2).getByRole("button", { name: "Complete set", exact: true }),
+  ).toBeVisible();
+});
+
 for (const operation of [
   "Save",
   "Complete set",
@@ -130,17 +388,23 @@ for (const operation of [
         page.getByRole("button", { name: "Resume", exact: true }),
       ).toBeVisible();
     }
-    await fillDraft(editors(page).nth(1));
+    await fillDraft(editor(page, 2));
     const previous = (
       await prisma.workout.findUniqueOrThrow({ where: { id: workoutId } })
     ).version;
     if (operation === "Save" || operation === "Complete set") {
-      await fillDraft(editors(page).first());
-      await editors(page)
-        .first()
+      await fillDraft(editor(page, 1));
+      await editor(page, 1)
         .getByRole("button", { name: operation, exact: true })
         .click();
     } else {
+      if (operation === "Accept suggestion") {
+        await openDisclosure(
+          page
+            .locator("summary")
+            .filter({ hasText: "Progression suggestions" }),
+        );
+      }
       await page.getByRole("button", { name: operation, exact: true }).click();
     }
     await expect
@@ -151,18 +415,18 @@ for (const operation of [
       )
       .toBeGreaterThan(previous);
     // Wait for revalidation, not only the database write.
-    await expect(
-      editors(page).nth(1).locator('input[name="version"]'),
-    ).toHaveValue(String(previous + 1));
-    await expectDraft(editors(page).nth(1));
+    await expect(editor(page, 2).locator('input[name="version"]')).toHaveValue(
+      String(previous + 1),
+    );
+    await expectDraft(editor(page, 2));
   });
 }
 
 test("sequential saves, conflict recovery, validation, and intentional clearing retain actuals", async ({
   page,
 }) => {
-  const first = editors(page).first();
-  const second = editors(page).nth(1);
+  const first = editor(page, 1);
+  const second = editor(page, 2);
   await fillDraft(first);
   await fillDraft(second);
   await first.getByRole("button", { name: "Save", exact: true }).click();
@@ -206,8 +470,12 @@ test("sequential saves, conflict recovery, validation, and intentional clearing 
   await first
     .getByRole("button", { name: "Complete set", exact: true })
     .click();
+  await expect(first.locator('button[name="command"]')).toHaveCount(0);
+  await openEditor(first);
   await expect(first.getByRole("status")).toHaveText("Saved.");
   await page.reload();
+  await openEditor(first);
+  await openDisclosure(first.locator("details > summary"));
   await expect(first.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
     "0",
   );
@@ -231,7 +499,7 @@ test("sequential saves, conflict recovery, validation, and intentional clearing 
 test("finish confirmation cancels safely, rejects changed state, and explicitly skips sets", async ({
   page,
 }) => {
-  await fillDraft(editors(page).first());
+  await fillDraft(editor(page, 1));
   const finish = page.getByRole("button", { name: "Finish", exact: true });
   await finish.focus();
   await page.keyboard.press("Enter");
@@ -249,7 +517,7 @@ test("finish confirmation cancels safely, rejects changed state, and explicitly 
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(finish).toBeFocused();
-  await expectDraft(editors(page).first());
+  await expectDraft(editor(page, 1));
   expect(
     (await prisma.workout.findUniqueOrThrow({ where: { id: workoutId } }))
       .state,
@@ -268,7 +536,7 @@ test("finish confirmation cancels safely, rejects changed state, and explicitly 
   );
   await dialog.getByRole("button", { name: "Load latest session" }).click();
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await expectDraft(editors(page).first());
+  await expectDraft(editor(page, 1));
   await finish.click();
   await dialog
     .getByRole("button", { name: "Finish with skipped sets", exact: true })
@@ -303,7 +571,7 @@ test("normal finish requires no skipped-set dialog", async ({ page }) => {
 test("abandon confirmation supports keyboard cancellation, failure recovery, and one mutation", async ({
   page,
 }, info) => {
-  await fillDraft(editors(page).first());
+  await fillDraft(editor(page, 1));
   const abandon = page.getByRole("button", { name: "Abandon", exact: true });
   await abandon.focus();
   await page.keyboard.press("Enter");
@@ -313,7 +581,7 @@ test("abandon confirmation supports keyboard cancellation, failure recovery, and
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(abandon).toBeFocused();
-  await expectDraft(editors(page).first());
+  await expectDraft(editor(page, 1));
   await abandon.click();
   await expect(
     new AxeBuilder({ page })
@@ -357,7 +625,7 @@ test("abandon confirmation supports keyboard cancellation, failure recovery, and
   );
   await dialog.getByRole("button", { name: "Load latest session" }).click();
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await expectDraft(editors(page).first());
+  await expectDraft(editor(page, 1));
   await abandon.click();
   await dialog.getByRole("button", { name: "Abandon", exact: true }).click();
   await expect
@@ -372,10 +640,17 @@ test("abandon confirmation supports keyboard cancellation, failure recovery, and
       .version,
   ).toBe(2);
   expect(await prisma.workoutSet.count({ where: { workoutId } })).toBe(2);
+  await expect(page.getByText("Abandoned", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Resume", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('.session-panel form input[name="setId"]'),
+  ).toHaveCount(0);
 });
 
 test("unavailable sets return a safe specific outcome", async ({ page }) => {
-  const form = editors(page).first();
+  const form = editor(page, 1);
   await fillDraft(form);
   await form.locator('input[name="setId"]').evaluate((el) => {
     (el as HTMLInputElement).value = "missing-set";
@@ -433,7 +708,7 @@ test("history distinguishes states, progress, partial metrics, filters, paginati
   await expect(row("UX PAUSED")).toContainText("Paused");
   await expect(row("UX ABANDONED")).toContainText("Abandoned");
   await expect(row("UX COMPLETED")).toContainText("Completed");
-  await expect(row("UX COMPLETED")).toContainText("300 Volume");
+  await expect(row("UX COMPLETED")).toContainText("300 kg × reps");
   await expect(row("UX empty")).toContainText("0/0 sets completed");
   await expect(
     row("UX ABANDONED").getByRole("link", { name: "Continue training" }),

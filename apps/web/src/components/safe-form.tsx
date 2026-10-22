@@ -3,6 +3,7 @@ import { type ReactNode, useRef, useState } from "react";
 import type { FormAction, FormErrorCode } from "@/api/actions";
 import { HttpError, refreshViews } from "@/api/client";
 import { FormPendingContext } from "./action-form";
+import { revealDisclosures } from "./form-disclosure";
 
 export function SafeForm({
   action,
@@ -34,11 +35,16 @@ export function SafeForm({
       <form
         aria-busy={pending}
         className={className ?? "form-grid"}
+        onInvalidCapture={(event) => {
+          if (event.target instanceof HTMLElement)
+            revealDisclosures(event.target);
+        }}
         onSubmit={async (event) => {
           event.preventDefault();
           if (inFlight.current) return;
+          const form = event.currentTarget;
           const data = new FormData(
-            event.currentTarget,
+            form,
             (event.nativeEvent as SubmitEvent).submitter,
           );
           inFlight.current = true;
@@ -49,6 +55,7 @@ export function SafeForm({
           try {
             const result = await action(data);
             if (result) {
+              revealDisclosures(form);
               setMessage(errors?.[result.error] ?? error);
               setConflict(result.error === "sessionConflict");
             } else {
@@ -56,6 +63,7 @@ export function SafeForm({
               onSuccess?.();
             }
           } catch (caught) {
+            revealDisclosures(form);
             setMessage(
               caught instanceof HttpError && caught.status === 409
                 ? (errors?.sessionConflict ?? error)
