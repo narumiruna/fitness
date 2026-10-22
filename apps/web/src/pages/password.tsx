@@ -28,6 +28,9 @@ export default function ChangePasswordPage() {
       <Link highContrast asChild>
         <RouterLink to="/account/passkeys">{t("passkeys")}</RouterLink>
       </Link>
+      <Link highContrast asChild>
+        <RouterLink to="/account/connections">{t("mcpConnections")}</RouterLink>
+      </Link>
       <Card asChild>
         <ActionForm action={changePasswordAction} className="form-grid">
           {params.changed ? (

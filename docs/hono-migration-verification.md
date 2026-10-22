@@ -212,3 +212,88 @@ large initial JS chunk (about 606 kB before gzip); route modules are lazy-loaded
 All implementation and required handoff evidence is recorded here. Production
 services and real workout data remain untouched; no rollout, publication, or version
 tagging was performed.
+
+## Fitness MCP Verification — 2026-10-22
+
+This section is separate from the completed Hono migration above. MCP is implemented
+on `narumi/feat/fitness-mcp` from `origin/main` at `7715092`, but the complete launch
+checklist is **not passed**. The retained plan is
+`docs/plans/2026-10-22_fitness-mcp-plan.md`. No production service was operated,
+workflow dispatched, package published, or version tag created.
+
+### Implementation and review
+
+- One Hono `/mcp` endpoint serves seven typed tools over Streamable HTTP, using
+  `@modelcontextprotocol/server` 2.3.1. Revisions `2026-07-28`, `2025-11-25`, and
+  `2025-06-18` are supported; default Codex actually required the last revision.
+- OAuth authorization/code/token handling uses `@node-oauth/oauth2-server` 5.3.1,
+  PKCE S256, public CIMD or pre-registered clients, opaque hashed credentials,
+  audience/scope checks, rotating refresh tokens, replay revocation, and explicit
+  browser consent. Browser cookies never authorize a tool call.
+- Additive migration `20261022150000_mcp` adds clients, pending requests, grants,
+  hashed codes/tokens, and payload-bound write receipts. Deletion leaves receipt
+  tombstones; account deletion cascades credentials and receipts.
+- Independent source review identified client-name impersonation, missing frame
+  protection, and admission/deadline checks after token lookup. Fixes show canonical
+  client IDs with a warning, add `frame-ancestors 'none'` and `X-Frame-Options: DENY`,
+  and arm bounded caller admission and the 15-second deadline before database
+  verification. A deterministic stalled-verifier test checks timeout and retained
+  admission slots. Public-client quotas are namespaced by user.
+- Writes validate the grant again under the same user-row lock used by revocation.
+  Cancellation checks inside the transaction prevent observed canceled writes;
+  an already committed write is recovered through its stable operation ID.
+- Password changes retain separately granted OAuth access. Recovery instructions
+  require explicit revocation of each untrusted connection; the UI states that
+  revoking one connection does not revoke other connections for that client.
+- `npm audit` still reports five dependency advisories: four high and one low,
+  in existing Prisma tooling/esbuild dependency chains. No broad dependency upgrade
+  was added to this feature.
+
+### Actual local results
+
+| Check | Actual result |
+| --- | --- |
+| `npm ci` | Passed; both Prisma clients generated from the canonical models. |
+| `npm run check` | Passed, including Biome and root/workspace TypeScript. |
+| `npm run build` | Passed for core, contracts, API, and Vite. |
+| `npm test` | Passed: 86 tests across core, contracts, Changesets, locale, dashboard, training, logging, and form outcomes. |
+| `npm run test:api` | Passed: 62 disposable SQLite tests, including exact 50,000-set analysis and rejection above the budget. |
+| `npm run test:api:postgres` | Earlier 61-case suite passed on a disposable PostgreSQL container. The later rerun with the added budget case failed before test execution with `Connection terminated unexpectedly`; do not report 62 PostgreSQL passes. |
+| `npm run test:training:sqlite` | Passed: 15 tests, including legacy/empty upgrades, restoration, constraints, tombstones, and cascades. |
+| `npm run test:training:postgres` | Passed: the same 15 tests on a separate disposable PostgreSQL container. |
+| UTC and Asia/Taipei HTTP repeat | Earlier 60-case API suites passed under both timezones. Pure calculation fixtures also passed in UTC, Asia/Taipei, and America/New_York. |
+| `npm run test:ui -- mcp.spec.ts` | Initial six MCP browser cases passed. Later identity/frame-protection changes still require final browser verification. |
+| `npm run test:ui` | Not passed. One attempt was interrupted after development rebuilds caused connection errors. A stable-source retry exceeded 120 seconds in the first test's browser-context/beforeEach setup and again in teardown. Both runs were stopped, and only their own server processes were cleaned up. No existing listener was stopped to free a port. |
+| `npm run test:db-init` | Not passed locally in this run: the command hit the 300-second tool deadline; its last running lifecycle case failed during interruption. No timing assertion was relaxed. |
+| `prek run -a` | Passed after final intended source changes and before the implementation commit. |
+| Native clients | Gate exits nonzero. See below; core-workflow passes are not a complete launch pass. |
+| Public Pi CIMD resolver | Passed: one public metadata GET and cache verification, no credentials or workout data sent. |
+| Native Pi CIMD | Passed with Pi 1.4.0 built-in client, protocol `2025-11-25`, no pre-registered client ID, seven tools, scoped consent, refresh, and revocation. |
+
+### Native client boundary and blockers
+
+`tests/mcp-clients.md` records commands, exact native interfaces, callback URIs,
+versions, and limits. Tests use temporary configuration/credential directories,
+synthetic accounts, real loopback OAuth callbacks, and no agent/model turns.
+The macOS Keychain is blocked for these test hosts. No real provider credential,
+user configuration, or production data is used.
+
+Pi 1.4.0, Codex CLI 0.163.0 default/modern, and Claude Code 2.1.303 v1/v2 completed
+core scoped seven-tool workflows in earlier runs. The final general rerun passed
+Pi and both Codex modes; Claude v1 failed concurrent refresh, and Claude v2 failed
+at its refresh stage. Claude consistently races refresh after simultaneous `401`
+responses; default Codex also showed an intermittent race in earlier runs. One
+refresh succeeds, another reuses the consumed token, and Fitness correctly revokes
+the entire family. Users must then sign in again. The native test intentionally
+retains a failing assertion; it does not skip this condition or disable replay
+revocation.
+
+Native Pi CIMD passed separately using `oauth.clientRegistration = "cimd"`, with
+no client ID override. Native Codex/Claude CIMD and normal agent-session exposure
+or human approval UI are not established by the native machine-control fixtures.
+Tool annotations are hints, not authorization or proof of human approval.
+
+The PR must remain draft until outstanding verification passes and the native
+launch failure is fixed upstream or receives an explicit accepted disposition.
+CI browser/database checks are separate evidence; passing them cannot turn a
+failing native client gate into a pass.

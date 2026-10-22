@@ -115,3 +115,46 @@ Compare `git status --short` and `git tag --list` in the original checkout befor
 and after the experiment. Neither may change. Remove only the disposable clone
 when the review is complete. Do not run `changeset publish`, create remote tags,
 or change production services.
+
+## Fitness MCP rollout and recovery
+
+See [MCP setup and permissions](mcp.md) and the MCP section of
+[verification evidence](hono-migration-verification.md). Connecting a development
+client, merging the feature, or preparing this checklist does not authorize a
+production deployment.
+
+Before a separately authorized rollout:
+
+1. Verify the configured exact HTTPS `PASSKEY_ORIGIN`. The OAuth issuer and MCP
+   resource use this origin, not forwarded headers. Verify the public proxy
+   preserves the expected Host and routes `/mcp`, `/oauth/authorize`,
+   `/oauth/token`, and `/.well-known/` to the API without rewriting discovery.
+2. Review the additive migration `20261022150000_mcp`. Retain the previous
+   application image and an authorized database backup. Run the SQLite and
+   PostgreSQL upgrade/backup tests; do not replace them with `db push` in production.
+3. Verify HTTPS discovery, login, denial, read-only access, explicit write scope,
+   recording retries, token refresh, and grant revocation using dummy accounts.
+   Publish the exact Pi, Codex CLI, and Claude Code versions and protocols tested.
+   Do not infer client compatibility from an HTTP-only test.
+4. Confirm that shared ingress limits cover all API instances. The built-in
+   per-user/client limits apply to one process. Do not expose an unlimited
+   multi-instance authorization endpoint.
+5. Check the consent privacy warning and English/Traditional Chinese UI. Verify
+   logs do not contain credentials, raw errors, request arguments, or workout data.
+6. Use the existing separately authorized migration/deployment procedure. Do not
+   publish packages, create release tags, or dispatch a workflow as part of an MCP
+   connection check.
+
+For withdrawal, revoke connected grants and withdraw the MCP/OAuth protocol routes
+through a reviewed application rollback. Keep browser login and the existing
+Fitness API available. Leave added tables in place so both application revisions
+can run. Do not delete saved workouts, drop receipt tombstones, or restore an old
+database over new user records as a feature rollback. A lost write response is
+resolved with the same `operationId`, not a replacement insertion.
+
+Pre-registered public OAuth clients can be created by an authorized database
+operator through `McpClient`. Store `redirectUris` as a JSON string array and set
+`preRegistered` to true. Use an exact HTTPS callback or an explicitly registered
+loopback HTTP callback. Only loopback port variation is permitted; host and path
+must match. Do not store a client secret for these public CLI clients or add an
+unauthenticated registration route. Prefer CIMD for the documented launch clients.

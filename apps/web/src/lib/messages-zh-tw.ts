@@ -2,6 +2,34 @@ import type { englishMessages } from "@/lib/messages";
 
 export const traditionalChineseMessages = {
   appName: "Fitness",
+  mcpConsentTitle: "連接代理程式",
+  mcpConsentSignIn: "請登入以檢視此代理程式的存取請求。",
+  mcpConsentUnavailable:
+    "此存取請求無效、已過期或已無法使用。請從代理程式重新開始。",
+  mcpRequestedPermissions: "要求的權限",
+  mcpClientIdentity: "Client ID",
+  mcpVerifyClient: "名稱由代理程式自行提供。允許存取前，請確認其 Client ID。",
+  mcpReadScope: "讀取你的訓練紀錄、統計指標與動作庫。",
+  mcpWriteScope: "建立已完成的訓練。不包含編輯、刪除或管理員權限。",
+  mcpPrivacyWarning:
+    "你的紀錄將傳送給你選擇的代理程式供應商，並適用該供應商的資料保留與模型訓練政策。Fitness 無法控制該供應商如何使用你的紀錄。",
+  mcpAllow: "允許存取",
+  mcpDeny: "拒絕存取",
+  mcpConsentFailed:
+    "無法提交你的決定。請再試一次；若請求已過期，請從代理程式發起新請求。",
+  mcpConnections: "已連接的代理程式",
+  mcpConnectionsHelp:
+    "檢視可存取你帳號的連線。同一代理程式可以有多個連線；請逐一撤銷不再信任的連線。",
+  mcpNoConnections: "尚未連接代理程式。",
+  mcpConnectedAt: "連接時間",
+  mcpExpiresAt: "存取權到期時間",
+  mcpRevoke: "撤銷存取權",
+  mcpRevokeTitle: "撤銷代理程式存取權？",
+  mcpRevokeDescription:
+    "撤銷 {client} 的此連線，不會變更其他連線。已傳送給供應商的紀錄無法收回。",
+  mcpRevokeFailed: "無法撤銷存取權。請再試一次。",
+  mcpRevoked: "已撤銷代理程式存取權。",
+
   bootstrapError: "無法載入 Fitness。",
   bootstrapRetry: "重試",
   javascriptRequired:

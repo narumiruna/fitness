@@ -44,6 +44,10 @@ try {
     "prisma/migrations/20261011161830_session_actuals_entered/migration.sql",
     "utf8",
   );
+  const mcpMigration = await readFile(
+    "prisma/migrations/20261022150000_mcp/migration.sql",
+    "utf8",
+  );
   const actualsFixture = `INSERT INTO "Workout" (id,"userId",date,state,"updatedAt") VALUES ('saved-zero-workout','legacy-user',${production ? "'2026-10-10 00:00:00'" : "1791590400000"},'ACTIVE',CURRENT_TIMESTAMP);
 INSERT INTO "WorkoutSet" (id,"workoutId","exerciseId","order",weight,reps,completed) VALUES ('saved-zero-set','saved-zero-workout','legacy-exercise',1,0,1,false);`;
   let databaseUrl;
@@ -70,6 +74,7 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
     await container.pool.query(migration);
     await container.pool.query(actualsFixture);
     await container.pool.query(actualsMigration);
+    await container.pool.query(mcpMigration);
     await container.pool.query("CREATE DATABASE recovery");
     const restore = new pg.Pool({
       connectionString: databaseUrl.replace(/\/fitness$/, "/recovery"),
@@ -97,6 +102,7 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
       await empty.query(initial);
       await empty.query(migration);
       await empty.query(actualsMigration);
+      await empty.query(mcpMigration);
     } finally {
       await empty.end();
     }
@@ -187,7 +193,13 @@ INSERT INTO "WorkoutTemplateSet" (id,"templateId","exerciseId","order",weight,re
   controller.signal.throwIfAborted();
   child = spawn(
     process.execPath,
-    ["--import", "tsx", "--test", "tests/training-integration.test.ts"],
+    [
+      "--import",
+      "tsx",
+      "--test",
+      "tests/training-integration.test.ts",
+      "tests/mcp-migration.test.ts",
+    ],
     {
       stdio: "inherit",
       env: {

@@ -8,6 +8,20 @@ export {
   resolveLocale,
   supportedLocales,
 } from "./locales.js";
+export {
+  type McpToolErrorCode,
+  type McpToolInput,
+  type McpToolName,
+  type McpToolOutput,
+  mcpAuthorizationSchema,
+  mcpConnectionsSchema,
+  mcpConsentDecisionSchema,
+  mcpDecisionSchema,
+  mcpRevokedSchema,
+  mcpToolErrorCodeSchema,
+  mcpToolErrorSchema,
+  mcpToolSchemas,
+} from "./mcp.js";
 
 export const dateOnlySchema = z.iso.date();
 export const timestampSchema = z.iso.datetime();
