@@ -6,10 +6,8 @@ Test whether first-time users recognize each screen's purpose and next action
 without reading instructions. This procedure does not supply participant results.
 Current sample size: **zero**.
 
-Use this guide with [the historical review report](web-ui-ux-review.md) and the
-[merged remediation record](web-ui-ux-remediation.md). Capture the current app
-for participant sessions; old review screenshots show a different layout.
-Do not use production accounts or data. Obtain participant consent before collecting responses. Use
+Use this guide with [the review report](web-ui-ux-review.md). Do not use production
+accounts or data. Obtain participant consent before collecting responses. Use
 anonymous IDs P01–P05; do not record names, credentials, or biometric material.
 
 ## Session preparation

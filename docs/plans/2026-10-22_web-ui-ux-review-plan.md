@@ -33,12 +33,6 @@ session, an isolated Docker environment for production-mode browser tests, and
 user acceptance of the report or explicit acceptance of each documented limit.
 The plan must remain until its closure conditions are met.
 
-Remediation was merged separately in [PR #23](https://github.com/narumiruna/fitness/pull/23).
-This retained review plan still tracks human checks and acceptance. The report
-keeps its original revision and findings; the audit now checks the corrected
-filter contract on the current app. Later MCP routes are outside that original
-review scope.
-
 ## Design criteria
 
 1. **One clear next action:** Each actionable page state has one visually dominant action. Secondary actions must not compete with it. Read-only pages need a clear purpose and navigation, not an invented primary button.
