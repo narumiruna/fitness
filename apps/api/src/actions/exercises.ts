@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { ApiError, redirect } from "../errors.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { requireUser } from "../lib/auth.js";
 import {
+  exerciseHasName,
   normalizeExerciseAlias,
   slugifyExerciseName,
 } from "../lib/exercises.js";
@@ -19,10 +21,16 @@ export async function createExerciseAction(formData: FormData) {
     const input = createExerciseSchema.parse({
       defaultName: formData.get("defaultName"),
     });
-    const slug = slugifyExerciseName(input.defaultName);
+    const normalizedAlias = normalizeExerciseAlias(input.defaultName);
+    const existing = await prisma.exercise.findMany({
+      select: { defaultName: true, names: { select: { name: true } } },
+    });
+    if (existing.some((exercise) => exerciseHasName(exercise, normalizedAlias)))
+      redirect("/exercises?error=duplicate");
 
-    const exercise = await prisma.exercise
-      .create({
+    const slug = slugifyExerciseName(input.defaultName) || "exercise";
+    const create = (slug: string) =>
+      prisma.exercise.create({
         data: {
           slug,
           defaultName: input.defaultName,
@@ -38,10 +46,22 @@ export async function createExerciseAction(formData: FormData) {
             create: {
               locale: "en",
               alias: input.defaultName,
-              normalizedAlias: normalizeExerciseAlias(input.defaultName),
+              normalizedAlias,
             },
           },
         },
+      });
+
+    const exercise = await create(slug)
+      .catch((error: unknown) => {
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== "P2002"
+        )
+          throw error;
+        // Slugs are identifiers, not names. The unique alias still rejects
+        // concurrent duplicate names when a slug collision needs a retry.
+        return create(`${slug}-${randomUUID()}`);
       })
       .catch((error: unknown) => {
         if (
@@ -82,9 +102,7 @@ export async function updateExerciseAction(formData: FormData) {
         });
         if (
           otherExercises.some((other) =>
-            [other.defaultName, ...other.names.map((name) => name.name)].some(
-              (name) => normalizeExerciseAlias(name) === normalizedAlias,
-            ),
+            exerciseHasName(other, normalizedAlias),
           )
         )
           redirect(`${path}?error=duplicate#edit-exercise`);

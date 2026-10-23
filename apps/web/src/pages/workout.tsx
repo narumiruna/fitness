@@ -152,7 +152,7 @@ export default function WorkoutPage() {
                   min="0"
                   name="weight"
                   required
-                  step="0.5"
+                  step="0.001"
                   type="number"
                 />
               </Text>
@@ -301,82 +301,51 @@ function CompletedSets() {
                             </RouterLink>
                           </Link>
                         </Heading>
-                        <Text size="2">
-                          {set.weight} kg × {set.reps} —{" "}
-                          {t(set.type as MessageKey)}
-                        </Text>
+                        {set.completed ? (
+                          <Text size="2">
+                            {set.weight} kg × {set.reps} —{" "}
+                            {t(set.type as MessageKey)}
+                          </Text>
+                        ) : (
+                          <Badge color="gray">{t("skipped")}</Badge>
+                        )}
                       </div>
                     </div>
-                    <details>
-                      <summary>{t("updateSet")}</summary>
-                      <div className="stack">
-                        <ActionForm
-                          className="form-grid"
-                          action={updateWorkoutSetAction}
-                        >
-                          <input
-                            name="workoutId"
-                            type="hidden"
-                            value={workout.id}
-                          />
-                          <input name="setId" type="hidden" value={set.id} />
-                          <Text as="label">
-                            {t("setType")}
-                            <FormSelect
-                              name="type"
-                              label={t("setType")}
-                              defaultValue={set.type}
-                              options={[
-                                { value: "WORKING", label: t("WORKING") },
-                                { value: "WARMUP", label: t("WARMUP") },
-                              ]}
-                            />
-                          </Text>
-                          <Text as="label">
-                            {t("rir")}
-                            <TextField.Root
-                              name="rir"
-                              type="number"
-                              min={0}
-                              max={10}
-                              step="0.5"
-                              defaultValue={set.rir ?? ""}
-                            />
-                          </Text>
-                          <Text
-                            as="label"
-                            size="2"
-                            weight="medium"
-                            className="field-label"
+                    {set.completed ? (
+                      <details>
+                        <summary>{t("updateSet")}</summary>
+                        <div className="stack">
+                          <ActionForm
+                            className="form-grid"
+                            action={updateWorkoutSetAction}
                           >
-                            {t("exercise")}
-                            <FormSelect
-                              defaultValue={set.exerciseId}
-                              name="exerciseId"
-                              required
-                              key={set.exerciseId}
-                              label={t("exercise")}
-                              options={exercises.map((exercise) => ({
-                                value: exercise.id,
-                                label: exercise.defaultName,
-                              }))}
+                            <input
+                              name="workoutId"
+                              type="hidden"
+                              value={workout.id}
                             />
-                          </Text>
-                          <div className="form-grid two">
-                            <Text
-                              as="label"
-                              size="2"
-                              weight="medium"
-                              className="field-label"
-                            >
-                              {t("weight")}
+                            <input name="setId" type="hidden" value={set.id} />
+                            <Text as="label">
+                              {t("setType")}
+                              <FormSelect
+                                name="type"
+                                label={t("setType")}
+                                defaultValue={set.type}
+                                options={[
+                                  { value: "WORKING", label: t("WORKING") },
+                                  { value: "WARMUP", label: t("WARMUP") },
+                                ]}
+                              />
+                            </Text>
+                            <Text as="label">
+                              {t("rir")}
                               <TextField.Root
-                                defaultValue={set.weight}
-                                min="0"
-                                name="weight"
-                                required
+                                name="rir"
+                                type="number"
+                                min={0}
+                                max={10}
                                 step="0.5"
-                                type="number"
+                                defaultValue={set.rir ?? ""}
                               />
                             </Text>
                             <Text
@@ -385,58 +354,104 @@ function CompletedSets() {
                               weight="medium"
                               className="field-label"
                             >
-                              {t("reps")}
-                              <TextField.Root
-                                defaultValue={set.reps}
-                                min="1"
-                                name="reps"
+                              {t("exercise")}
+                              <FormSelect
+                                defaultValue={set.exerciseId}
+                                name="exerciseId"
                                 required
-                                type="number"
+                                key={set.exerciseId}
+                                label={t("exercise")}
+                                options={exercises.map((exercise) => ({
+                                  value: exercise.id,
+                                  label: exercise.defaultName,
+                                }))}
                               />
                             </Text>
+                            <div className="form-grid two">
+                              <Text
+                                as="label"
+                                size="2"
+                                weight="medium"
+                                className="field-label"
+                              >
+                                {t("weight")}
+                                <TextField.Root
+                                  defaultValue={set.weight}
+                                  min="0"
+                                  name="weight"
+                                  required
+                                  step="0.001"
+                                  type="number"
+                                />
+                              </Text>
+                              <Text
+                                as="label"
+                                size="2"
+                                weight="medium"
+                                className="field-label"
+                              >
+                                {t("reps")}
+                                <TextField.Root
+                                  defaultValue={set.reps}
+                                  min="1"
+                                  name="reps"
+                                  required
+                                  type="number"
+                                />
+                              </Text>
+                              <Text
+                                as="label"
+                                size="2"
+                                weight="medium"
+                                className="field-label"
+                              >
+                                {t("order")}
+                                <TextField.Root
+                                  defaultValue={set.order}
+                                  min="1"
+                                  name="order"
+                                  required
+                                  type="number"
+                                />
+                              </Text>
+                            </div>
                             <Text
                               as="label"
                               size="2"
                               weight="medium"
                               className="field-label"
                             >
-                              {t("order")}
-                              <TextField.Root
-                                defaultValue={set.order}
-                                min="1"
-                                name="order"
-                                required
-                                type="number"
+                              {t("notes")}
+                              <TextArea
+                                aria-label={t("notes")}
+                                defaultValue={set.notes ?? ""}
+                                name="notes"
                               />
                             </Text>
-                          </div>
-                          <Text
-                            as="label"
-                            size="2"
-                            weight="medium"
-                            className="field-label"
-                          >
-                            {t("notes")}
-                            <TextArea
-                              aria-label={t("notes")}
-                              defaultValue={set.notes ?? ""}
-                              name="notes"
-                            />
-                          </Text>
-                          <Button highContrast variant="soft" type="submit">
-                            {t("updateSet")}
-                          </Button>
-                        </ActionForm>
-                        <ConfirmDelete
-                          action={deleteWorkoutSetAction}
-                          fields={{ workoutId: workout.id, setId: set.id }}
-                          title={t("confirmDelete")}
-                          description={t("deleteDescription")}
-                          cancel={t("cancel")}
-                          confirm={t("delete")}
-                        />
-                      </div>
-                    </details>
+                            <Button highContrast variant="soft" type="submit">
+                              {t("updateSet")}
+                            </Button>
+                          </ActionForm>
+                          <ConfirmDelete
+                            action={deleteWorkoutSetAction}
+                            fields={{ workoutId: workout.id, setId: set.id }}
+                            title={t("confirmDelete")}
+                            description={t("deleteDescription")}
+                            cancel={t("cancel")}
+                            confirm={t("delete")}
+                          />
+                        </div>
+                      </details>
+                    ) : (
+                      <ConfirmDelete
+                        action={deleteWorkoutSetAction}
+                        fields={{ workoutId: workout.id, setId: set.id }}
+                        title={t("confirmDelete")}
+                        description={t("deleteDescription")}
+                        cancel={t("cancel")}
+                        confirm={t("delete")}
+                      />
+                    )}
                   </article>
                 </Card>
               ))}
@@ -466,6 +481,32 @@ function CompletedSets() {
                 </Table.Header>
                 <Table.Body>
                   {workout.sets.map((set) => {
+                    if (!set.completed)
+                      return (
+                        <Table.Row key={setFormKey(set)}>
+                          <Table.Cell>#{set.order}</Table.Cell>
+                          <Table.Cell>
+                            <Link highContrast asChild>
+                              <RouterLink to={`/exercises/${set.exercise?.id}`}>
+                                {set.exercise?.defaultName}
+                              </RouterLink>
+                            </Link>
+                          </Table.Cell>
+                          <Table.Cell colSpan={3}>
+                            <Badge color="gray">{t("skipped")}</Badge>
+                          </Table.Cell>
+                          <Table.Cell>
+                            <ConfirmDelete
+                              action={deleteWorkoutSetAction}
+                              fields={{ workoutId: workout.id, setId: set.id }}
+                              title={t("confirmDelete")}
+                              description={t("deleteDescription")}
+                              cancel={t("cancel")}
+                              confirm={t("delete")}
+                            />
+                          </Table.Cell>
+                        </Table.Row>
+                      );
                     const formId = `edit-set-${set.id}`;
                     return (
                       <Table.Row key={setFormKey(set)}>
@@ -510,7 +551,7 @@ function CompletedSets() {
                             min="0"
                             name="weight"
                             required
-                            step="0.5"
+                            step="0.001"
                             type="number"
                           />
                         </Table.Cell>

@@ -107,6 +107,35 @@ export function formatMonthTitle(year: number, month: number, locale = "en") {
   }).format(new Date(year, month - 1, 1));
 }
 
+export function buildExerciseMonthlyTrend(
+  sets: { reps: number; weight: number; workout: { date: Date } }[],
+  locale: string,
+  today: Date,
+) {
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(
+      today.getFullYear(),
+      today.getMonth() - (5 - index),
+      1,
+    );
+    return {
+      key: formatMonthKey(date),
+      label: date.toLocaleDateString(locale, { month: "short" }),
+      volume: 0,
+    };
+  });
+  const monthByKey = new Map(months.map((month) => [month.key, month]));
+  for (const set of sets) {
+    const month = monthByKey.get(formatMonthKey(set.workout.date));
+    if (month) month.volume += set.weight * set.reps;
+  }
+  return months;
+}
+
+function formatMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function getMonthLink(year: number, month: number, offset: -1 | 1) {
   const date = new Date(year, month - 1 + offset, 1);
 

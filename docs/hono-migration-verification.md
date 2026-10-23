@@ -299,3 +299,74 @@ Keep the PR draft while the audit failure and documentation differences remain
 unresolved. Earlier passing results above do not verify this snapshot. No
 application implementation, deployment, publication, or production operation is
 included.
+
+## UI/UX correctness fixes — 2026-10-23
+
+This work resolves the seven findings from the subsequent source and browser
+review. It does not replace the historical audit or its participant requirements.
+No database model, migration, stored slug, or HTTP schema changes are required.
+
+| Finding | Correction and regression evidence |
+| --- | --- |
+| Password truncation | New and changed passwords use versioned, domain-separated SHA-256/base64 plus bcrypt at cost 12. `apps/api/tests/password.test.ts` covers ASCII/UTF-8 suffix differences, salts, malformed formats, and legacy access. `password-auth.test.ts` covers account creation, suffix-only changes, rejection of the old password, and session revocation. The existing security browser workflow now tests a password longer than 72 UTF-8 bytes. |
+| Unicode exercise names | Interactive creation separates normalized names from identifiers and retries a slug collision once with a UUID suffix. The seed/import slugifier and existing slugs stay unchanged. `exercise-names.test.ts`, `exercise-unicode.spec.ts`, and the existing import-rerun workflow cover Chinese/mixed names, duplicates, rename history, ownership, and repeat imports. |
+| Text clearing | Update actions preserve omitted fields but persist explicit empty text. `recorded-workout-review.test.ts` and `.spec.ts` cover titles, workout notes, and set notes, including whitespace, repeated requests, reload, validation, and ownership. |
+| Weight precision | Add-set and completed-set inputs accept 0.001 kg increments, matching live inputs. Browser regressions verify 50.25/50.251 kg saves, unchanged valid weights, failed-save drafts, and rejection of finer unsupported input precision. |
+| Skipped sets | Completed-workout rows show the existing localized Skipped status without placeholder actuals or performed-value editors. Confirmed deletion remains available. Both locales and desktop/mobile widths verify performed-only totals, status, deletion cancellation, native validity, reflow, and axe checks. |
+| Month-end trends | The environment-neutral month helper constructs each bucket on day 1. Five core regressions verify consecutive unique months, leap/year boundaries, exact volumes, empty buckets, and locale-independent keys. |
+| Warm-up progression | The completion guard checks working sets only. Four HTTP cases cover ACTIVE/PAUSED states, warm-up acceptance, and atomic rejection after a working set is complete. The browser regression completes a warm-up, accepts the displayed suggestion, and verifies that only working targets change. |
+
+### Actual checks
+
+| Check | Result |
+| --- | --- |
+| `npm run check` | Passed: Biome and all TypeScript checks; repeated after the final code/test changes |
+| `npm run build` | Passed; existing Vite chunk-size and dependency annotation warnings remain |
+| `npm test` | 81 passed, no skips |
+| `npm run test:api` | 82 passed with disposable SQLite, no skips |
+| `npm run test:training:sqlite` | 15 passed, including legacy upgrade and recovery cases |
+| `TZ=America/New_York node --test packages/core/tests/monthly-trend-review.test.mjs` | Five passed |
+| Final browser integration subset | 17 passed in 3.5 minutes, no skips or retries |
+| Final `security-feedback.spec.ts` repeat | 28 passed in 58.1 seconds, including the long UTF-8 password change |
+| `prek run -a` | Passed: Biome and TypeScript |
+| `npm run changeset -- status` | Valid; the new changeset requests API/core/web patch versions |
+| `git diff --check` | Passed |
+| Runner cleanup | No listeners on 8784/8785 after the final browser run |
+| PostgreSQL and production HTTPS | Unavailable: the configured Docker daemon socket does not exist. No engine or production service was started; these checks are not passed |
+
+The final 17-case command was:
+
+```sh
+npm run test:ui -- apps/web/e2e/ui.spec.ts apps/web/e2e/recorded-workout-review.spec.ts apps/web/e2e/exercise-unicode.spec.ts apps/web/e2e/progression-review.spec.ts apps/web/e2e/ui-ux-remediation.spec.ts apps/web/e2e/visual-dashboard.spec.ts
+```
+
+The separate security repeat used:
+
+```sh
+npm run test:ui -- apps/web/e2e/security-feedback.spec.ts
+```
+
+Earlier checks are not reclassified as passing. The first password regression
+run reproduced truncation. An initial pure-suite run found the new calendar
+helper missing from the root export; the export was added and all 81 tests passed.
+The first new browser run had two passes and four ambiguous-login-selector
+failures. A broader compatibility run then had 60 passes, one outdated 0.5 kg
+validation assertion failure, and four serial cases not run. The tests now select
+the password Sign in action explicitly, accept valid 0.001 kg precision, and
+still reject finer increments. The final complete affected UI suite and new
+regressions passed. Exercise edit/import, live session recovery, and roadmap
+cases also passed in that compatibility run. The full browser suite, including
+the previously documented staged audit, was not rerun or reported passed.
+
+Read-only independent source review found no additional implementation defect.
+It identified the existing raw-bcrypt browser assertion; this assertion now uses
+the version-aware verifier and explicitly rejects a different long-password
+suffix. No test assertion was removed to obtain a passing result.
+
+Legacy hashes retain their original 72-byte verification limit until the user
+changes the password. The discarded original suffix cannot be recovered. New
+hashes are not readable by an older raw-bcrypt-only verifier; rollback builds
+must retain the version-aware verifier. See [release recovery](releasing.md).
+A package changeset records the user-visible fixes. Pull request preparation was
+authorized after local verification. These checks did not deploy, publish,
+operate production data, or change an unrelated plan.

@@ -43,9 +43,9 @@ export async function updateWorkoutAction(formData: FormData) {
     const user = await requireUser();
     const input = updateWorkoutSchema.parse({
       workoutId: formData.get("workoutId"),
-      title: optionalFormString(formData.get("title")),
+      title: formData.has("title") ? String(formData.get("title")) : undefined,
       date: formData.get("date"),
-      notes: optionalFormString(formData.get("notes")),
+      notes: formData.has("notes") ? String(formData.get("notes")) : undefined,
     });
 
     await assertOwnsWorkout(input.workoutId, user.id);
@@ -138,7 +138,7 @@ export async function updateWorkoutSetAction(formData: FormData) {
       order: formData.get("order"),
       type: formData.get("type") ?? undefined,
       rir: formData.get("rir"),
-      notes: optionalFormString(formData.get("notes")),
+      notes: formData.has("notes") ? String(formData.get("notes")) : undefined,
     });
 
     const result = await updateRecordedSet(user.id, input, {

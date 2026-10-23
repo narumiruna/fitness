@@ -57,8 +57,12 @@ Run `npm run db:seed` explicitly to add development exercises and the `admin` /
 ## Authentication and Security
 
 The API validates authentication, role, ownership, and request payloads. Client
-route guards do not authorize requests. Passwords use bcrypt hashes; session
-records store token hashes, not raw tokens. The `fitness_session` cookie remains
+route guards do not authorize requests. New passwords use a domain-separated
+SHA-256 digest encoded as base64 before bcrypt (cost 12), stored with the
+`bcrypt-sha256:v1:` format marker. This verifies the full password within the
+existing 256-character limit. Legacy bcrypt hashes remain valid until the password
+is changed; their original 72-byte limit cannot be reversed. Session records
+store token hashes, not raw tokens. The `fitness_session` cookie remains
 HttpOnly, SameSite=Lax, path `/`, with 30-day expiry and Secure in production.
 Password changes revoke prior sessions and issue a replacement. Existing session
 cookies and stored passkeys use the same formats as before the migration.

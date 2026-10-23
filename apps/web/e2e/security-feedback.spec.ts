@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { verifyPassword } from "../../api/src/lib/password";
 import { prisma } from "../../api/src/lib/prisma";
 import { dictionary } from "../src/lib/translations";
 
@@ -659,7 +660,8 @@ test("password current-error mapping, failed-save retention, and successful sing
   context,
 }) => {
   const password = "security-feedback-current-password";
-  const replacement = "security-feedback-new-password";
+  const passwordPrefix = "密".repeat(24);
+  const replacement = `${passwordPrefix}security-feedback-new-password`;
   const account = await prisma.user.create({
     data: {
       username: fixtureUsers[0],
@@ -754,7 +756,11 @@ test("password current-error mapping, failed-save retention, and successful sing
     const saved = await prisma.user.findUniqueOrThrow({
       where: { id: account.id },
     });
-    expect(await bcrypt.compare(replacement, saved.passwordHash)).toBe(true);
+    expect(saved.passwordHash).toMatch(/^bcrypt-sha256:v1:/);
+    expect(await verifyPassword(replacement, saved.passwordHash)).toBe(true);
+    expect(
+      await verifyPassword(`${passwordPrefix}different`, saved.passwordHash),
+    ).toBe(false);
   } finally {
     release();
   }
