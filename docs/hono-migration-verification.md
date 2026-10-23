@@ -213,6 +213,85 @@ All implementation and required handoff evidence is recorded here. Production
 services and real workout data remain untouched; no rollout, publication, or version
 tagging was performed.
 
+## Web UI/UX review — 2026-10-22
+
+Reviewed application revision `771509289771d1afb70697a3ed9993ae18c1d30a`.
+The [per-node report](reviews/web-ui-ux-review.md) records 17 findings,
+simplification proposals, evidence limits, and a separate
+[participant procedure](reviews/web-ui-ux-participant-guide.md). No application
+behavior or UI was changed.
+
+Actual local verification with Node 26.10.0 and npm 11.19.1:
+
+- `npm ci`: passed; both Prisma clients generated. Five existing dependency
+  advisories remain (four high, one low).
+- Initial `npm run test:ui`: all 53 existing tests passed in 4.1 minutes.
+- Added `apps/web/e2e/ui-ux-review.spec.ts`; its four tests cover evidence
+  collection, disposable participant-fixture provisioning/cleanup, and controlled
+  bootstrap loading/failure/retry. They capture the pages in both locales at
+  1440 × 900 and 390 × 844, plus active/paused, empty, non-owner, missing-record,
+  and administrator states.
+- Full `npm run test:ui`: all 57 tests passed in 6.0 minutes, with no skips or
+  retries. A final focused four-test repeat passed in 2.1 minutes after the
+  native-zoom screenshot correction. The audit collected 142 rendered samples
+  and 28 additional 320-pixel width measurements. All 142 skip-to-main checks
+  passed and selected axe checks reported no violations. Four separate captures
+  cover bootstrap loading/error. This does not establish full WCAG compliance
+  or first-time-user comprehension.
+- Real Chrome Page zoom at 200% was verified for 36 samples using isolated
+  persistent profiles, devicePixelRatio/viewport assertions, and direct CDP
+  screenshots with a physical-width assertion. Initial preference-file and
+  Playwright clipping attempts were corrected, not reported as successful final
+  evidence. Zoom coverage does not include every state or administrator view.
+- The opt-in participant configuration was listed through the safe UI runner;
+  its fixture/login/cleanup was smoke-tested. No visible human session was run.
+  Two independent visual-review subagents and one evidence-audit subagent
+  contributed expert review, not participant data.
+- The audit reproduced exercise filter selections being cleared by the other
+  filter form. English populated Measurements measured 321 pixels at a
+  320-pixel viewport. Neither finding was changed or reported as a usability pass.
+- `npm run check`: Biome and all TypeScript checks passed.
+- `npm test`: all 64 tests passed.
+- `npm run test:api`: all 23 disposable SQLite HTTP tests passed, including
+  server-side authentication, roles, ownership, and mutation-Origin checks.
+- `npm run test:ui:production`: the build passed, but the browser suite did not
+  start because the configured OrbStack Docker socket was unavailable. No
+  production-mode browser pass is claimed. The engine was not started because
+  that could start existing production services.
+- The browser runner exited successfully and released ports 8784 and 8785.
+  No review-date test database directories remain. Pre-existing temporary files
+  were not removed. PNG/JSON evidence remains ignored under `test-results/`.
+
+Human participant checks (sample size zero), physical passkeys, deliberate
+passkey cancellation, a real screen-reader smoke check, complete zoom/reflow
+state coverage, and the full per-page failure-state matrix remain open. The
+active review plan is retained pending those checks or
+explicit user acceptance of the documented limitations. No deployment, image
+publication, release tag, or production operation was performed.
+
+## Review artifact follow-up — 2026-10-22
+
+These artifacts are published from `origin/main` at `61b8000`, after PR #23.
+The original findings and command results above remain historical. No application
+or API implementation changes are included in this follow-up. The audit now
+asserts that search, sort, muscle, and equipment survive filter submissions, and
+it resets scroll before the paused-state capture.
+
+- `npm ci`, `npm run check`, and `npm test` passed; the pure suite has 76 cases.
+- `npm run test:ui -- ui-ux-review.spec.ts`: all four cases passed in 2.1 minutes.
+- Current captures: 142 rendered samples, 142 skip-link checks, zero selected axe
+  violations, 36 native-200%-zoom samples, and 28 width measurements at 320 pixels
+  with no document overflow. These are current observations, not replacements
+  for the original review findings or proof of comprehension/accessibility.
+- The participant configuration lists one opt-in session. Automated fixture
+  provisioning, login, and cleanup pass; no human session or result is claimed.
+- The runner released 8784/8785. Existing services and original staged work were
+  not reused, stopped, overwritten, or unstaged. Screenshots remain ignored.
+- Production-mode verification of this new audit is pending CI; previous
+  remediation CI does not establish a pass for these newly added tests.
+- Human, physical-device, screen-reader, full manual-state, and acceptance gates
+  remain open. The review plan is retained.
+
 ## Fitness MCP Verification — 2026-10-22
 
 This section is separate from the completed Hono migration above. MCP is implemented
