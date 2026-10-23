@@ -26,8 +26,7 @@ async function ready(page: Page) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-// Collect the original review scope on the current app without changing behavior.
-// Historical findings refer to the report revision, not regenerated captures.
+// Record observations, including defects, without changing application behavior.
 // Passing this audit means evidence was collected, not that usability passed.
 async function inspect(page: Page, info: TestInfo, name: string) {
   await ready(page);
@@ -473,41 +472,18 @@ test("UI UX review: every signed-in page and data state", async ({
     const combinedFilters =
       "/exercises?q=Bench&sort=recent&muscle=chest&equipment=barbell";
     await page.goto(combinedFilters);
-    const filters = page.locator(".library-query");
-    await filters.locator("summary").click();
-    await filters
-      .getByRole("combobox", { name: "Equipment", exact: true })
-      .click();
-    await page.getByRole("option", { name: "Dumbbell", exact: true }).click();
-    await filters.getByRole("button", { name: "Search", exact: true }).click();
-    await expect(page).toHaveURL(
-      (url) =>
-        url.searchParams.get("q") === "Bench" &&
-        url.searchParams.get("sort") === "recent" &&
-        url.searchParams.get("muscle") === "chest" &&
-        url.searchParams.get("equipment") === "dumbbell",
-    );
-    await expect(filters.locator("details")).not.toHaveAttribute("open");
+    await page.locator(".library-metadata-filters button[type=submit]").click();
+    await expect(page).not.toHaveURL(/sort=recent/);
     evidence.push({
-      name: "metadata-submit-preserves-search-and-sort",
+      name: "metadata-submit-drops-sort",
       query: new URL(page.url()).search,
     });
     await page.goto(combinedFilters);
-    await filters.getByLabel("Search", { exact: true }).fill("Review press");
-    await filters.getByRole("button", { name: "Search", exact: true }).click();
-    await expect(page).toHaveURL(
-      (url) =>
-        url.searchParams.get("q") === "Review press" &&
-        url.searchParams.get("sort") === "recent" &&
-        url.searchParams.get("muscle") === "chest" &&
-        url.searchParams.get("equipment") === "barbell",
-    );
-    await expect(filters.locator('input[name="q"]')).toHaveAttribute(
-      "value",
-      "Review press",
-    );
+    await page.locator(".library-filters button[type=submit]").click();
+    await expect(page).not.toHaveURL(/muscle=chest/);
+    await expect(page).not.toHaveURL(/equipment=barbell/);
     evidence.push({
-      name: "search-submit-preserves-sort-and-metadata",
+      name: "search-submit-drops-metadata",
       query: new URL(page.url()).search,
     });
     await page.goto(`/exercises/${exercise.id}`);
@@ -527,7 +503,6 @@ test("UI UX review: every signed-in page and data state", async ({
     await expect(
       page.getByRole("button", { name: "Resume", exact: true }),
     ).toBeVisible();
-    await page.evaluate(() => window.scrollTo(0, 0));
     evidence.push(await inspect(page, info, "paused-en-390"));
     for (const index of [1, 2]) {
       const account = await prisma.user.findUniqueOrThrow({

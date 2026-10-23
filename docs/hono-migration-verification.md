@@ -269,180 +269,33 @@ active review plan is retained pending those checks or
 explicit user acceptance of the documented limitations. No deployment, image
 publication, release tag, or production operation was performed.
 
-## Review artifact follow-up — 2026-10-22
+## Staged UI review snapshot verification — 2026-10-23
 
-These artifacts are published from `origin/main` at `61b8000`, after PR #23.
-The original findings and command results above remain historical. No application
-or API implementation changes are included in this follow-up. The audit now
-asserts that search, sort, muscle, and equipment survive filter submissions, and
-it resets scroll before the paused-state capture.
+This branch submits the original staged review files against `origin/main` at
+`724252e`. Seven staged files already match that base; five differ. The snapshot
+retains the older audit probes and documentation instead of reconciling the
+changes merged in PRs #23 and #24. Only this verification record and a new empty
+changeset are added to the staged content. The original worktree is unchanged.
 
-- `npm ci`, `npm run check`, and `npm test` passed; the pure suite has 76 cases.
-- `npm run test:ui -- ui-ux-review.spec.ts`: all four cases passed in 2.1 minutes.
-- Current captures: 142 rendered samples, 142 skip-link checks, zero selected axe
-  violations, 36 native-200%-zoom samples, and 28 width measurements at 320 pixels
-  with no document overflow. These are current observations, not replacements
-  for the original review findings or proof of comprehension/accessibility.
-- The participant configuration lists one opt-in session. Automated fixture
-  provisioning, login, and cleanup pass; no human session or result is claimed.
-- The runner released 8784/8785. Existing services and original staged work were
-  not reused, stopped, overwritten, or unstaged. Screenshots remain ignored.
-- Production-mode verification of this new audit is pending CI; previous
-  remediation CI does not establish a pass for these newly added tests.
-- Human, physical-device, screen-reader, full manual-state, and acceptance gates
-  remain open. The review plan is retained.
+Actual checks in a separate worktree with Node 26.10.0 and npm 11.19.1:
 
-## Fitness MCP Verification — 2026-10-22
+- `npm ci`: passed; five existing dependency advisories remain.
+- `npm run check`: passed, including Biome and all TypeScript checks.
+- `npm run build`: passed; the Vite chunk-size warning remains.
+- `npm test`: all 76 tests passed.
+- `prek run -a`: Biome and TypeScript gates passed.
+- `npm run test:ui -- ui-ux-review.spec.ts`: failed, with three passes and one
+  failure. The signed-in audit timed out at line 475 because
+  `.library-metadata-filters button[type=submit]` no longer exists. Its old
+  filter-drop assertions also conflict with the merged filter-preservation
+  contract. The test is retained unchanged for this snapshot review.
+- Separate checks found no listeners on ports 8784 and 8785 after the runner
+  exited. Generated output and browser artifacts are not included in the commit.
+- Full browser, production-mode, API, and database suites were not rerun.
 
-This section is separate from the completed Hono migration above. MCP is implemented
-on `narumi/feat/fitness-mcp` from `origin/main` at `7715092`, but the complete launch
-checklist is **not passed**. The retained plan is
-`docs/plans/2026-10-22_fitness-mcp-plan.md`. No production service was operated,
-workflow dispatched, package published, or version tag created.
-
-### Implementation and review
-
-- One Hono `/mcp` endpoint serves seven typed tools over Streamable HTTP, using
-  `@modelcontextprotocol/server` 2.3.1. Revisions `2026-07-28`, `2025-11-25`, and
-  `2025-06-18` are supported; default Codex actually required the last revision.
-- OAuth authorization/code/token handling uses `@node-oauth/oauth2-server` 5.3.1,
-  PKCE S256, public CIMD or pre-registered clients, opaque hashed credentials,
-  audience/scope checks, rotating refresh tokens, replay revocation, and explicit
-  browser consent. Browser cookies never authorize a tool call.
-- Additive migration `20261022150000_mcp` adds clients, pending requests, grants,
-  hashed codes/tokens, and payload-bound write receipts. Deletion leaves receipt
-  tombstones; account deletion cascades credentials and receipts.
-- Independent source review identified client-name impersonation, missing frame
-  protection, and admission/deadline checks after token lookup. Fixes show canonical
-  client IDs with a warning, add `frame-ancestors 'none'` and `X-Frame-Options: DENY`,
-  and arm bounded caller admission and the 15-second deadline before database
-  verification. A deterministic stalled-verifier test checks timeout and retained
-  admission slots. Public-client quotas are namespaced by user.
-- Writes validate the grant again under the same user-row lock used by revocation.
-  Cancellation checks inside the transaction prevent observed canceled writes;
-  an already committed write is recovered through its stable operation ID.
-- Password changes retain separately granted OAuth access. Recovery instructions
-  require explicit revocation of each untrusted connection; the UI states that
-  revoking one connection does not revoke other connections for that client.
-- `npm audit` still reports five dependency advisories: four high and one low,
-  in existing Prisma tooling/esbuild dependency chains. No broad dependency upgrade
-  was added to this feature.
-
-### Actual local results
-
-| Check | Actual result |
-| --- | --- |
-| `npm ci` | Passed; both Prisma clients generated from the canonical models. |
-| `npm run check` | Passed, including Biome and root/workspace TypeScript. |
-| `npm run build` | Passed for core, contracts, API, and Vite. |
-| `npm test` | Passed: 86 tests across core, contracts, Changesets, locale, dashboard, training, logging, and form outcomes. |
-| `npm run test:api` | Passed: 62 disposable SQLite tests, including exact 50,000-set analysis and rejection above the budget. |
-| `npm run test:api:postgres` | All 62 cases passed in CI run `39808061618`. Earlier local 61-case suites passed; the later local 62-case attempt failed before tests with `Connection terminated unexpectedly`. |
-| `npm run test:training:sqlite` | Passed: 15 tests, including legacy/empty upgrades, restoration, constraints, tombstones, and cascades. |
-| `npm run test:training:postgres` | Passed: the same 15 tests on a separate disposable PostgreSQL container. |
-| UTC and Asia/Taipei HTTP repeat | Earlier 60-case API suites passed under both timezones. Pure calculation fixtures also passed in UTC, Asia/Taipei, and America/New_York. |
-| `npm run test:ui -- mcp.spec.ts` | Initial six MCP browser cases passed locally. Final identity/frame-protection cases passed as part of the 59-case production HTTPS CI suite. |
-| `npm run test:ui` | Not passed. One attempt was interrupted after development rebuilds caused connection errors. A stable-source retry exceeded 120 seconds in the first test's browser-context/beforeEach setup and again in teardown. Both runs were stopped, and only their own server processes were cleaned up. No existing listener was stopped to free a port. |
-| `npm run test:db-init` | All 29 cases passed in CI run `39808061618`. The local command hit the 300-second tool deadline; its last lifecycle case failed during interruption. No timing assertion was relaxed. |
-| `prek run -a` | Passed after final intended source changes and before the implementation commit. |
-| Native clients | Gate exits nonzero. See below; core-workflow passes are not a complete launch pass. |
-| Public Pi CIMD resolver | Passed: one public metadata GET and cache verification, no credentials or workout data sent. |
-| Native Pi CIMD | Passed with Pi 1.4.0 built-in client, protocol `2025-11-25`, no pre-registered client ID, seven tools, scoped consent, refresh, and revocation. |
-| `npm run test:ui:production` | All 59 cases passed in CI run `39808061618`, including final MCP identity/frame checks. |
-| CI checks and image-smoke | Passed in CI run `39808061618`. |
-
-### Complete CI matrix
-
-[CI run 39808061618](https://github.com/narumiruna/fitness/actions/runs/39808061618)
-passed all five jobs on source revision `eab0096`: checks, databases, development
-browser, production browser, and image-smoke. Both browser modes passed all 59
-cases; database-init passed 29, each training upgrade runner passed 15, and the
-PostgreSQL API suite passed 62. Local failures above are retained as local results,
-not reclassified as passes. Later evidence-only commits do not change that tested
-source. This green matrix does not include or override the failing native client
-gate.
-
-### Native client boundary and blockers
-
-`tests/mcp-clients.md` records commands, exact native interfaces, callback URIs,
-versions, and limits. Tests use temporary configuration/credential directories,
-synthetic accounts, real loopback OAuth callbacks, and no agent/model turns.
-The macOS Keychain is blocked for these test hosts. No real provider credential,
-user configuration, or production data is used.
-
-Pi 1.4.0, Codex CLI 0.163.0 default/modern, and Claude Code 2.1.303 v1/v2 completed
-core scoped seven-tool workflows in earlier runs. The final general rerun passed
-Pi and both Codex modes; Claude v1 failed concurrent refresh, and Claude v2 failed
-at its refresh stage. Claude consistently races refresh after simultaneous `401`
-responses; default Codex also showed an intermittent race in earlier runs. One
-refresh succeeds, another reuses the consumed token, and Fitness correctly revokes
-the entire family. Users must then sign in again. The native test intentionally
-retains a failing assertion; it does not skip this condition or disable replay
-revocation. A subsequent isolated test of the latest Claude Code 2.1.308 passed
-all core workflows but reproduced the concurrent race in both Claude runtimes;
-Codex modern also reproduced the race. No global CLI installation was changed.
-
-Native Pi CIMD passed separately using `oauth.clientRegistration = "cimd"`, with
-no client ID override. Native Codex/Claude CIMD and normal agent-session exposure
-or human approval UI are not established by the native machine-control fixtures.
-Tool annotations are hints, not authorization or proof of human approval.
-
-The PR must remain draft until outstanding verification passes and the native
-launch failure is fixed upstream or receives an explicit accepted disposition.
-CI browser/database checks are separate evidence; passing them cannot turn a
-failing native client gate into a pass.
-
-## Web UI/UX remediation — 2026-10-22
-
-The implementation branch `narumi/fix/web-ui-ux-remediation` starts from
-`origin/main` at `62f05a8`. It addresses U01–U17 without a JSON API/schema change,
-production operation, deployment, publication, or version tag. The separate
-[remediation record](reviews/web-ui-ux-remediation.md) contains the content
-outlines, resolution table, actual command results, earlier failed attempts,
-recovery decisions, and remaining gates. The retained
-[plan](plans/2026-10-22_web-ui-ux-remediation-plan.md) is not complete.
-
-- `npm ci`, `npm run check`, and `npm run build` passed. The existing Vite
-  entry-chunk size warning remains.
-- `npm test`: 76 passed. `npm run test:api`: 62 passed with disposable SQLite.
-  `npm run test:training:sqlite`: 15 passed.
-- `npm run test:ui`: all 109 cases passed in 7.4 minutes, with no skips or
-  retries; a fresh 109-case repeat passed in 7.7 minutes after the Save-only
-  input-Enter correction and final zoom fixtures. A later direct-unknown-URL
-  server correction passed all 62 HTTP cases and a 32-case browser subset.
-  CI run `39831152427` verifies source revision `1957eac`: production HTTPS
-  passed all 109 cases in 7.8 minutes, and checks/databases/image-smoke passed.
-  Development CI was still installing Chrome at that recording. A later repeat
-  (`39833130662`, docs-only source `9a70f88`) had one test-readiness failure in
-  each browser mode, with 108 passes each, and is not reported passed. Filter
-  form-commit and dialog-opacity waits now preserve all assertions; 69 controlled
-  stress cases passed across three explicit repetitions. Final implementation CI
-  [run 39836492319](https://github.com/narumiruna/fitness/actions/runs/39836492319)
-  passed all five jobs on `f116c45`: development 109 cases in 11.0 minutes,
-  production HTTPS 109 in 7.8 minutes, checks, databases, and image-smoke. No
-  browser skips or retries were used. Later evidence-only commits do not change
-  that tested application or test source.
-- The matrix includes both locales, 1440/390/320-pixel layouts, and 38 native
-  200% Chrome-zoom samples with actual viewport/DPR/PNG-width checks. Keyboard,
-  axe, pending-close failure recovery, retained drafts, and no-duplicate-write
-  assertions are separate from participant or screen-reader evidence.
-- The full and final focused runners returned zero. Separate checks found no
-  listeners on 8784/8785 or runner-owned supervisor after cleanup. No existing
-  service was stopped or reused.
-- `npm run test:ui:production` built successfully but was blocked before browser
-  execution by an unavailable Docker daemon. No local production-mode or
-  PostgreSQL check is claimed passed locally. The isolated CI database job passed
-  29 database-init tests, 15 upgrade tests for each provider, and 62 PostgreSQL
-  HTTP cases; its production browser job passed all 109 cases. These results
-  refer to [run 39831152427](https://github.com/narumiruna/fitness/actions/runs/39831152427)
-  on source revision `1957eac`, not a historical migration run.
-- A new HTTP assertion reproduced plain-text unknown browser recovery (61 passed,
-  one failed). The bounded server fallback now returns the existing HTML shell
-  with HTTP 404 for extensionless unknown browser URLs, with no-store and empty
-  HEAD bodies. JSON API, asset, machine endpoint, file-like, and traversal failures
-  retain their boundaries. All 62 HTTP cases then passed.
-- `prek run -a` passed for Biome and TypeScript and is repeated before committing.
-- Five unfamiliar participants, real screen-reader tasks, physical-device
-  passkeys and deliberate browser-dialog dismissal, complete manual state
-  coverage, and user acceptance remain open. The PR must remain draft until
-  evidence is supplied or each applicable limitation is explicitly accepted.
+This snapshot removes later verification records and historical-scope notes
+present on `main`. These differences require review; they are not accepted fixes.
+Keep the PR draft while the audit failure and documentation differences remain
+unresolved. Earlier passing results above do not verify this snapshot. No
+application implementation, deployment, publication, or production operation is
+included.
