@@ -1,3 +1,4 @@
+import { buildExerciseMonthlyTrend } from "@narumitw/fitness-core/calendar";
 import {
   Badge,
   Button,
@@ -61,7 +62,7 @@ export default function ExerciseHistoryPage() {
   const workingEntries = setEntries.filter((set) => set.type === "WORKING");
   const maxWeight = maxBy(workingEntries, (set) => set.weight);
   const maxReps = maxBy(workingEntries, (set) => set.reps);
-  const monthlyTrend = buildMonthlyTrend(
+  const monthlyTrend = buildExerciseMonthlyTrend(
     setEntries,
     locale,
     calendarDate(today),
@@ -264,14 +265,6 @@ export default function ExerciseHistoryPage() {
   );
 }
 
-type SetEntry = {
-  reps: number;
-  weight: number;
-  workout: {
-    date: Date;
-  };
-};
-
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <Card asChild>
@@ -287,32 +280,9 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function buildMonthlyTrend(sets: SetEntry[], locale: string, today: Date) {
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(today);
-    date.setMonth(date.getMonth() - (5 - index));
-    date.setDate(1);
-    return {
-      key: formatMonthKey(date),
-      label: date.toLocaleDateString(locale, { month: "short" }),
-      volume: 0,
-    };
-  });
-  const monthByKey = new Map(months.map((month) => [month.key, month]));
-  for (const set of sets) {
-    const month = monthByKey.get(formatMonthKey(set.workout.date));
-    if (month) month.volume += set.weight * set.reps;
-  }
-  return months;
-}
-
 function maxBy<T>(items: T[], value: (item: T) => number) {
   return items.reduce<T | undefined>((best, item) => {
     if (!best || value(item) > value(best)) return item;
     return best;
   }, undefined);
-}
-
-function formatMonthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }

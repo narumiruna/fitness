@@ -1,5 +1,6 @@
 export {
   buildCalendarMonth,
+  buildExerciseMonthlyTrend,
   type CalendarDay,
   type CalendarMonth,
   type CalendarMonthLink,

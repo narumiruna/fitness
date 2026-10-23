@@ -116,6 +116,25 @@ and after the experiment. Neither may change. Remove only the disposable clone
 when the review is complete. Do not run `changeset publish`, create remote tags,
 or change production services.
 
+## Password hash compatibility and recovery
+
+New and changed passwords use the `bcrypt-sha256:v1:` format: a domain-separated
+SHA-256 digest, encoded as base64, is hashed with bcrypt at cost 12. The digest is
+not stored. New hashes verify the full password, including bytes after byte 72.
+Existing unmarked bcrypt hashes remain accepted without a data migration. They
+retain the historical 72-byte limit until the account password is changed; the
+original discarded suffix cannot be recovered.
+
+Before a separately authorized rollout, verify new account creation, legacy
+login, a password change whose suffix differs after byte 72, and revocation of
+old sessions. The SQLite regressions cover these cases; PostgreSQL and HTTPS
+checks require a separate available test environment.
+
+After new-format hashes are written, do not roll back to a build that only
+supports unmarked bcrypt. Retain the version-aware verifier in a rollback build.
+Do not reset passwords or restore an old database over newer records as an
+application rollback. This change does not authorize a deployment.
+
 ## Fitness MCP rollout and recovery
 
 See [MCP setup and permissions](mcp.md) and the MCP section of

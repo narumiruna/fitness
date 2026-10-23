@@ -89,7 +89,8 @@ export async function acceptProgressionAction(data: FormData) {
     });
     if (sourceLock.count !== 1) throw new ApiError(409, "CONFLICT");
     const targets = w.sets.filter((s) => s.exerciseId === exerciseId);
-    if (targets.some((s) => s.completed)) throw new ApiError(409, "CONFLICT");
+    if (targets.some((s) => s.type === "WORKING" && s.completed))
+      throw new ApiError(409, "CONFLICT");
     const result = evaluateProgression(
       source.sets,
       targets.map((s) => ({

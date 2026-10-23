@@ -312,6 +312,12 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     await add
       .getByLabel("Weight (kg)", { exact: true })
       .evaluate((el) => (el as HTMLInputElement).validity.stepMismatch),
+  ).toBe(false);
+  await add.getByLabel("Weight (kg)", { exact: true }).fill("50.0001");
+  expect(
+    await add
+      .getByLabel("Weight (kg)", { exact: true })
+      .evaluate((el) => (el as HTMLInputElement).validity.stepMismatch),
   ).toBe(true);
   await add.getByLabel("Weight (kg)", { exact: true }).fill("50");
   await add.getByLabel("Reps", { exact: true }).fill("5");
@@ -1147,7 +1153,7 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
   );
   await expect(first.locator('input[name="weight"]')).toHaveAttribute(
     "step",
-    "0.5",
+    "0.001",
   );
   await expect(first.locator('input[name="weight"]')).toHaveAttribute(
     "required",
