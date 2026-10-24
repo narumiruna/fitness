@@ -20,6 +20,26 @@ jobs:
       PASSKEY_ORIGIN: ${{ vars.PASSKEY_ORIGIN }}
     steps:
       - uses: actions/checkout@v7
+      - name: Ensure Docker is ready
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            if [[ "$RUNNER_OS" == "macOS" && "$(docker context show)" == "orbstack" ]]; then
+              orbctl start
+            fi
+            for attempt in {1..24}; do
+              if docker info >/dev/null 2>&1; then
+                break
+              fi
+              sleep 5
+            done
+          fi
+          if ! docker info >/dev/null 2>&1; then
+            echo "::error::Docker is unavailable. Check the runner's Docker context and daemon."
+            exit 1
+          fi
+          docker compose version
       - name: Build image
         shell: bash
         run: |

@@ -14,6 +14,19 @@ recovered from the existing successful deployment log without connecting to
 production services. Actual deployment and production backup/restore remain
 separate authorized operations.
 
+## Deployment Docker readiness fix
+
+- [Failed run 39887994733](https://github.com/narumiruna/fitness/actions/runs/39887994733)
+  failed before image build because the runner's OrbStack Docker socket was absent.
+- The workflow now starts OrbStack only when Docker is unavailable on macOS with
+  the `orbstack` context, then checks readiness before building.
+- Parsed the workflow with `yaml` and tested its exact readiness shell block with
+  mocked `docker`, `orbctl`, and `sleep` commands. All five cases passed: Docker
+  already ready, OrbStack recovery, failed recovery, another context, and Linux.
+  Confirmed that the trigger remains manual and the step timeout is three minutes.
+- `git diff --check` passed. No real Docker startup, production service operation,
+  or workflow dispatch was performed. Live recovery remains unverified.
+
 ## Baseline and Isolation
 
 - Base: `origin/main`, revision `8dd822b4eed44181c22a1a347cc971c16a02ac9f`.
