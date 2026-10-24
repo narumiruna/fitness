@@ -88,6 +88,19 @@ The deployment workflow is manual only. Code and version PR merges do not deploy
 production. Creating or merging a release PR does not authorize a deployment;
 do not dispatch the production workflow without separate authorization.
 
+## Deployment runner
+
+The manual deployment runs on a self-hosted runner with Docker Compose installed.
+Before building, the workflow checks Docker availability. If Docker is unavailable
+on macOS and the selected context is `orbstack`, it runs `orbctl start` and waits
+for Docker. The readiness step has a three-minute timeout and fails before the
+build if Docker remains unavailable. It does not switch Docker contexts or reset
+Docker data. Keep `orbctl` on the runner's PATH.
+
+Starting OrbStack can resume existing production containers. Test workflow
+changes with mocked commands; dispatch the workflow only with explicit production
+authorization.
+
 ## Verify the version command safely
 
 Run the version experiment in a disposable local clone of the reviewed commit:
