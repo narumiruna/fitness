@@ -471,21 +471,29 @@ test("UI UX review: every signed-in page and data state", async ({
     evidence.push(await inspect(page, info, "no-results-en-390"));
     const combinedFilters =
       "/exercises?q=Bench&sort=recent&muscle=chest&equipment=barbell";
-    await page.goto(combinedFilters);
-    await page.locator(".library-metadata-filters button[type=submit]").click();
-    await expect(page).not.toHaveURL(/sort=recent/);
-    evidence.push({
-      name: "metadata-submit-drops-sort",
-      query: new URL(page.url()).search,
-    });
-    await page.goto(combinedFilters);
-    await page.locator(".library-filters button[type=submit]").click();
-    await expect(page).not.toHaveURL(/muscle=chest/);
-    await expect(page).not.toHaveURL(/equipment=barbell/);
-    evidence.push({
-      name: "search-submit-drops-metadata",
-      query: new URL(page.url()).search,
-    });
+    for (const expanded of [false, true]) {
+      await page.goto(combinedFilters);
+      const queryForm = page.locator(".library-query");
+      if (expanded) await queryForm.locator("summary").click();
+      await queryForm.getByRole("textbox", { name: "Search" }).fill("Review");
+      await queryForm
+        .getByRole("button", { name: "Search", exact: true })
+        .click();
+      await expect(page).toHaveURL(
+        (url) =>
+          url.searchParams.get("q") === "Review" &&
+          url.searchParams.get("sort") === "recent" &&
+          url.searchParams.get("muscle") === "chest" &&
+          url.searchParams.get("equipment") === "barbell",
+      );
+      await expect(
+        page.getByRole("heading", { name: exercise.defaultName, exact: true }),
+      ).toBeVisible();
+      evidence.push({
+        name: `search-submit-preserves-filters-${expanded ? "expanded" : "collapsed"}`,
+        query: new URL(page.url()).search,
+      });
+    }
     await page.goto(`/exercises/${exercise.id}`);
     await ready(page);
     await page.screenshot({
