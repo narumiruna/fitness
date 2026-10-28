@@ -23,9 +23,9 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState, MetricCard, StrengthIcon } from "@/components/dashboard";
 import { FormSelect } from "@/components/form-select";
 import { NotesCheckbox } from "@/components/notes-checkbox";
-import { StartSessionForm } from "@/components/session-panel";
 import { SubmitButton } from "@/components/submit-button";
 import { TemplatePlanning } from "@/components/template-planning";
+import { TrainingEntry } from "@/components/training-entry";
 import { WorkoutCalendar } from "@/components/workout-calendar";
 import { type MessageKey, useDictionary, useLocale } from "@/lib/i18n";
 
@@ -48,6 +48,7 @@ export default function WorkoutsPage() {
     workouts,
     exerciseOptions,
     templates,
+    ongoingSessions,
     filters,
     today,
   } = usePageView("workouts");
@@ -80,6 +81,11 @@ export default function WorkoutsPage() {
         </Button>
       </div>
       <div className="workouts-layout">
+        <TrainingEntry
+          sessions={ongoingSessions}
+          templates={templates}
+          today={today}
+        />
         <Card asChild>
           <section className="workouts-list stack">
             <div className="section-heading">
@@ -159,7 +165,18 @@ export default function WorkoutsPage() {
             {workouts.length === 0 ? (
               <EmptyState
                 title={t(totalHistoryCount ? "noWorkoutResults" : "noWorkouts")}
-              />
+                description={
+                  totalHistoryCount ? undefined : t("firstWorkoutHelp")
+                }
+              >
+                {!totalHistoryCount ? (
+                  <Button highContrast variant="soft" asChild>
+                    <RouterLink to="/workouts/new">
+                      {t("createPastWorkout")}
+                    </RouterLink>
+                  </Button>
+                ) : null}
+              </EmptyState>
             ) : (
               workouts.map((workout, index) => {
                 const month = workout.date.toLocaleDateString(locale, {
@@ -391,11 +408,6 @@ export default function WorkoutsPage() {
                           {template._count?.sets ?? 0} {t("sets")}
                         </Text>
                       </div>
-                      <StartSessionForm
-                        source="template"
-                        sourceId={template.id}
-                        date={today}
-                      />
                       <details>
                         <summary>{t("createPastWorkout")}</summary>
                         <ActionForm

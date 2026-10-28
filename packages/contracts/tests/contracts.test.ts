@@ -4,6 +4,7 @@ import {
   actionEnvelopeSchema,
   bootstrapSchema,
   dateOnlySchema,
+  ongoingSessionSchema,
   passkeysViewSchema,
   timestampSchema,
   userSchema,
@@ -95,6 +96,53 @@ test("DTO guards enforce null and numeric types", () => {
   );
   for (const result of [1n, new Uint8Array([1]), Infinity, NaN])
     assert.equal(actionEnvelopeSchema.safeParse({ result }).success, false);
+});
+test("workouts require ongoing summaries with calendar dates and set counts", () => {
+  const schema = viewSchemas.workouts.pick({ ongoingSessions: true });
+  const session = {
+    id: "ongoing-session",
+    date: "2026-10-20",
+    title: null,
+    state: "ACTIVE",
+    totalSets: 0,
+    completedSets: 0,
+  };
+  assert.equal(schema.safeParse({}).success, false);
+  assert.deepEqual(schema.parse({ ongoingSessions: [] }), {
+    ongoingSessions: [],
+  });
+  for (const state of ["ACTIVE", "PAUSED"]) {
+    assert.deepEqual(
+      schema.parse({ ongoingSessions: [{ ...session, state }] }),
+      { ongoingSessions: [{ ...session, state }] },
+    );
+  }
+  for (const invalid of [
+    { state: "COMPLETED" },
+    { state: "ABANDONED" },
+    { date: "2026-10-20T00:00:00.000Z" },
+    { date: "2026-02-30" },
+    { totalSets: -1 },
+    { totalSets: 0.5 },
+    { completedSets: -1 },
+    { completedSets: "0" },
+    { completedSets: undefined },
+    { title: undefined },
+  ]) {
+    assert.equal(
+      ongoingSessionSchema.safeParse({ ...session, ...invalid }).success,
+      false,
+    );
+  }
+  assert.deepEqual(
+    ongoingSessionSchema.parse({
+      ...session,
+      userId: "private",
+      sets: [],
+      updatedAt: "private",
+    }),
+    session,
+  );
 });
 test("redirect envelopes only contain site-relative navigation", () => {
   assert.equal(

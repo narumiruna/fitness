@@ -37,6 +37,7 @@ import {
   queryClient,
   request,
 } from "./api/client";
+import { AccountMenu } from "./components/account-menu";
 import { ActionForm } from "./components/action-form";
 import { StrengthIcon } from "./components/dashboard";
 import { LanguageSelect } from "./components/language-select";
@@ -317,23 +318,30 @@ function Shell() {
               />
               {user ? (
                 <>
-                  {user.role === "ADMIN" ? (
+                  <Flex
+                    align="center"
+                    gap="3"
+                    className="desktop-account-actions"
+                  >
+                    {user.role === "ADMIN" ? (
+                      <Link highContrast asChild>
+                        <RouterLink to="/admin/users">{t("admin")}</RouterLink>
+                      </Link>
+                    ) : null}
                     <Link highContrast asChild>
-                      <RouterLink to="/admin/users">{t("admin")}</RouterLink>
+                      <RouterLink to="/account/password">
+                        <PersonIcon aria-hidden="true" />
+                        {t("account")}
+                      </RouterLink>
                     </Link>
-                  ) : null}
-                  <Link highContrast asChild>
-                    <RouterLink to="/account/password">
-                      <PersonIcon aria-hidden="true" />
-                      {t("account")}
-                    </RouterLink>
-                  </Link>
-                  <ActionForm action={logoutAction}>
-                    <Button highContrast variant="ghost" type="submit">
-                      <ExitIcon aria-hidden="true" />
-                      {t("signOut")}
-                    </Button>
-                  </ActionForm>
+                    <ActionForm action={logoutAction}>
+                      <Button highContrast variant="ghost" type="submit">
+                        <ExitIcon aria-hidden="true" />
+                        {t("signOut")}
+                      </Button>
+                    </ActionForm>
+                  </Flex>
+                  <AccountMenu />
                 </>
               ) : (
                 <Link highContrast asChild>

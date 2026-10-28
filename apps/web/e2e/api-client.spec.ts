@@ -18,6 +18,7 @@ const emptyWorkouts = {
   workouts: [],
   exerciseOptions: [],
   templates: [],
+  ongoingSessions: [],
   filters: { exerciseId: "", month: "", notesOnly: false, page: 1, q: "" },
   today: "2026-10-20",
   calendarWorkouts: [],

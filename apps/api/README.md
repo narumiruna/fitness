@@ -50,7 +50,7 @@ All routes require a session. `users` also requires `ADMIN`.
 
 | GET route suffix under `/api/views/` | Schema key | Read behavior |
 | --- | --- | --- |
-| `workouts` | `workouts` | Search, month, exercise, notes, 20-row pagination, completed metrics, templates, mini-calendar, planning |
+| `workouts` | `workouts` | Search, month, exercise, notes, 20-row pagination, completed metrics, ongoing sessions, templates, mini-calendar, planning |
 | `workouts/new` | `new` | Stable draft key and validated initial date |
 | `workouts/:id` | `workout` | Owned workout, ordered sets, exercise options, previous sessions, progression previews |
 | `calendar` | `calendar` | Calendar grid range, completed-set metrics, effective schedules, planned sessions |
@@ -62,6 +62,13 @@ All routes require a session. `users` also requires `ADMIN`.
 | `passkeys` | `passkeys` | Current user's safe credential list |
 | `dashboard` | `dashboard` | Completed mini-calendar dates, planning, report inputs |
 | `data` | `data` | Public exercise choices for import |
+
+The workouts view includes `ongoingSessions`: owned `ACTIVE`/`PAUSED` summaries
+with `id`, calendar `date`, nullable `title`, `state`, `totalSets`, and
+`completedSets`. This list is independent of history filters and pagination. It
+includes all ongoing sessions, ordered by update time descending and ID ascending.
+Set counts include all prescribed set types; this read does not resume a session
+or change its data.
 
 ## Mutation matrix
 
