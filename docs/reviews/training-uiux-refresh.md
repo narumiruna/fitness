@@ -117,8 +117,21 @@ See the dated baseline entry in
 [Hono migration verification](../hono-migration-verification.md).
 Local screenshots are in `.cache/uiux-refresh/before/`.
 
+Implementation is available in [PR #30](https://github.com/narumiruna/fitness/pull/30).
+The execution plan at `docs/plans/2026-10-28_training-uiux-refresh-plan.md` is
+complete; this document retains its design decisions and implementation sequence.
 Implementation and full browser verification are complete. All 137 cases pass
 in each development and isolated production HTTPS mode. The verification
 document records the remaining command results and local artifact paths. Human usability, physical-device, and real screen-reader testing remain
-unverified; retain the existing
-[participant guide](web-ui-ux-participant-guide.md) for those checks.
+unverified.
+
+## External handoff
+
+Product reviewers need a disposable test account, a physical device with passkey
+hardware, and a real screen reader. Use the existing
+[participant guide](web-ui-ux-participant-guide.md) to check unassisted training
+entry, current-set recording, results review, focus, and hardware sign-in. The
+expected result is successful task completion without data loss or inaccessible
+controls. These behaviors are not established by screenshots, axe, or virtual
+authenticators. Product acceptance remains a reviewer decision; this PR does not
+authorize a deployment or release.

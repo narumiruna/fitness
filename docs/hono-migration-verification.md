@@ -86,7 +86,11 @@ supervisor remained, and no disposable PostgreSQL container remained. The full
 development and production runs did not emit this warning. The local Node 26
 shutdown warning remains a test-runner follow-up, not a passed cleanup assumption.
 
-Local runtime is Node 26.10.0; this entry does not claim Node 24 CI results.
+[PR #30](https://github.com/narumiruna/fitness/pull/30) contains the implementation.
+The completed execution plan was removed from
+`docs/plans/2026-10-28_training-uiux-refresh-plan.md`; its design and external
+handoff remain in the retained review. Local runtime is Node 26.10.0; this entry
+does not claim Node 24 CI results.
 Human task testing, physical passkeys, and real screen-reader tasks remain
 unverified. Use the existing participant guide for those checks. No production
 service operation, deployment, package publication, or release tag is authorized
