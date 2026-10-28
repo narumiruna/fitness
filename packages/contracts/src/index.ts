@@ -226,6 +226,15 @@ const filtersSchema = z.object({
   page: number,
   q: z.string(),
 });
+export const ongoingSessionSchema = z.object({
+  id,
+  date: dateOnlySchema,
+  title: nullableText,
+  state: z.enum(["ACTIVE", "PAUSED"]),
+  totalSets: z.number().int().nonnegative(),
+  completedSets: z.number().int().nonnegative(),
+});
+export type OngoingSession = z.infer<typeof ongoingSessionSchema>;
 export const workoutsViewSchema = z.object({
   filteredWorkoutCount: number,
   totalHistoryCount: number,
@@ -235,6 +244,7 @@ export const workoutsViewSchema = z.object({
   totalPages: number,
   currentPage: number,
   workouts: z.array(workoutSchema),
+  ongoingSessions: z.array(ongoingSessionSchema),
   exerciseOptions: z.array(z.object({ id, defaultName: z.string() })),
   templates: z.array(templateSchema),
   filters: filtersSchema,

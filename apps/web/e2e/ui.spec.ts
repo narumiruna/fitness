@@ -1091,6 +1091,7 @@ test("bounded chart periods, setless sessions, and aggregated personal exercise 
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(result.violations).toEqual([]);
+  await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("button", { name: "Sign out" }).click();
 });
 

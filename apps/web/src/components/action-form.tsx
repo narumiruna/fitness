@@ -24,6 +24,7 @@ export type ActionFormProps = Omit<
   action?: string | ((data: FormData) => unknown | Promise<unknown>);
   children?: ReactNode;
   resetOnSuccess?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 };
 
 // Native validation and submitter values run before this handler. Failed requests never reset drafts.
@@ -33,6 +34,7 @@ export function ActionForm({
   onSubmit,
   onInvalidCapture,
   resetOnSuccess = false,
+  onPendingChange,
   ...props
 }: ActionFormProps) {
   const navigate = useNavigate();
@@ -70,6 +72,7 @@ export function ActionForm({
           if (!action) return;
           inFlight.current = true;
           setPending(true);
+          onPendingChange?.(true);
           setMessage("");
           try {
             const result = await action(data);
@@ -87,6 +90,7 @@ export function ActionForm({
           } finally {
             inFlight.current = false;
             setPending(false);
+            onPendingChange?.(false);
           }
         }}
       >

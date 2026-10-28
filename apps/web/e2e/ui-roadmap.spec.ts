@@ -28,6 +28,8 @@ async function openDisclosure(summary: Locator) {
 }
 async function login(page: Page, name: string) {
   const signOut = page.getByRole("button", { name: "Sign out", exact: true });
+  const more = page.getByRole("button", { name: "More", exact: true });
+  if (await more.isVisible()) await more.click();
   if (await signOut.count()) {
     await signOut.click();
     await expect(page).toHaveURL(/\/login$/);
@@ -252,7 +254,12 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .toBe(1);
   await schedule.click();
   await expect(schedule.locator("..")).not.toHaveAttribute("open");
-  const start = page.locator(".template-item form").filter({
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Start from template", exact: true }),
+    template.title,
+  );
+  const start = page.locator(".selected-template form").filter({
     has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
   });
   await expect(
@@ -811,7 +818,12 @@ test("saved zero-weight single-rep actuals survive revalidation, reload, and com
       .filter({ hasText: /^Weekly template schedule$/ })
       .locator(".."),
   ).not.toHaveAttribute("open");
-  const start = page.locator(".template-item form").filter({
+  await choose(
+    page,
+    page.getByRole("combobox", { name: "Start from template", exact: true }),
+    template.title,
+  );
+  const start = page.locator(".selected-template form").filter({
     has: page.locator(`input[name="sourceId"][value="${template.id}"]`),
   });
   await start

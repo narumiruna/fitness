@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Heading,
+  Progress,
   Text,
   TextField,
 } from "@radix-ui/themes";
@@ -14,7 +15,7 @@ import {
 } from "@/api/actions";
 import { type PageView, usePageView } from "@/api/views";
 import { ActionForm } from "@/components/action-form";
-import { type MessageKey, useDictionary } from "@/lib/i18n";
+import { type MessageKey, useDictionary, useLocale } from "@/lib/i18n";
 import { RestTimer } from "./rest-timer";
 import { SafeForm } from "./safe-form";
 import { SessionControls } from "./session-controls";
@@ -24,16 +25,22 @@ export function StartSessionForm({
   source,
   date,
   scheduled = false,
+  onPendingChange,
 }: {
   sourceId: string;
   source: "template" | "workout";
   date: string;
   scheduled?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const t = useDictionary();
   const [draftKey] = useState(() => crypto.randomUUID());
   return (
-    <ActionForm action={startSessionAction} className="form-grid">
+    <ActionForm
+      action={startSessionAction}
+      className="form-grid"
+      onPendingChange={onPendingChange}
+    >
       <input type="hidden" name="sourceId" value={sourceId} />
       <input type="hidden" name="source" value={source} />
       <input type="hidden" name="key" value={draftKey} />
@@ -71,6 +78,7 @@ export function SessionPanel({
   workout: PageView<"workout">["workout"];
 }) {
   const t = useDictionary();
+  const locale = useLocale();
   const { previews, today } = usePageView("workout");
   if (workout.state === "COMPLETED")
     return (
@@ -86,6 +94,8 @@ export function SessionPanel({
       </Card>
     );
   const live = workout.state === "ACTIVE" || workout.state === "PAUSED";
+  const completedSets = workout.sets.filter((set) => set.completed).length;
+  const number = new Intl.NumberFormat(locale);
   const currentSetId = live
     ? workout.sets.find((set) => !set.completed)?.id
     : undefined;
@@ -103,7 +113,7 @@ export function SessionPanel({
       workoutId={workout.id}
       version={workout.version}
       active={workout.state === "ACTIVE"}
-      skipped={workout.sets.filter((set) => !set.completed).length}
+      skipped={workout.sets.length - completedSets}
       messages={{
         pause: t("pause"),
         resume: t("resume"),
@@ -128,13 +138,47 @@ export function SessionPanel({
         </Heading>
         <Badge>{t(workout.state as MessageKey)}</Badge>
       </div>
-      {workout.state === "PAUSED" ? controls : null}
+      <div className="session-overview stack">
+        <div className="session-progress stack">
+          <Text size="2" weight="medium">
+            {t("sessionProgress")
+              .replace("{completed}", number.format(completedSets))
+              .replace("{total}", number.format(workout.sets.length))}
+          </Text>
+          <Progress
+            value={
+              workout.sets.length
+                ? (completedSets / workout.sets.length) * 100
+                : 0
+            }
+            aria-label={t("trainingSession")}
+          />
+        </div>
+        <div className="session-clock">
+          <RestTimer
+            deadline={workout.restDeadline?.toISOString() ?? null}
+            label={t("restRemaining")}
+            activeSeconds={workout.activeSeconds}
+            resumedAt={
+              workout.state === "ACTIVE"
+                ? (workout.resumedAt?.toISOString() ?? null)
+                : null
+            }
+            durationLabel={t("activeSeconds")}
+          />
+        </div>
+        {controls}
+      </div>
       <div className="stack">
         {orderedSets.map((s) => {
           const current = s.id === currentSetId;
           return (
             <Card asChild key={s.id}>
-              <details className="session-set" open={current}>
+              <details
+                className="session-set"
+                data-current={current || undefined}
+                open={current}
+              >
                 <summary>
                   <Text weight="bold">
                     {current ? `${t("currentSessionSet")}: ` : ""}#{s.order}{" "}
@@ -257,18 +301,6 @@ export function SessionPanel({
           );
         })}
       </div>
-      {workout.state === "ACTIVE" ? controls : null}
-      <RestTimer
-        deadline={workout.restDeadline?.toISOString() ?? null}
-        label={t("restRemaining")}
-        activeSeconds={workout.activeSeconds}
-        resumedAt={
-          workout.state === "ACTIVE"
-            ? (workout.resumedAt?.toISOString() ?? null)
-            : null
-        }
-        durationLabel={t("activeSeconds")}
-      />
       {previews.length > 0 ? (
         <details>
           <summary>{t("progression")}</summary>

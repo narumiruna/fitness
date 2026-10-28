@@ -27,6 +27,75 @@ separate authorized operations.
 - `git diff --check` passed. No real Docker startup, production service operation,
   or workflow dispatch was performed. Live recovery remains unverified.
 
+## Training UI/UX refresh baseline — 2026-10-28
+
+- Revision: `cca619b`; no UI implementation changes were present.
+- `npm run test:ui -- apps/web/e2e/visual-dashboard.spec.ts`: 1 passed.
+  The case covers Workouts, Calendar, Stats, and Exercises at 1440/768/390 pixels,
+  with overflow assertions and WCAG A/AA axe checks at each width.
+- Captured 24 before-change screenshots in ignored
+  `.cache/uiux-refresh/before/`, using disposable SQLite data.
+- The runner exited successfully and ports 8784/8785 had no listeners afterward.
+- Inspected desktop/mobile Workouts, desktop Stats, and mobile Exercises captures;
+  reviewed training-entry and session-control source separately.
+- `codex_imagegen` was initially unavailable. The user later enabled its model
+  tool; the agent did not change settings or credentials. The implementation
+  and verification results follow below.
+
+## Training UI/UX refresh verification — 2026-10-28
+
+The [review and design plan](reviews/training-uiux-refresh.md) records findings,
+the generation brief, selected decisions, implementation sequence, and recovery.
+`codex_imagegen` generated `.cache/uiux-refresh/proposal.png` (1536 × 1024) from
+synthetic content; the image was inspected before implementation. No generated
+image is committed or used by the app.
+
+| Check | Actual result |
+| --- | --- |
+| `npm run check` | Passed: Biome and root/workspace TypeScript |
+| `npm test` | 82 passed; no failures or skips |
+| `npm run build` | Passed; Vite reports a chunk larger than 500 kB |
+| `npm run test:api` | 83 passed with disposable SQLite |
+| `npm run test:api:postgres` | 83 passed with a separate PostgreSQL test container |
+| `npm run test:ui` | 137 passed in 14.4 minutes; no retries or skips |
+| `npm run test:ui:production` | 137 passed in 17.4 minutes with isolated PostgreSQL and HTTPS; no retries or skips |
+| Final focused `training-entry.spec.ts` run | 2 passed after the feedback-width/input-alignment correction; exit 0 |
+| `prek run -a` | Passed: Biome and TypeScript hooks |
+
+Coverage includes both locales and roles, 320/390/768/1440-pixel layouts,
+keyboard focus, closed/open menu axe checks, real 200% Chrome zoom, private
+ongoing sessions under history filters/page 2, long-session controls, and the
+existing authentication/training/recovery workflows. A retry regression verifies
+that a lost committed response followed by template switching still creates only
+one session. Visual inspection also identified template feedback width and input
+alignment; final layout assertions cover those corrections.
+
+Development artifacts were copied to `.cache/uiux-refresh/development/` (361 PNG
+captures), and production artifacts to `.cache/uiux-refresh/production/`. Baseline
+captures remain in `.cache/uiux-refresh/before/`. Desktop/mobile dashboards,
+Chinese mobile navigation, the active current-set layout, and the final template
+failure/retry layout were visually inspected. An earlier
+partial development run was stopped for code-review fixes; only its own orphaned
+test supervisor was stopped, and both ports were confirmed free before restart.
+That interrupted run is not counted as passed verification.
+
+The final focused development run emitted `kill EPERM` from the unchanged
+`scripts/dev.mjs` process-group existence check during shutdown, after both tests
+passed. Its runner returned 0. Afterward, ports 8784/8785 had no listeners, no test
+supervisor remained, and no disposable PostgreSQL container remained. The full
+development and production runs did not emit this warning. The local Node 26
+shutdown warning remains a test-runner follow-up, not a passed cleanup assumption.
+
+[PR #30](https://github.com/narumiruna/fitness/pull/30) contains the implementation.
+The completed execution plan was removed from
+`docs/plans/2026-10-28_training-uiux-refresh-plan.md`; its design and external
+handoff remain in the retained review. Local runtime is Node 26.10.0; this entry
+does not claim Node 24 CI results.
+Human task testing, physical passkeys, and real screen-reader tasks remain
+unverified. Use the existing participant guide for those checks. No production
+service operation, deployment, package publication, or release tag is authorized
+or performed by this work.
+
 ## Baseline and Isolation
 
 - Base: `origin/main`, revision `8dd822b4eed44181c22a1a347cc971c16a02ac9f`.

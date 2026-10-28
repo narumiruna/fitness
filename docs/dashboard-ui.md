@@ -2,7 +2,7 @@
 
 ## Structure
 
-- Workouts: month-grouped history, session-state badges, prescribed/completed progress, continue links, filters, user-scoped totals, exercise previews, focused creation at `/workouts/new`, and templates. Keep 20-row pagination and title/notes search semantics. Filters and pagination affect history, not all-time summary totals.
+- Workouts: compact training entry, independently loaded ongoing sessions, selected-template setup, month-grouped history, session-state badges, prescribed/completed progress, continue links, filters, user-scoped totals, exercise previews, focused creation at `/workouts/new`, and templates. Keep 20-row pagination and title/notes search semantics. Filters and pagination affect history, not all-time summary totals.
 - Calendar: Sunday-first, 42-cell month grid, local-date selection, selected-day workouts, selected-date creation, and month agenda. Narrow screens show the selected date before the agenda. Markers retain accessible names and detail links.
 - Stats: URL-based ranges, daily volume, Sunday-start weekly counts, exercise distribution, exercise volume, and personal records. Detailed totals and comparisons remain available without replacing the compact overview.
 - Exercises: shared library, localized-name/normalized-alias search, name and personal-use sorting, aliases, creation, metadata filters, and personal recent-use dates. Usage counts and dates exclude other users' workouts.
@@ -17,7 +17,11 @@ is included in browser code.
 `apps/web/src/styles.css` retains the existing dashboard CSS and Radix theme
 integration. Keep active/nested navigation marked with `aria-current`, high
 contrast primary controls, keyboard-visible focus, and the skip-to-content link.
-Do not add a visual redesign as part of backend changes.
+Do not add a visual redesign as part of unrelated backend changes. On mobile,
+keep four labeled primary tabs in the compact header. The More dialog provides
+measurements, workout data, account, administrator access when authorized, and
+sign-out. Keep locale selection in the toolbar and return keyboard focus when
+the dialog closes.
 
 Typed English and Traditional Chinese dictionaries live in `apps/web/src/lib/`.
 Bootstrap resolves the HttpOnly locale cookie and browser preference on the API.
@@ -30,7 +34,9 @@ Locale changes update document language and number/date labels, not stored keys.
 - Keep search and useful history/library rows before secondary overview and filter details. Show active criteria and a local clear action even when optional controls are collapsed.
 - Put exercise identity and personal history before editors. Put recorded workout results and sets before reuse/configuration tools.
 - In active training, group current weight/reps with primary Complete set; keep Save and optional RIR/notes secondary. Resume is primary when paused.
-- Keep Start training beside its template, separate from past-workout logging and weekly scheduling.
+- Put compact training entry before history. Show the most recently updated ongoing session first and make the others available in a disclosure. These summaries must not depend on history filters or pagination.
+- Keep Start training beside its selected template, separate from past-workout logging and weekly scheduling. Keep visited template forms mounted but hidden when inactive so drafts and request keys survive source changes.
+- Keep session progress, rest status, and session controls immediately before the current-set group. Do not put them after the remaining-set list or over input controls.
 - Use distinct measurement/target actions. Keep measurement tables locally scrollable and target labels outside the chart plot.
 - Show kg load and localized kg × reps volume units at point of use. Preserve metric definitions and calculation rules.
 - Use named confirmation for passkey removal. Preserve operation-specific security feedback and account recovery advice.

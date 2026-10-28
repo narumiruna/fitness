@@ -233,6 +233,7 @@ test("UI UX review: first-run setup and guest screens", async ({
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { username } })).role,
     ).toBe("ADMIN");
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
     for (const language of ["en", "zh-TW"] as const) {

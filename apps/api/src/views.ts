@@ -144,28 +144,45 @@ async function readViewData(
     ]);
     const totalPages = Math.max(1, Math.ceil(filteredWorkoutCount / 20));
     const currentPage = Math.min(filters.page, totalPages);
-    const [workouts, exerciseOptions, templates, calendar, plans] =
-      await Promise.all([
-        prisma.workout.findMany({
-          where,
-          include: withSets,
-          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-          skip: (currentPage - 1) * 20,
-          take: 20,
-        }),
-        prisma.exercise.findMany({
-          where: { sets: { some: { workout: { userId: user.id } } } },
-          orderBy: { defaultName: "asc" },
-          select: { id: true, defaultName: true },
-        }),
-        prisma.workoutTemplate.findMany({
-          where: { userId: user.id },
-          include: { _count: { select: { sets: true } } },
-          orderBy: { updatedAt: "desc" },
-        }),
-        calendarWorkouts(user.id),
-        planning(user.id),
-      ]);
+    const [
+      workouts,
+      ongoingSessions,
+      exerciseOptions,
+      templates,
+      calendar,
+      plans,
+    ] = await Promise.all([
+      prisma.workout.findMany({
+        where,
+        include: withSets,
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        skip: (currentPage - 1) * 20,
+        take: 20,
+      }),
+      prisma.workout.findMany({
+        where: { userId: user.id, state: { in: ["ACTIVE", "PAUSED"] } },
+        select: {
+          id: true,
+          date: true,
+          title: true,
+          state: true,
+          sets: { select: { completed: true } },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+      }),
+      prisma.exercise.findMany({
+        where: { sets: { some: { workout: { userId: user.id } } } },
+        orderBy: { defaultName: "asc" },
+        select: { id: true, defaultName: true },
+      }),
+      prisma.workoutTemplate.findMany({
+        where: { userId: user.id },
+        include: { _count: { select: { sets: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+      calendarWorkouts(user.id),
+      planning(user.id),
+    ]);
     return {
       filteredWorkoutCount,
       totalHistoryCount,
@@ -178,6 +195,11 @@ async function readViewData(
       totalPages,
       currentPage,
       workouts,
+      ongoingSessions: ongoingSessions.map(({ sets, ...session }) => ({
+        ...session,
+        totalSets: sets.length,
+        completedSets: sets.filter((set) => set.completed).length,
+      })),
       exerciseOptions,
       templates,
       filters,
