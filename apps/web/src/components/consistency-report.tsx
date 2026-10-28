@@ -11,15 +11,18 @@ import {
 import { calendarDate, usePageView } from "@/api/views";
 import { ActionForm } from "@/components/action-form";
 import { useDictionary } from "@/lib/i18n";
-export function ConsistencyReport({ year: requested }: { year?: string }) {
+export function ConsistencyReport({
+  year,
+  range,
+  scope,
+}: {
+  year: number;
+  range: string;
+  scope: "range" | "all";
+}) {
   const t = useDictionary();
   const { consistencyHistory: history, today } = usePageView("stats");
   const now = calendarDate(today);
-  const candidate = Number(requested);
-  const year =
-    Number.isInteger(candidate) && candidate >= 1900 && candidate <= 9999
-      ? candidate
-      : now.getFullYear();
   const data = consistency(
     history.map((w) => w.date),
     now,
@@ -51,7 +54,9 @@ export function ConsistencyReport({ year: requested }: { year?: string }) {
           ))}
         </Table.Body>
       </Table.Root>
-      <ActionForm action="/stats" className="card-actions">
+      <ActionForm action="/stats" className="card-actions" key={year}>
+        <input type="hidden" name="range" value={range} />
+        <input type="hidden" name="records" value={scope} />
         <Text as="label">
           {t("year")}
           <TextField.Root

@@ -96,6 +96,69 @@ unverified. Use the existing participant guide for those checks. No production
 service operation, deployment, package publication, or release tag is authorized
 or performed by this work.
 
+## Results UI/UX refresh — 2026-10-28
+
+Baseline: `0ce25f8`, after PR #30. The
+[review and design plan](reviews/results-uiux-refresh.md) records six findings,
+the real `codex_imagegen` proposal, selected/rejected details, implementation,
+recovery, and external handoff. The generated image is
+`.cache/uiux-review-2/proposal.png` (1536 × 1024); no image is committed.
+
+| Check | Actual result |
+| --- | --- |
+| Baseline dashboard/recorded cases | 5 passed |
+| Baseline results captures | 1 passed; two locales at 320/390/1440 |
+| Context baseline | All 3 targeted failures reproduced before correction |
+| Context fixes plus existing dashboard cases | 10 passed |
+| Read-first results matrix, draft recovery, privacy/empty cases, real zoom | All 4 focused cases passed |
+| Existing UI workflows | 6 passed after adapting real editor/disclosure interactions |
+| Existing roadmap workflows | 2 passed after scoping preserved-parameter controls and schedule entries |
+| Post-load focused rerun of timed-out cases | 4 passed on unchanged code after host load fell to about 22 |
+| `npm run check` | Passed |
+| `npm test` | 84 passed; no skips |
+| `npm run build` | Passed; Rollup Zod annotation and >500 kB chunk warnings remain |
+| `npm run test:api` | 83 passed, disposable SQLite |
+| `npm run test:api:postgres` | 83 passed, isolated PostgreSQL |
+| Full local development browser run | Not passed: Axe evaluation timeouts; run stopped and preserved |
+| Node 24 CI development browser run | 144 passed in 21.1 minutes; no skips/retries |
+| Node 24 CI production HTTPS browser run | 144 passed in 18.1 minutes; no skips/retries |
+| Node 24 CI matrix | All five jobs passed: checks, databases, both browser modes, and image smoke |
+| CI database/image coverage | 29 initialization/cleanup cases, 15 upgrade cases per database, 83 PostgreSQL HTTP cases, and 2 isolated image smoke cases passed |
+| `prek run -a` | Passed: Biome and TypeScript |
+
+The interrupted full run encountered Axe evaluation timeouts in unchanged
+navigation coverage and recorded/result pages while host load averages were
+about 191. Other CPU-heavy builds were active. No unrelated process was stopped,
+no timeout was increased, and no check was skipped or retried automatically.
+Failures and traces remain in `.cache/uiux-review-2/resource-timeouts/` and
+`ui-resource-timeouts.log`. The same unchanged implementation passed all five jobs
+in [Node 24 CI run 40642662451](https://github.com/narumiruna/fitness/actions/runs/40642662451)
+at revision `c9fe0e1`, including all 144 cases in each browser mode. Four focused
+cases that timed out locally also passed after load fell, without a source change.
+The failed/interrupted local full attempt is not relabeled as a passed run.
+
+One earlier combined local command reached the Bash 300-second limit while an
+old roadmap URL assertion waited for the pre-fix query shape. The assertion now
+checks the preserved range/records/year values; the focused roadmap run passed.
+Only its owned orphaned test supervisor was stopped. The later overloaded full
+run was also stopped through its own runner/supervisor, and ports 8784/8785 were
+confirmed free afterward. Temporary Node 26 `kill EPERM` shutdown warnings in
+focused runs remain the already documented test-runner follow-up.
+
+Implementation: [PR #31](https://github.com/narumiruna/fitness/pull/31). The final
+closeout changes only documentation; the validated implementation is unchanged.
+The completed execution plan was removed from
+`docs/plans/2026-10-28_results-uiux-refresh-plan.md`; its design and external
+handoff remain in the retained review.
+Before/after evidence is under `.cache/uiux-review-2/`, with final local captures
+under `final-focused/` and downloaded CI logs under `ci-*.log`. Desktop/mobile results,
+compact exercise records, Traditional Chinese expanded history, and context
+failure/success captures were inspected. A code review reported no actionable
+change-caused finding. API/core/schema/dependencies and production infrastructure
+are unchanged. Human usability, physical-device, and real screen-reader checks
+remain unverified; the retained review names the responsible reviewer and task.
+No production deployment, package publication, or release tag ran.
+
 ## Baseline and Isolation
 
 - Base: `origin/main`, revision `8dd822b4eed44181c22a1a347cc971c16a02ac9f`.

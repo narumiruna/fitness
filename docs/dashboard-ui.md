@@ -5,7 +5,7 @@
 - Workouts: compact training entry, independently loaded ongoing sessions, selected-template setup, month-grouped history, session-state badges, prescribed/completed progress, continue links, filters, user-scoped totals, exercise previews, focused creation at `/workouts/new`, and templates. Keep 20-row pagination and title/notes search semantics. Filters and pagination affect history, not all-time summary totals.
 - Calendar: Sunday-first, 42-cell month grid, local-date selection, selected-day workouts, selected-date creation, and month agenda. Narrow screens show the selected date before the agenda. Markers retain accessible names and detail links.
 - Stats: URL-based ranges, daily volume, Sunday-start weekly counts, exercise distribution, exercise volume, and personal records. Detailed totals and comparisons remain available without replacing the compact overview.
-- Exercises: shared library, localized-name/normalized-alias search, name and personal-use sorting, aliases, creation, metadata filters, and personal recent-use dates. Usage counts and dates exclude other users' workouts.
+- Exercises: shared library, localized-name/normalized-alias search, name and personal-use sorting, aliases, creation, metadata filters, and personal recent-use dates. Exercise detail shows compact working-set records, secondary all-time totals, and read-only performed-set breakdowns for each history entry. Usage counts, records, and dates exclude other users' workouts.
 
 Components live in `apps/web/src/components/`; pages live in `apps/web/src/pages/`.
 Hono owns authentication, database reads, validation, authorization, and mutations.
@@ -32,13 +32,16 @@ Locale changes update document language and number/date labels, not stored keys.
 ## Page hierarchy
 
 - Keep search and useful history/library rows before secondary overview and filter details. Show active criteria and a local clear action even when optional controls are collapsed.
-- Put exercise identity and personal history before editors. Put recorded workout results and sets before reuse/configuration tools.
+- Put exercise identity and personal history before editors. Keep two compact working-set records visible and all-time totals in a disclosure. History entries retain workout links and separate read-only set breakdowns.
+- Put recorded workout results and sets before reuse/configuration tools. Use one responsive set representation; show saved actuals, type, optional RIR, and notes before opening correction fields. Skipped rows never show placeholder actuals or a correction editor.
 - In active training, group current weight/reps with primary Complete set; keep Save and optional RIR/notes secondary. Resume is primary when paused.
 - Put compact training entry before history. Show the most recently updated ongoing session first and make the others available in a disclosure. These summaries must not depend on history filters or pagination.
 - Keep Start training beside its selected template, separate from past-workout logging and weekly scheduling. Keep visited template forms mounted but hidden when inactive so drafts and request keys survive source changes.
 - Keep session progress, rest status, and session controls immediately before the current-set group. Do not put them after the remaining-set list or over input controls.
 - Use distinct measurement/target actions. Keep measurement tables locally scrollable and target labels outside the chart plot.
-- Show kg load and localized kg × reps volume units at point of use. Preserve metric definitions and calculation rules.
+- Show kg load and localized kg × reps volume units at point of use. Preserve metric definitions and calculation rules. Format recorded actuals and load records without aggregate rounding; aggregate displays retain their existing formatting.
+- In Calendar, show performed-set summaries only for completed workouts. Ongoing cards provide state context and Continue training, not unavailable metrics presented as zero.
+- Preserve Stats range, record scope, and consistency year independently across query submissions and browser navigation.
 - Use named confirmation for passkey removal. Preserve operation-specific security feedback and account recovery advice.
 
 ## Data rules
@@ -61,7 +64,9 @@ automatically. Stable creation keys recover committed writes after a lost respon
 Expected API errors use stable codes and localized inline feedback. Permanent
 missing/forbidden outcomes have a localized heading and local recovery link;
 transient read failures retain explicit retry. A 401 still clears private state.
-Failed saves and native validation open containing disclosures so users can reach
+Native alias and set disclosures keep their forms mounted so closing does not
+discard drafts, pending guards, or feedback. Failed saves and native validation
+open containing disclosures so users can reach
 the feedback and correction controls without losing drafts. Duplicate
 alias feedback retains the open disclosure and entered text. A deliberately
 invalid hidden resource ID causes no write; reloading restores confirmed state.

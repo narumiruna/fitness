@@ -237,10 +237,13 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   const benchRow = page.locator(".exercise-row").filter({
     has: page.getByRole("heading", { name: "Bench Press", exact: true }),
   });
-  const disclosure = benchRow.locator("button[aria-expanded]");
+  const disclosure = benchRow.locator(".inline-disclosure > summary");
   await disclosure.focus();
   await page.keyboard.press("Enter");
-  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  await expect(benchRow.locator(".inline-disclosure")).toHaveAttribute(
+    "open",
+    "",
+  );
   await benchRow.getByLabel("Locale").fill("en");
   await benchRow.getByLabel("Alias", { exact: true }).fill("Chest press");
   await benchRow
@@ -323,13 +326,14 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await add.getByLabel("Reps", { exact: true }).fill("5");
   await add.getByLabel("Notes", { exact: true }).fill("First set");
   await add.getByRole("button", { name: "Add set", exact: true }).click();
-  await expect(page.locator(".desktop-table tbody tr")).toHaveCount(1);
+  await expect(page.locator("article.recorded-set")).toHaveCount(1);
   await add.getByLabel("Weight (kg)", { exact: true }).fill("60");
   await add.getByLabel("Reps", { exact: true }).fill("3");
   await add.getByRole("button", { name: "Add set", exact: true }).click();
-  await expect(page.locator(".desktop-table tbody tr")).toHaveCount(2);
-  const rows = page.locator(".desktop-table tbody tr");
+  await expect(page.locator("article.recorded-set")).toHaveCount(2);
+  const rows = page.locator("article.recorded-set");
   const first = rows.first();
+  await first.locator("summary").click();
   await choose(
     page,
     first.getByRole("combobox", { name: "Exercise", exact: true }),
@@ -337,8 +341,8 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   );
   await first.locator('input[name="weight"]').fill("70");
   await first.locator('input[name="reps"]').fill("4");
-  await first.locator('input[name="notes"]').fill("Desktop edit");
-  const firstForm = first.locator("form[id]");
+  await first.locator('textarea[name="notes"]').fill("Desktop edit");
+  const firstForm = first.locator("form");
   const submitted = await formData(firstForm);
   expect(submitted).toMatchObject({
     workoutId,
@@ -347,7 +351,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     notes: "Desktop edit",
   });
   const firstId = String(submitted.setId);
-  await first.getByRole("button", { name: "Save", exact: true }).click();
+  await first.getByRole("button", { name: "Update set", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -364,8 +368,9 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     )[1]?.weight,
   ).toBe(60);
 
+  await expect(first.locator(".set-result")).toContainText("70 kg × 4");
   await page.setViewportSize({ width: 390, height: 844 });
-  const mobile = page.locator(".mobile-list article").first();
+  const mobile = page.locator("article.recorded-set").first();
   await mobile.locator("details > summary").click();
   await expect(mobile.getByLabel("Weight (kg)", { exact: true })).toHaveValue(
     "70",
@@ -380,13 +385,14 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
           .weight,
     )
     .toBe(75);
+  await expect(mobile.locator(".set-result")).toContainText("75 kg × 4");
   await page
-    .locator(".mobile-list article")
+    .locator("article.recorded-set")
     .last()
     .locator("details > summary")
     .click();
   await page
-    .locator(".mobile-list article")
+    .locator("article.recorded-set")
     .last()
     .getByRole("button", { name: "Delete", exact: true })
     .click();
@@ -394,8 +400,9 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
     .getByRole("alertdialog")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
-  await expect(page.locator(".mobile-list article")).toHaveCount(1);
+  await expect(page.locator("article.recorded-set")).toHaveCount(1);
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await first.locator("summary").click();
   await expect(first.locator('input[name="weight"]')).toHaveValue("75");
   await openDisclosure(page, "Save as template");
   const template = formWith(page, "Save as template");
@@ -404,7 +411,7 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect.poll(() => prisma.workoutTemplate.count()).toBe(1);
   await page.getByRole("button", { name: "Repeat", exact: true }).click();
   await expect(page).not.toHaveURL(new RegExp(`${workoutId}$`));
-  await expect(page.locator(".desktop-table tbody tr")).toHaveCount(1);
+  await expect(page.locator("article.recorded-set")).toHaveCount(1);
   await page
     .locator(".workout-page > .card-actions")
     .getByRole("button", { name: "Delete", exact: true })
@@ -423,8 +430,9 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "UI template",
   );
+  await page.locator("article.recorded-set summary").click();
   await page
-    .locator(".desktop-table tbody tr")
+    .locator("article.recorded-set")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page
@@ -1147,7 +1155,8 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
   }
   await page.goto(workoutPath);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const first = page.locator(".desktop-table tbody tr").first();
+  const first = page.locator("article.recorded-set").first();
+  await first.locator("summary").click();
   await expect(first.locator('input[name="weight"]')).toHaveAttribute(
     "min",
     "0",

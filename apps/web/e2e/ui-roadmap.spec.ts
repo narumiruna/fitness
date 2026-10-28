@@ -141,13 +141,16 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
       }),
     )
     .toBe(1);
-  const entryRow = page.locator(".desktop-table tbody tr").first();
+  const entryRow = page.locator("article.recorded-set").first();
+  await entryRow.locator("summary").click();
   await choose(
     page,
     entryRow.getByRole("combobox", { name: "Set type", exact: true }),
     "Warm-up",
   );
-  await entryRow.getByRole("button", { name: "Save", exact: true }).click();
+  await entryRow
+    .getByRole("button", { name: "Update set", exact: true })
+    .click();
   await expect
     .poll(() =>
       prisma.workoutSet
@@ -164,13 +167,16 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   expect(repeated.type).toBe("WARMUP");
   expect(repeated.rir).toBe(null);
   await page.goto(`/workouts/${w.id}`);
+  await entryRow.locator("summary").click();
   await choose(
     page,
     entryRow.getByRole("combobox", { name: "Set type", exact: true }),
     "Working",
   );
   await entryRow.getByLabel("Reps in reserve (RIR)").fill("");
-  await entryRow.getByRole("button", { name: "Save", exact: true }).click();
+  await entryRow
+    .getByRole("button", { name: "Update set", exact: true })
+    .click();
   await expect
     .poll(() =>
       prisma.workoutSet
@@ -452,6 +458,8 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
     .toBe("ABANDONED");
   await page.goto("/calendar");
   const abandoned = page
+    .getByRole("heading", { name: "Weekly template schedule", exact: true })
+    .locator("..")
     .locator(`a[href="/workouts/${scheduledId}"]`)
     .locator("..");
   await expect(abandoned.getByText("Abandoned", { exact: true })).toBeVisible();
@@ -531,10 +539,11 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   await expect(
     page.getByText("Primary sets and secondary involvement", { exact: false }),
   ).toBeVisible();
-  await page.locator('input[name="year"]').fill("2024");
+  const yearField = page.getByRole("spinbutton", { name: "Year", exact: true });
+  await yearField.fill("2024");
   await page
     .locator("form")
-    .filter({ has: page.locator('input[name="year"]') })
+    .filter({ has: yearField })
     .getByRole("button", { name: "Apply filters" })
     .click();
   await expect(
@@ -543,7 +552,13 @@ test("nine roadmap workflows, owner isolation, keyboard access, failed saves, re
   const leapDay = page.getByLabel("2024-02-29: 0 Training days", {
     exact: true,
   });
-  await page.waitForURL("**/stats?year=2024");
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/stats" &&
+      url.searchParams.get("year") === "2024" &&
+      url.searchParams.get("range") === "all" &&
+      url.searchParams.get("records") === "all",
+  );
   await expect(async () => {
     await leapDay.focus();
     await expect(leapDay).toBeFocused();
