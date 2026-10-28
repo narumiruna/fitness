@@ -508,10 +508,11 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
   expect(new URL(page.url()).searchParams.get("exercise")).toBe("");
   expect(new URL(page.url()).searchParams.has("notes")).toBe(false);
   await page.getByRole("link", { name: "Clear filters" }).click();
-  await openDisclosure(page, "Filter workouts");
-  await expect(filters.getByRole("combobox")).toHaveText("All exercises");
+  // Wait for the reset form before opening its new, closed disclosure.
   await expect(filters.getByLabel("Search", { exact: true })).toHaveValue("");
   await expect(filters.getByLabel("Month", { exact: true })).toHaveValue("");
+  await openDisclosure(page, "Filter workouts");
+  await expect(filters.getByRole("combobox")).toHaveText("All exercises");
   await expect(filters.getByRole("checkbox")).not.toBeChecked();
   await page.goto(
     "/workouts?q=no-match&month=invalid&page=-1&exercise=invalid",
