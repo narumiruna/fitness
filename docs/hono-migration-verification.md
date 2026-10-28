@@ -159,6 +159,30 @@ are unchanged. Human usability, physical-device, and real screen-reader checks
 remain unverified; the retained review names the responsible reviewer and task.
 No production deployment, package publication, or release tag ran.
 
+## Workout filter browser synchronization — 2026-10-28
+
+[Failed development browser job](https://github.com/narumiruna/fitness/actions/runs/40645488485/job/122673212618)
+at revision `a93d2ec` timed out because the filter panel hid the notes checkbox.
+The trace shows that “Clear filters” changed the URL before the reset form
+rendered. The disclosure helper saw the old, open panel and did not click it.
+The replacement form then closed the panel before the checkbox assertion.
+
+The test now waits for the search and month values to reset before opening the
+new panel. Existing checkbox and exercise assertions remain. No application code,
+sleep, retry, or timeout setting changed. An empty tooling changeset is included.
+
+| Check | Actual result |
+| --- | --- |
+| `npm run test:ui -- apps/web/e2e/ui.spec.ts` | All 6 passed in 2.8 minutes; no retries or skips; disposable SQLite |
+| `npm run check` | Passed: Biome and root/workspace TypeScript |
+| `npm run build` | Passed; the existing >500 kB chunk warning remains |
+| `npm test` | 84 passed; no failures or skips |
+| `prek run -a` | Passed: Biome and TypeScript hooks |
+
+Local runtime was Node 26.10.0. Ports 8784/8785 had no listeners after the browser
+runner exited. The full browser matrix and production-mode browser tests were
+not run locally for this test-only change. No production service was operated.
+
 ## Baseline and Isolation
 
 - Base: `origin/main`, revision `8dd822b4eed44181c22a1a347cc971c16a02ac9f`.
