@@ -92,7 +92,8 @@ is required. Do not modify existing sessions, credentials, or workout records to
 reverse presentation changes.
 
 Product reviewers need a disposable account, a physical device, and a real screen
-reader. Use the existing participant guide to check unassisted result reading,
+reader. Use the existing [participant guide](web-ui-ux-participant-guide.md) to
+check unassisted result reading,
 correction, history drill-down, and filter/draft recovery. Expected results are
 correct interpretation and successful task completion without data loss. These
 human/device behaviors remain unverified by automated checks. No deployment or
@@ -100,9 +101,13 @@ release is authorized.
 
 ## Verification
 
-Implementation, focused regressions, and independent code review are complete.
-Check, build, 84 pure tests, and 83 HTTP tests on each database passed. Full
-browser verification will use the existing Node 24 CI matrix after local Axe
-evaluation timeouts under heavy host load. No full browser pass is claimed yet.
-Actual command results and warnings are recorded in
-`docs/hono-migration-verification.md`.
+Implementation, focused regressions, and independent code review are complete
+in [PR #31](https://github.com/narumiruna/fitness/pull/31). Check, build, 84 pure
+tests, and 83 HTTP tests on each database passed. All five jobs passed in
+[Node 24 CI run 40642662451](https://github.com/narumiruna/fitness/actions/runs/40642662451)
+at `c9fe0e1`, including 144 development and 144 production HTTPS browser cases,
+without skips or retries. Local load-related timeouts remain documented rather
+than counted as passes. Actual command results and warnings are recorded in
+`docs/hono-migration-verification.md`. The completed execution plan at
+`docs/plans/2026-10-28_results-uiux-refresh-plan.md` is removed after verification;
+this document retains its design, implementation sequence, and external handoff.
