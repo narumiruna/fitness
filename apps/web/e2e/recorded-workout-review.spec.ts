@@ -142,9 +142,7 @@ for (const locale of ["en", "zh-TW"] as const) {
         ]);
         await page.goto(`/workouts/${workout.id}`);
 
-        const rows = page.locator(
-          width === 390 ? ".mobile-list article" : ".desktop-table tbody tr",
-        );
+        const rows = page.locator("article.recorded-set");
         const performed = rows.nth(0);
         const skipped = rows.nth(1);
         const overview = page.getByRole("region", {
@@ -191,16 +189,15 @@ for (const locale of ["en", "zh-TW"] as const) {
               .analyze()
           ).violations,
         ).toEqual([]);
-        if (width === 390)
-          await performed
-            .locator("summary")
-            .filter({ hasText: labels.updateSet })
-            .click();
+        await performed
+          .locator("summary")
+          .filter({ hasText: labels.updateSet })
+          .click();
         const weight = performed.locator('input[name="weight"]');
         await validWeight(weight, "50.25");
         // An unchanged existing quarter-kilogram record must also be submittable.
         const save = performed.getByRole("button", {
-          name: width === 390 ? labels.updateSet : labels.save,
+          name: labels.updateSet,
           exact: true,
         });
         await submit(page, save, "updateWorkoutSetAction");
@@ -270,11 +267,10 @@ for (const locale of ["en", "zh-TW"] as const) {
           edit.getByLabel(labels.title, { exact: true }),
         ).toHaveValue("");
         await expect(edit.locator('[name="notes"]')).toHaveValue("");
-        if (width === 390)
-          await performed
-            .locator("summary")
-            .filter({ hasText: labels.updateSet })
-            .click();
+        await performed
+          .locator("summary")
+          .filter({ hasText: labels.updateSet })
+          .click();
         await validWeight(weight, "50.251");
         await expect(performed.locator('[name="notes"]')).toHaveValue("");
         await expect(

@@ -9,7 +9,7 @@ import {
 import { Button, Card, Grid, Heading, Table, Text } from "@radix-ui/themes";
 import type { CSSProperties } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { usePageView, useSearch } from "@/api/views";
+import { calendarDate, usePageView, useSearch } from "@/api/views";
 import { ActionForm } from "@/components/action-form";
 import { ConsistencyReport } from "@/components/consistency-report";
 import { MetricCard, PageHeader } from "@/components/dashboard";
@@ -20,13 +20,19 @@ import type { MessageKey } from "@/lib/i18n";
 import { useDictionary, useLocale } from "@/lib/i18n";
 
 export default function StatsPage() {
-  const { stats } = usePageView("stats");
+  const { stats, today } = usePageView("stats");
   const t = useDictionary();
   const locale = useLocale();
   const formatInteger = (value: number) => formatNumeric(value, locale, 0);
   const formatNumber = (value: number) => formatNumeric(value, locale, 1);
   const params = useSearch();
   const range = resolveStatsRange(params.range);
+  const scope = params.records === "range" ? "range" : "all";
+  const candidate = Number(params.year);
+  const year =
+    Number.isInteger(candidate) && candidate >= 1900 && candidate <= 9999
+      ? candidate
+      : calendarDate(today).getFullYear();
   const rangeLabel = t(
     range === "30"
       ? "last30Days"
@@ -37,7 +43,7 @@ export default function StatsPage() {
           : "allTime",
   );
   const records =
-    params.records === "range" ? stats.personalRecords : stats.allTimeRecords;
+    scope === "range" ? stats.personalRecords : stats.allTimeRecords;
   const distribution = stats.distribution.map((item) => ({
     ...item,
     label: item.key === "other" ? t("otherExercises") : item.label,
@@ -94,11 +100,8 @@ export default function StatsPage() {
               { value: "180", label: t("last180Days") },
             ]}
           />
-          <input
-            type="hidden"
-            name="records"
-            value={params.records === "range" ? "range" : "all"}
-          />
+          <input type="hidden" name="records" value={scope} />
+          <input type="hidden" name="year" value={year} />
           <Button highContrast variant="soft" type="submit">
             {t("applyFilters")}
           </Button>
@@ -275,7 +278,8 @@ export default function StatsPage() {
             locale={locale}
             records={records}
             range={range}
-            scope={params.records}
+            scope={scope}
+            year={year}
             t={t}
           />
         </div>
@@ -284,7 +288,8 @@ export default function StatsPage() {
           locale={locale}
           records={records}
           range={range}
-          scope={params.records}
+          scope={scope}
+          year={year}
           t={t}
         />
       ) : null}
@@ -464,9 +469,7 @@ export default function StatsPage() {
               <SectionHeader
                 title={t("personalRecords")}
                 description={t(
-                  params.records === "range"
-                    ? "rangeRecords"
-                    : "allTimeRecords",
+                  scope === "range" ? "rangeRecords" : "allTimeRecords",
                 )}
               />
 
@@ -572,7 +575,7 @@ export default function StatsPage() {
           {t("consistency")} · {t("muscle")}
         </summary>
         <div className="stack">
-          <ConsistencyReport year={params.year} />
+          <ConsistencyReport year={year} range={range} scope={scope} />
           <MuscleReport />
           <Text size="2" color="gray">
             {t("workingVolume")}: {stats.workingVolume} {t("volumeUnit")}
@@ -588,12 +591,14 @@ function RecordSummary({
   records,
   range,
   scope,
+  year,
   t,
 }: {
   locale: string;
   records: ExercisePersonalRecords[];
   range: string;
-  scope?: string;
+  scope: "range" | "all";
+  year: number;
   t: (key: MessageKey) => string;
 }) {
   const formatNumber = (value: number) => formatNumeric(value, locale, 1);
@@ -610,10 +615,11 @@ function RecordSummary({
           key={scope}
         >
           <input type="hidden" name="range" value={range} />
+          <input type="hidden" name="year" value={year} />
           <FormSelect
             label={t("recordScope")}
             name="records"
-            defaultValue={scope === "range" ? "range" : "all"}
+            defaultValue={scope}
             options={[
               { value: "all", label: t("allTimeRecords") },
               { value: "range", label: t("rangeRecords") },

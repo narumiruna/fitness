@@ -11,7 +11,6 @@ import {
   Text,
   TextField,
 } from "@radix-ui/themes";
-import { Collapsible } from "radix-ui";
 import { Link as RouterLink } from "react-router-dom";
 import { createExerciseAction, createExerciseAliasAction } from "@/api/actions";
 import { usePageView, useSearch } from "@/api/views";
@@ -254,52 +253,42 @@ export default function ExercisesPage() {
                           {t("history")}
                         </RouterLink>
                       </Button>
-                      <Collapsible.Root className="inline-disclosure">
-                        <Collapsible.Trigger asChild>
-                          <Button
-                            highContrast
-                            size="1"
-                            variant="ghost"
-                            type="button"
-                          >
-                            {t("addAlias")}
-                          </Button>
-                        </Collapsible.Trigger>
-                        <Collapsible.Content>
-                          <ActionForm
-                            className="form-grid two compact-form"
-                            action={createExerciseAliasAction}
-                          >
-                            <input
-                              name="exerciseId"
-                              type="hidden"
-                              value={exercise.id}
+                      <details className="inline-disclosure">
+                        {/* biome-ignore lint/a11y/useSemanticElements: Native summary toggles details and must expose the alias action as a button. */}
+                        <summary role="button">{t("addAlias")}</summary>
+                        <ActionForm
+                          className="form-grid two compact-form"
+                          action={createExerciseAliasAction}
+                        >
+                          <input
+                            name="exerciseId"
+                            type="hidden"
+                            value={exercise.id}
+                          />
+                          <Text as="label" size="2" className="field-label">
+                            {t("locale")}
+                            <TextField.Root
+                              defaultValue="zh-TW"
+                              name="locale"
+                              minLength={2}
+                              maxLength={12}
+                              required
                             />
-                            <Text as="label" size="2" className="field-label">
-                              {t("locale")}
-                              <TextField.Root
-                                defaultValue="zh-TW"
-                                name="locale"
-                                minLength={2}
-                                maxLength={12}
-                                required
-                              />
-                            </Text>
-                            <Text as="label" size="2" className="field-label">
-                              {t("alias")}
-                              <TextField.Root
-                                name="alias"
-                                maxLength={120}
-                                placeholder={t("aliasPlaceholder")}
-                                required
-                              />
-                            </Text>
-                            <SubmitButton variant="soft">
-                              {t("addAlias")}
-                            </SubmitButton>
-                          </ActionForm>
-                        </Collapsible.Content>
-                      </Collapsible.Root>
+                          </Text>
+                          <Text as="label" size="2" className="field-label">
+                            {t("alias")}
+                            <TextField.Root
+                              name="alias"
+                              maxLength={120}
+                              placeholder={t("aliasPlaceholder")}
+                              required
+                            />
+                          </Text>
+                          <SubmitButton variant="soft">
+                            {t("addAlias")}
+                          </SubmitButton>
+                        </ActionForm>
+                      </details>
                     </div>
                   </article>
                 ))}

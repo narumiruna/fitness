@@ -1,4 +1,7 @@
-import { buildExerciseMonthlyTrend } from "@narumitw/fitness-core/calendar";
+import {
+  buildExerciseMonthlyTrend,
+  formatDateKey,
+} from "@narumitw/fitness-core/calendar";
 import {
   Badge,
   Button,
@@ -19,8 +22,10 @@ import {
   ExerciseMetadata,
   ExerciseMetadataSummary,
 } from "@/components/exercise-metadata";
+import { SetResult } from "@/components/set-result";
 import { SubmitButton } from "@/components/submit-button";
 import { useDictionary, useLocale } from "@/lib/i18n";
+import { formatRecordedNumber } from "@/lib/recorded-values";
 import { useSession } from "@/lib/session";
 
 export default function ExerciseHistoryPage() {
@@ -72,7 +77,7 @@ export default function ExerciseHistoryPage() {
     1,
   );
   return (
-    <section className="stack">
+    <section className="stack exercise-history-page">
       <Heading as="h1" size="8">
         {exercise.defaultName}
       </Heading>
@@ -86,38 +91,58 @@ export default function ExerciseHistoryPage() {
         </EmptyState>
       ) : (
         <>
-          <section className="stats-card-grid" aria-label={t("overview")}>
-            <SummaryCard
-              label={t("totalSets")}
-              value={formatInteger(totalSets)}
-            />
-            <SummaryCard
-              label={t("totalReps")}
-              value={formatInteger(totalReps)}
-            />
-            <SummaryCard
-              label={t("totalVolume")}
-              value={`${formatNumber(totalVolume)} ${t("volumeUnit")}`}
-            />
-            <SummaryCard
-              label={t("workingVolume")}
-              value={`${formatNumber(workingEntries.reduce((total, set) => total + set.weight * set.reps, 0))} ${t("volumeUnit")}`}
-            />
-            <SummaryCard
-              label={t("maxWeight")}
-              value={
-                maxWeight
-                  ? `${formatNumber(maxWeight.weight)} kg`
-                  : t("noLatestWorkout")
-              }
-            />
-            <SummaryCard
-              label={t("maxReps")}
-              value={
-                maxReps ? formatInteger(maxReps.reps) : t("noLatestWorkout")
-              }
-            />
-          </section>
+          {maxWeight && maxReps ? (
+            <section
+              className="exercise-records stack"
+              aria-label={t("workingSetRecords")}
+            >
+              <Text as="p" size="2" color="gray">
+                {t("workingSetRecords")}
+              </Text>
+              <div className="exercise-record-grid">
+                <SummaryCard
+                  label={t("maxWeight")}
+                  value={`${formatRecordedNumber(maxWeight.weight, locale)} kg`}
+                  detail={t("recordedOn").replace(
+                    "{date}",
+                    maxWeight.workout.date.toLocaleDateString(locale),
+                  )}
+                />
+                <SummaryCard
+                  label={t("maxReps")}
+                  value={formatInteger(maxReps.reps)}
+                  detail={t("recordedOn").replace(
+                    "{date}",
+                    maxReps.workout.date.toLocaleDateString(locale),
+                  )}
+                />
+              </div>
+            </section>
+          ) : null}
+          <details className="exercise-totals dashboard-tools">
+            <summary>{t("exerciseTotals")}</summary>
+            <section className="stats-card-grid" aria-label={t("overview")}>
+              <SummaryCard
+                label={t("totalSets")}
+                value={formatInteger(totalSets)}
+              />
+              <SummaryCard
+                label={t("totalReps")}
+                value={formatInteger(totalReps)}
+              />
+              <SummaryCard
+                label={t("totalVolume")}
+                value={`${formatNumber(totalVolume)} ${t("volumeUnit")}`}
+              />
+              <SummaryCard
+                label={t("workingVolume")}
+                value={`${formatNumber(workingEntries.reduce((total, set) => total + set.weight * set.reps, 0))} ${t("volumeUnit")}`}
+              />
+            </section>
+            <Text as="p" size="1" color="gray">
+              {t("volumeDefinition")}
+            </Text>
+          </details>
           <Card asChild>
             <section className="stack">
               <div className="section-heading">
@@ -137,27 +162,45 @@ export default function ExerciseHistoryPage() {
                     0,
                   );
                   return (
-                    <Link highContrast asChild key={workout.id}>
-                      <RouterLink
-                        className="agenda-item"
-                        to={`/workouts/${workout.id}`}
-                      >
-                        <time dateTime={workout.date.toISOString()}>
-                          {workout.date.toLocaleDateString(locale, {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </time>
-                        <span>{workout.title || t("workout")}</span>
-                        <Text size="1" color="gray">
-                          {workout.sets.length}{" "}
-                          {workout.sets.length === 1 ? t("set") : t("sets")} ·{" "}
-                          {formatInteger(reps)} {t("reps")} ·{" "}
-                          {formatNumber(volume)} {t("volumeUnit")}
-                        </Text>
-                      </RouterLink>
-                    </Link>
+                    <article
+                      className="exercise-history-entry"
+                      key={workout.id}
+                    >
+                      <Link highContrast asChild>
+                        <RouterLink
+                          className="agenda-item"
+                          to={`/workouts/${workout.id}`}
+                        >
+                          <time dateTime={formatDateKey(workout.date)}>
+                            {workout.date.toLocaleDateString(locale, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </time>
+                          <span>{workout.title || t("workout")}</span>
+                          <Text size="1" color="gray">
+                            {formatInteger(workout.sets.length)}{" "}
+                            {workout.sets.length === 1 ? t("set") : t("sets")} ·{" "}
+                            {formatInteger(reps)} {t("reps")} ·{" "}
+                            {formatNumber(volume)} {t("volumeUnit")}
+                          </Text>
+                        </RouterLink>
+                      </Link>
+                      <details className="exercise-history-sets">
+                        <summary>{t("viewRecordedSets")}</summary>
+                        <ol className="history-set-list">
+                          {workout.sets.map((set) => (
+                            <li className="history-set" key={set.id}>
+                              <Text size="2" color="gray">
+                                #{formatInteger(set.order)}
+                              </Text>
+                              <SetResult set={set} />
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    </article>
                   );
                 })}
               </div>
@@ -265,16 +308,29 @@ export default function ExerciseHistoryPage() {
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function SummaryCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <Card asChild>
-      <article className="stats-card">
+      <article className="stats-card exercise-summary-card">
         <Text size="2" color="gray">
           {label}
         </Text>
         <Text size="7" weight="bold">
           {value}
         </Text>
+        {detail ? (
+          <Text size="1" color="gray">
+            {detail}
+          </Text>
+        ) : null}
       </article>
     </Card>
   );

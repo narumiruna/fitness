@@ -17,6 +17,27 @@ import {
   PageError,
   PageErrorMessagesProvider,
 } from "../apps/web/src/components/page-error";
+import { formatRecordedNumber } from "../apps/web/src/lib/recorded-values";
+
+test("recorded numbers preserve actual precision in English and Traditional Chinese", () => {
+  for (const locale of ["en", "zh-TW"]) {
+    for (const [value, expected] of [
+      [0, "0"],
+      [-0, "0"],
+      [0.001, "0.001"],
+      [12.345678901234567, "12.345678901234567"],
+      [1e-21, "0.000000000000000000001"],
+      [1000.000001, "1,000.000001"],
+    ] as const) {
+      assert.equal(formatRecordedNumber(value, locale), expected);
+    }
+  }
+});
+
+test("recorded numbers use locale separators without rounding small values", () => {
+  assert.equal(formatRecordedNumber(1234.56789, "de-DE"), "1.234,56789");
+  assert.equal(formatRecordedNumber(1e-21, "de-DE"), "0,000000000000000000001");
+});
 
 test("dashboard error boundaries use supplied localized messages", () => {
   for (const messages of [

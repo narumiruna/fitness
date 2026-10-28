@@ -250,33 +250,8 @@ body {
   overflow-x: auto;
 }
 
-.editable-table .rt-TextFieldRoot {
-  min-width: 92px;
-}
-
-.editable-table .rt-SelectTrigger {
-  min-width: 140px;
-}
-
-.table-link {
-  display: block;
-  margin-top: var(--space-2);
-}
-
-.mobile-list,
 .stats-mobile-list {
   display: none;
-}
-
-.detail-list-item {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.detail-list-header > div {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-2);
 }
 
 .agenda-item {
@@ -1080,12 +1055,10 @@ body {
     text-align: left;
   }
 
-  .desktop-table,
   .stats-desktop-table {
     display: none;
   }
 
-  .mobile-list,
   .stats-mobile-list {
     display: grid;
     gap: var(--space-3);
@@ -1814,4 +1787,156 @@ body {
   justify-content: center;
   gap: 1rem;
   padding: 1rem;
+}
+
+/* Recorded results: shared read-first rows and exercise history. */
+.recorded-set-list,
+.set-result,
+.exercise-record-grid,
+.history-set-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.recorded-set {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px 20px;
+  padding: 16px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+}
+.recorded-set-readout {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 12px 20px;
+  min-width: 0;
+}
+.recorded-set-skipped {
+  justify-self: start;
+}
+.recorded-set-identity {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.recorded-set-identity .rt-Heading,
+.exercise-history-page > h1 {
+  overflow-wrap: anywhere;
+}
+.set-result {
+  gap: 5px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.set-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.set-result-notes {
+  white-space: pre-wrap;
+}
+.recorded-set-editor {
+  grid-column: 2;
+  min-width: 0;
+}
+details.recorded-set-editor > summary {
+  white-space: nowrap;
+}
+.recorded-set-editor:where([open]) {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--dashboard-border);
+  padding-top: 8px;
+}
+.recorded-set:has(:where(.recorded-set-editor[open]))
+  > :where(.recorded-set-readout) {
+  grid-column: 1 / -1;
+}
+.recorded-set-editor .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.recorded-set-editor .form-grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+.recorded-set-editor
+  :where(.form-fields)
+  > :where(.field-label, .form-grid, .rt-Button),
+.recorded-set-editor :where(form) > [role="alert"] {
+  grid-column: 1 / -1;
+}
+.recorded-set-editor :where(label) {
+  min-width: 0;
+}
+.exercise-records {
+  gap: 6px;
+}
+.exercise-record-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.exercise-history-page .exercise-summary-card {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  padding: 16px;
+  gap: 6px;
+}
+.exercise-history-page .exercise-summary-card :where(.rt-r-size-7) {
+  font-size: clamp(22px, 2vw, 28px);
+  letter-spacing: -0.025em;
+}
+.exercise-totals .stats-card-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.exercise-totals > p {
+  margin-top: 12px;
+}
+.exercise-history-entry {
+  padding: 12px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  min-width: 0;
+}
+.history-set-list {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history-set {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding-block: 12px;
+  border-top: 1px solid var(--dashboard-border);
+}
+
+:where(.exercise-history-entry) > .agenda-item {
+  padding: 0;
+  border-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .recorded-set {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  .recorded-set-readout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .recorded-set-editor {
+    grid-column: 1;
+  }
+  .exercise-history-page .exercise-summary-card {
+    padding: 12px;
+  }
+  .exercise-totals .stats-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

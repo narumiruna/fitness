@@ -96,6 +96,56 @@ unverified. Use the existing participant guide for those checks. No production
 service operation, deployment, package publication, or release tag is authorized
 or performed by this work.
 
+## Results UI/UX refresh — 2026-10-28
+
+Baseline: `0ce25f8`, after PR #30. The
+[review and design plan](reviews/results-uiux-refresh.md) records six findings,
+the real `codex_imagegen` proposal, selected/rejected details, implementation,
+recovery, and external handoff. The generated image is
+`.cache/uiux-review-2/proposal.png` (1536 × 1024); no image is committed.
+
+| Check | Actual result |
+| --- | --- |
+| Baseline dashboard/recorded cases | 5 passed |
+| Baseline results captures | 1 passed; two locales at 320/390/1440 |
+| Context baseline | All 3 targeted failures reproduced before correction |
+| Context fixes plus existing dashboard cases | 10 passed |
+| Read-first results matrix, draft recovery, privacy/empty cases, real zoom | All 4 focused cases passed |
+| Existing UI workflows | 6 passed after adapting real editor/disclosure interactions |
+| Existing roadmap workflows | 2 passed after scoping preserved-parameter controls and schedule entries |
+| `npm run check` | Passed |
+| `npm test` | 84 passed; no skips |
+| `npm run build` | Passed; Rollup Zod annotation and >500 kB chunk warnings remain |
+| `npm run test:api` | 83 passed, disposable SQLite |
+| `npm run test:api:postgres` | 83 passed, isolated PostgreSQL |
+| Full local development browser run | Not passed: Axe evaluation timeouts; run stopped and preserved |
+| Full production HTTPS browser run | Pending Node 24 CI |
+| `prek run -a` | Passed: Biome and TypeScript |
+
+The interrupted full run encountered Axe evaluation timeouts in unchanged
+navigation coverage and recorded/result pages while host load averages were
+about 191. Other CPU-heavy builds were active. No unrelated process was stopped,
+no timeout was increased, and no check was skipped or retried automatically.
+Failures and traces remain in `.cache/uiux-review-2/resource-timeouts/` and
+`ui-resource-timeouts.log`. A draft PR will run the existing Node 24 CI matrix
+on an independent runner; full verification is not yet claimed.
+
+One earlier combined local command reached the Bash 300-second limit while an
+old roadmap URL assertion waited for the pre-fix query shape. The assertion now
+checks the preserved range/records/year values; the focused roadmap run passed.
+Only its owned orphaned test supervisor was stopped. The later overloaded full
+run was also stopped through its own runner/supervisor, and ports 8784/8785 were
+confirmed free afterward. Temporary Node 26 `kill EPERM` shutdown warnings in
+focused runs remain the already documented test-runner follow-up.
+
+Before/after evidence is under `.cache/uiux-review-2/`. Desktop/mobile results,
+compact exercise records, Traditional Chinese expanded history, and context
+failure/success captures were inspected. A code review reported no actionable
+change-caused finding. API/core/schema/dependencies and production infrastructure
+are unchanged. Human usability, physical-device, and real screen-reader checks
+remain unverified; the retained review names the responsible reviewer and task.
+No production deployment, package publication, or release tag ran.
+
 ## Baseline and Isolation
 
 - Base: `origin/main`, revision `8dd822b4eed44181c22a1a347cc971c16a02ac9f`.

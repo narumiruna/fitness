@@ -127,8 +127,10 @@ export default function CalendarPage() {
                                 {workout.title || t("workout")}
                               </span>
                               <span className="calendar-workout-meta">
-                                {t(workout.state as MessageKey)} ·{" "}
-                                {workout.sets.length} {t("sets")}
+                                {t(workout.state as MessageKey)}
+                                {workout.state === "COMPLETED"
+                                  ? ` · ${workout.sets.length} ${t("sets")}`
+                                  : null}
                               </span>
                             </RouterLink>
                           </Link>
@@ -206,25 +208,35 @@ export default function CalendarPage() {
                     {workout.title || t("workout")}
                   </Heading>
                   <Text as="p" size="2" color="gray">
-                    {[
-                      ...new Set(
-                        workout.sets.map((s) => s.exercise?.defaultName),
-                      ),
-                    ].join(" · ") || t("noSets")}
+                    {workout.state === "COMPLETED"
+                      ? [
+                          ...new Set(
+                            workout.sets.map((s) => s.exercise?.defaultName),
+                          ),
+                        ].join(" · ") || t("noSets")
+                      : t(
+                          workout.state === "ABANDONED"
+                            ? "calendarEndedHelp"
+                            : "calendarOngoingHelp",
+                        )}
                   </Text>
                   <div className="meta-row">
                     <Badge color={workout.state === "ACTIVE" ? "teal" : "gray"}>
                       {t(workout.state as MessageKey)}
                     </Badge>
-                    <Badge color="gray">
-                      {workout.sets.length} {t("sets")}
-                    </Badge>
-                    <Badge color="gray">
-                      {new Intl.NumberFormat(locale).format(
-                        sumVolume(workout.sets),
-                      )}{" "}
-                      {t("volume")}
-                    </Badge>
+                    {workout.state === "COMPLETED" ? (
+                      <>
+                        <Badge color="gray">
+                          {workout.sets.length} {t("sets")}
+                        </Badge>
+                        <Badge color="gray">
+                          {new Intl.NumberFormat(locale).format(
+                            sumVolume(workout.sets),
+                          )}{" "}
+                          {t("volume")}
+                        </Badge>
+                      </>
+                    ) : null}
                   </div>
                   {workout.notes ? (
                     <Text as="p" size="2" className="calendar-note-preview">
@@ -233,7 +245,11 @@ export default function CalendarPage() {
                   ) : null}
                   <Button highContrast asChild>
                     <RouterLink to={`/workouts/${workout.id}`}>
-                      {t("viewDetails")}
+                      {t(
+                        workout.state === "ACTIVE" || workout.state === "PAUSED"
+                          ? "continueTraining"
+                          : "viewDetails",
+                      )}
                     </RouterLink>
                   </Button>
                 </article>
