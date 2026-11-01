@@ -9,12 +9,31 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import test from "node:test";
+import test, { before } from "node:test";
 import { setTimeout } from "node:timers/promises";
+import { POSTGRES_TEST_IMAGE } from "./postgres.mjs";
 
 const realDocker = spawnSync("which", ["docker"], {
   encoding: "utf8",
 }).stdout.trim();
+
+// Image preparation is not part of the readiness-cancellation deadline.
+before(() => {
+  const options = { encoding: "utf8", timeout: 120_000 };
+  const cached = spawnSync(
+    realDocker,
+    ["image", "inspect", POSTGRES_TEST_IMAGE],
+    options,
+  );
+  assert.ifError(cached.error);
+  if (cached.status === 0) return;
+  const pulled = spawnSync(realDocker, ["pull", POSTGRES_TEST_IMAGE], options);
+  assert.equal(
+    pulled.status,
+    0,
+    pulled.error?.message || pulled.stderr || cached.stderr,
+  );
+});
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
   test(`UI startup removes its PostgreSQL container after ${signal}`, {

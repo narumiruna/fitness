@@ -389,6 +389,7 @@ export const traditionalChineseMessages = {
   passkeyDeleted: "已移除通行金鑰：{name}。",
   noPasskeys: "尚未註冊通行金鑰。",
   accountSecurity: "帳號安全性",
+  accountSettings: "帳號設定",
   changePassword: "變更密碼",
   currentPassword: "目前密碼",
   newPassword: "新密碼",

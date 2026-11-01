@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 import pg from "pg";
 
+export const POSTGRES_TEST_IMAGE = "postgres:17-bookworm";
+
 function docker(args) {
   const result = spawnSync("docker", args, {
     encoding: "utf8",
@@ -32,7 +34,7 @@ export async function startPostgres({ signal } = {}) {
     "POSTGRES_PASSWORD=fitness",
     "--env",
     "POSTGRES_DB=fitness",
-    "postgres:17-bookworm",
+    POSTGRES_TEST_IMAGE,
   ]);
   let pool;
   try {

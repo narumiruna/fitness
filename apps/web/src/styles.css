@@ -4,6 +4,7 @@
 @import "./styles/reports.css";
 @import "./styles/training.css";
 @import "./styles/auth.css";
+@import "./styles/account.css";
 
 * {
   box-sizing: border-box;

@@ -144,23 +144,39 @@ test("anonymous authorization returns after login, grants read only, and revokes
     .getByRole("link", { name: "Connected agents", exact: true })
     .click();
   await expect(page.getByText(readLabel, { exact: true })).toBeVisible();
-  await page
-    .getByRole("button", { name: "Revoke access", exact: true })
-    .click();
-  await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Cancel", exact: true })
-    .click();
+  const revoke = page
+    .getByRole("main")
+    .getByRole("button", { name: "Revoke access", exact: true });
+  const dialog = page.getByRole("alertdialog");
+  const cancel = dialog.getByRole("button", { name: "Cancel", exact: true });
+  let revocations = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      /^\/api\/mcp\/connections\/[^/]+\/revoke$/.test(
+        new URL(request.url()).pathname,
+      )
+    )
+      revocations++;
+  });
+  await revoke.click();
+  await expect(cancel).toBeFocused();
+  await cancel.click();
+  // A closing dialog still exposes its same-name confirmation action.
+  await expect(dialog).toHaveCount(0);
+  await expect(revoke).toBeFocused();
   await expect(page.getByText("No connected agents.")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Revoke access", exact: true })
-    .click();
-  await page
-    .getByRole("alertdialog")
+  await expect(page.getByText(readLabel, { exact: true })).toBeVisible();
+  expect(revocations).toBe(0);
+  await revoke.click();
+  await expect(cancel).toBeFocused();
+  expect(revocations).toBe(0);
+  await dialog
     .getByRole("button", { name: "Revoke access", exact: true })
     .click();
   await expect(page.getByText("No connected agents.")).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Agent access revoked.");
+  expect(revocations).toBe(1);
   const revoked = await context.request.post("/mcp", {
     headers: { Authorization: `Bearer ${token.access_token}` },
     data: { jsonrpc: "2.0", id: 1, method: "tools/list" },
@@ -438,22 +454,24 @@ test("consent and connection errors are safe and retryable, with explicit revoke
     "This page could not be loaded.",
   );
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Revoke access", exact: true })
-    .click();
-  await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Cancel", exact: true })
-    .click();
+  const revoke = page
+    .getByRole("main")
+    .getByRole("button", { name: "Revoke access", exact: true });
+  const dialog = page.getByRole("alertdialog");
+  const cancel = dialog.getByRole("button", { name: "Cancel", exact: true });
+  await revoke.click();
+  await expect(cancel).toBeFocused();
+  await cancel.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(revoke).toBeFocused();
   expect(revocations).toBe(0);
   for (let attempt = 0; attempt < 2; attempt++) {
-    await page
+    await revoke.click();
+    await expect(cancel).toBeFocused();
+    await dialog
       .getByRole("button", { name: "Revoke access", exact: true })
       .click();
-    await page
-      .getByRole("alertdialog")
-      .getByRole("button", { name: "Revoke access", exact: true })
-      .click();
+    await expect(dialog).toHaveCount(0);
     if (attempt === 0)
       await expect(page.getByRole("alert")).toHaveText(
         "Could not revoke access. Try again.",
@@ -462,4 +480,5 @@ test("consent and connection errors are safe and retryable, with explicit revoke
   await expect(
     page.getByText("No connected agents.", { exact: true }),
   ).toBeVisible();
+  expect(revocations).toBe(2);
 });

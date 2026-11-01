@@ -2,16 +2,15 @@ import {
   Button,
   Callout,
   Card,
-  Flex,
   Heading,
-  Link,
   Text,
   TextField,
 } from "@radix-ui/themes";
 import { useId, useState } from "react";
-import { Link as RouterLink, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { changePasswordAction } from "@/api/actions";
 import { useSearch } from "@/api/views";
+import { AccountSettingsLayout } from "@/components/account-settings-layout";
 import { ActionForm } from "@/components/action-form";
 import { useDictionary } from "@/lib/i18n";
 
@@ -28,30 +27,11 @@ export default function ChangePasswordPage() {
   const currentError =
     params.error === "current" && currentEditedAt !== location.key;
   return (
-    <section className="narrow stack">
-      <div className="page-header">
-        <div>
-          <Heading as="h1" size="8">
-            {t("changePassword")}
-          </Heading>
-        </div>
-      </div>
-      <Flex asChild gap="4" wrap="wrap">
-        <nav aria-label={t("accountSecurity")}>
-          <Link highContrast asChild weight="bold">
-            <RouterLink to="/account/password" aria-current="page">
-              {t("changePassword")}
-            </RouterLink>
-          </Link>
-          <Link highContrast asChild>
-            <RouterLink to="/account/passkeys">{t("passkeys")}</RouterLink>
-          </Link>
-        </nav>
-      </Flex>
-      <Link highContrast asChild>
-        <RouterLink to="/account/connections">{t("mcpConnections")}</RouterLink>
-      </Link>
-      <Card asChild>
+    <AccountSettingsLayout>
+      <Card className="account-password-panel">
+        <Heading as="h1" size="8">
+          {t("changePassword")}
+        </Heading>
         <ActionForm
           action={changePasswordAction}
           className="form-grid"
@@ -100,33 +80,35 @@ export default function ChangePasswordPage() {
               {t("currentPasswordError")}
             </Text>
           ) : null}
-          <Text as="label" size="2" weight="medium" className="field-label">
-            {t("newPassword")}
-            <TextField.Root
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={256}
-              name="newPassword"
-              required
-              type="password"
-              aria-describedby={requirementsId}
-              aria-invalid={newInvalid || undefined}
-              onInvalid={() => setNewInvalid(true)}
-              onChange={(event) => {
-                if (newInvalid)
-                  setNewInvalid(!event.currentTarget.validity.valid);
-              }}
-            />
-          </Text>
-          <Text
-            as="p"
-            id={requirementsId}
-            size="2"
-            color={newInvalid ? "red" : "gray"}
-            role={newInvalid ? "alert" : undefined}
-          >
-            {t("passwordRequirements")}
-          </Text>
+          <div className="account-password-field">
+            <Text as="label" size="2" weight="medium" className="field-label">
+              {t("newPassword")}
+              <TextField.Root
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={256}
+                name="newPassword"
+                required
+                type="password"
+                aria-describedby={requirementsId}
+                aria-invalid={newInvalid || undefined}
+                onInvalid={() => setNewInvalid(true)}
+                onChange={(event) => {
+                  if (newInvalid)
+                    setNewInvalid(!event.currentTarget.validity.valid);
+                }}
+              />
+            </Text>
+            <Text
+              as="p"
+              id={requirementsId}
+              size="2"
+              color={newInvalid ? "red" : "gray"}
+              role={newInvalid ? "alert" : undefined}
+            >
+              {t("passwordRequirements")}
+            </Text>
+          </div>
           <Text as="label" size="2" weight="medium" className="field-label">
             {t("confirmPassword")}
             <TextField.Root
@@ -144,11 +126,13 @@ export default function ChangePasswordPage() {
               {t("passwordMismatch")}
             </Text>
           ) : null}
-          <Button highContrast type="submit">
-            {t("changePassword")}
-          </Button>
+          <div className="account-password-actions">
+            <Button highContrast type="submit">
+              {t("changePassword")}
+            </Button>
+          </div>
         </ActionForm>
       </Card>
-    </section>
+    </AccountSettingsLayout>
   );
 }

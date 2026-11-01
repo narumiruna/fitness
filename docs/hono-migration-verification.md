@@ -655,3 +655,140 @@ ignored under `test-results/otter-fitness-comparison/`. Product source and the
 open PR were not changed. The report retains subjective visual, physical-device,
 assistive-technology, and release limits. This comparison does not replace the
 complete workflow CI or authorize deployment.
+
+## Account settings design review baseline — 2026-11-01
+
+The [Round 01 account settings review](reviews/account-settings-ui-iteration.md)
+records the unchanged UI at `83cdb47`. A disposable Playwright run captured
+48 states and 96 screenshots across three account routes, both locales, and
+four viewport sizes. The first partial baseline is retained separately.
+
+The capture completed, but its final accessibility assertion failed: the agent
+revocation dialog Cancel button has 4.28:1 text contrast instead of 4.5:1 in
+four audited states. The other 20 audited states had no violations for the
+configured axe tags. All 48 states had zero measured document overflow. Local
+validation, Escape cancellation, and trigger-focus assertions completed; this
+does not establish full workflow, keyboard, or assistive-technology coverage.
+
+Original captures, capture source/logs, manifests, a gallery, and three generated
+design alternatives remain ignored under
+`test-results/account-settings-review/round-01/`. At the baseline review, no
+product implementation had changed. The user subsequently selected B-v1. A
+generated image is not verification evidence; baseline failure evidence remains
+retained. Commit/push was not authorized at the baseline review; the final
+user direction and delivery scope are recorded below.
+
+### Approved B-v1 implementation
+
+B-v1 adds a bounded account column, three shared route links with an underline
+marker, a focused password card/footer, and a high-contrast gray Cancel action.
+Password behavior, passkey recovery/removal, agent permissions, global navigation,
+and fonts remain unchanged. ACC-01 through ACC-03 meet the recorded acceptance
+checks; saved-passkey density (ACC-04) remains deferred.
+
+The final capture passed: 48 matching states, 96 images, 24 selected axe audits
+with no violations, zero document overflow, and local link targets at least 56px
+high. The original baseline and generated B-v1 image remain unchanged. Desktop
+and mobile three-way images are in `comparisons-v1/` under the artifact root.
+
+`npm run build` and `npm test` passed. The five-file account/security/passkey/MCP
+HTTP subset passed 59 cases; the complete second HTTPS/PostgreSQL run passed the
+same 59 cases. The first HTTPS run passed 58 and failed one test-setup focus
+assertion: it navigated before the initial main region mounted. The test now waits
+for its initial password heading; no focus assertion or application focus logic
+was removed. Its failed run and trace remain retained. One complete Otter shell
+reflow case also passed. See the review for exact commands, capture versions,
+source hashes, final static checks, and limits.
+
+This remains a partial workflow assessment on Node 26, not a complete Node 24 CI
+or physical-device/screen-reader assessment. Tests used owned disposable services,
+not the production Compose stack. After the three-way comparison, the user
+selected Stop and requested a pull request. ACC-04 remains deferred; no next
+round will start. The retained review assigns remaining device, assistive-
+technology, and full Node 24 CI checks to the QA/release owners. Commit, push,
+and PR creation are authorized; deployment, publication, and release tags are
+not. Stopping the iteration is not subjective visual acceptance or release
+approval. The completed iteration plan is removed after its checks and handoff
+are recorded.
+
+## PR #34 MCP browser CI synchronization — 2026-11-01
+
+CI run `41310712193` on `b0f390a` passed checks, databases, the development
+browser suite, and image smoke. Production browser tests finished with 164 passed
+and one failure in the anonymous MCP authorization/revocation case.
+
+The failure trace shows the second unscoped Revoke access click starting at
+139454ms. A revoke POST returned 200 at 139483ms, before the intended dialog
+confirmation click started at 139487ms. The old dialog was still closing, so
+the page-wide button locator selected its confirmation action rather than the
+page trigger. The same Cancel/reopen selector pattern existed in the retry case.
+
+The MCP tests now scope triggers to the main region, wait for dialog removal and
+trigger focus after Cancel, and verify zero revoke requests before explicit
+confirmation. The real flow asserts one revoke request and the existing denied
+token access afterward; the retry flow preserves its failure/success checks and
+asserts exactly two requests. No application behavior, animation, workflow,
+timeout, retry count, or existing security assertion was weakened.
+
+Local evidence:
+
+- A temporary real-browser probe held the closing overlay/content for 900ms.
+  The original test reproduced the CI timeout at the confirmation click.
+- With the corrected tests, both affected flows repeated five times passed:
+  10/10 on Node 24.22.1 with built assets, local HTTPS, and disposable PostgreSQL.
+  The probe is archived outside source and is not a permanent animation change.
+- `npm run test:ui -- mcp.spec.ts --repeat-each 3`: 18/18 passed with disposable
+  SQLite on Node 26.11.1.
+- `fnm exec --using 24.22.1 npm run test:ui:production -- mcp.spec.ts --repeat-each 3`:
+  18/18 passed. Its build also passed. Node 24.22.1 matches the failed CI runtime;
+  the local browser remains bundled Chromium rather than CI's system Chrome.
+- `npm run check` passed. No production stack was used; owned servers and test
+  containers stopped. The temporary source probe was removed.
+- Original CI artifacts remain ignored under `test-results/pr34-ci-production/`;
+  deterministic before/after probes, repeat runs, and source/logs remain under
+  `test-results/pr34-ci-close-repro/`.
+
+These local results are not reported as a full CI pass. The latest PR #34 checks
+must verify the pushed revision; that check run is the remote completion evidence.
+The stopped UI iteration, deferred ACC-04, physical-device/assistive-technology
+limits, and separate deployment authorization remain unchanged.
+
+### Database cancellation fixture preparation
+
+The next CI run, `41320779409` on `a834230`, exposed a separate database
+fixture failure: SIGINT cancellation did not reach its readiness marker within
+10.04 seconds; the following SIGTERM case passed in 0.57 seconds. No cancellation
+signal had been sent in the failed case. The fixture's first Docker use can
+download PostgreSQL inside that readiness budget.
+
+An isolated Docker wrapper simulated 11 seconds of image preparation without
+removing host images. Before the fix, it reproduced the same SIGINT marker
+failure; after preparation completed, the SIGTERM case passed. The first
+cancelled simulated run did not create a real container. With the fix, preparation
+completed before either timed case and both real-container cancellation checks
+passed. This establishes the setup-latency failure mechanism; it is not a
+measurement of the CI registry transfer itself. An earlier wrapper module-scope
+setup error is retained separately and is not counted as reproduction evidence.
+
+The cleanup fixture now inspects and, only if absent, pulls the shared
+`POSTGRES_TEST_IMAGE` before the timed cases. Both inspection and pull have
+bounded subprocess calls and preserve errors. The existing 10-second readiness
+loop, 30-second per-case deadline, expected signal exit codes, and container
+removal assertions remain unchanged. The shared image is still
+`postgres:17-bookworm`; no workflow, production configuration, or application
+behavior changed. These cases test cancellation during readiness polling, not
+during an image download.
+
+Additional local checks:
+
+- `npm run check`: passed.
+- `npm run test:db-init`: 29/29 passed on Node 26.11.1.
+- Node 24.22.1 cached-image signal tests repeated five times: 10/10 passed.
+- `fnm exec --using 24.22.1 npm run test:training:postgres`: 15/15 passed.
+- `fnm exec --using 24.22.1 npm run test:api:postgres`: 83/83 passed.
+- All owned containers and test processes stopped. Controlled before/after
+  source, logs, and the initial invalid setup remain ignored under
+  `test-results/pr34-pg-cold-repro/`.
+
+The latest PR-head CI run remains the final remote verification gate. Local
+results and prior-run results are not substituted for that check.
