@@ -1,4 +1,12 @@
-import { Cross2Icon, ExitIcon, HamburgerMenuIcon } from "@radix-ui/react-icons";
+import {
+  ArchiveIcon,
+  Cross2Icon,
+  ExitIcon,
+  GearIcon,
+  HamburgerMenuIcon,
+  PersonIcon,
+  RulerSquareIcon,
+} from "@radix-ui/react-icons";
 import { Button, Dialog, IconButton, Link } from "@radix-ui/themes";
 import { useRef, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
@@ -23,15 +31,16 @@ export function AccountMenu() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger>
-        <IconButton
+        <Button
           className="mobile-menu-trigger"
           highContrast
           variant="soft"
           aria-label={t("moreNavigation")}
           data-active={utilityActive || undefined}
         >
-          <HamburgerMenuIcon />
-        </IconButton>
+          <HamburgerMenuIcon aria-hidden="true" />
+          <span>{t("moreNavigation")}</span>
+        </Button>
       </Dialog.Trigger>
       <Dialog.Content
         className="utility-menu"
@@ -61,11 +70,17 @@ export function AccountMenu() {
         </div>
         <nav className="utility-menu-links" aria-label={t("account")}>
           {[
-            ["/measurements", t("measurements")],
-            ["/data", t("dataTransfer")],
-            ["/account/password", t("account")],
-            ...(user?.role === "ADMIN" ? [["/admin/users", t("admin")]] : []),
-          ].map(([to, label]) => (
+            {
+              to: "/measurements",
+              label: t("measurements"),
+              Icon: RulerSquareIcon,
+            },
+            { to: "/data", label: t("dataTransfer"), Icon: ArchiveIcon },
+            { to: "/account/password", label: t("account"), Icon: PersonIcon },
+            ...(user?.role === "ADMIN"
+              ? [{ to: "/admin/users", label: t("admin"), Icon: GearIcon }]
+              : []),
+          ].map(({ to, label, Icon }) => (
             <Link key={to} highContrast asChild>
               <RouterLink
                 to={to}
@@ -78,6 +93,7 @@ export function AccountMenu() {
                     : undefined
                 }
               >
+                <Icon aria-hidden="true" />
                 {label}
               </RouterLink>
             </Link>

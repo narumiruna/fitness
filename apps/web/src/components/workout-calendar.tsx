@@ -90,7 +90,7 @@ export function WorkoutCalendar() {
             </RouterLink>
           ))}
         </div>
-        <Text size="2" color="teal">
+        <Text size="2" color="green">
           {t(
             monthWorkoutCount === 1
               ? "workoutsThisMonthOne"

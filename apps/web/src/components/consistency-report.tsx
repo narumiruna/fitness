@@ -83,7 +83,7 @@ export function ConsistencyReport({
           <Badge
             key={d.date}
             tabIndex={0}
-            color={d.count ? "teal" : "gray"}
+            color={d.count ? "green" : "gray"}
             aria-label={`${d.date}: ${d.count} ${t("trainingDays")}`}
             title={`${d.date}: ${d.count}`}
           >

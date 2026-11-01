@@ -28,7 +28,7 @@ export function TrainingEntry({
           <Text weight="bold" className="ongoing-title">
             {session.title || t("workout")}
           </Text>
-          <Badge color={session.state === "ACTIVE" ? "teal" : "gray"}>
+          <Badge color={session.state === "ACTIVE" ? "green" : "gray"}>
             {t(session.state)}
           </Badge>
         </div>

@@ -1,5 +1,6 @@
 import { basename, dirname, isAbsolute } from "node:path";
 import { defineConfig } from "@playwright/test";
+import { browserChannel } from "./tests/browser";
 
 // Never reuse a running application or a developer's database.
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -34,7 +35,7 @@ export default defineConfig({
   use: {
     baseURL,
     ignoreHTTPSErrors: production,
-    channel: "chrome",
+    channel: browserChannel,
     actionTimeout: 15_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

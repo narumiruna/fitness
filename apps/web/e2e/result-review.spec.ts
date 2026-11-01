@@ -5,6 +5,7 @@ import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium, expect, type Page, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { browserChannel } from "../../../tests/browser";
 import { prisma } from "../../api/src/lib/prisma";
 import type { Locale } from "../src/lib/locales";
 import { dictionary } from "../src/lib/translations";
@@ -484,7 +485,7 @@ test("saved results and expanded corrections reflow at real 200 percent Chrome z
   try {
     const origin = new URL(page.url()).origin;
     zoomContext = await chromium.launchPersistentContext(directory, {
-      channel: "chrome",
+      channel: browserChannel,
       headless: true,
       viewport: null,
       baseURL: origin,

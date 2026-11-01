@@ -12,6 +12,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { browserChannel } from "../../../tests/browser";
 import { prisma } from "../../api/src/lib/prisma";
 import type { Locale } from "../src/lib/locales";
 import { dictionary } from "../src/lib/translations";
@@ -410,7 +411,7 @@ for (const role of ["USER", "ADMIN"] as const) {
           const origin = new URL(page.url()).origin;
           // Same browser-settings method as ui-ux-remediation.spec.ts; no CSS zoom.
           zoomContext = await chromium.launchPersistentContext(directory, {
-            channel: "chrome",
+            channel: browserChannel,
             headless: true,
             viewport: null,
             baseURL: origin,

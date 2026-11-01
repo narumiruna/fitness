@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { defineConfig } from "@playwright/test";
 import base from "../playwright.config";
+import { browserLaunchArgs } from "./browser";
 
 const server = base.webServer;
 if (!server || Array.isArray(server))
@@ -14,5 +15,17 @@ export default defineConfig({
   testDir: "../apps/web/e2e",
   testMatch: "participant-session.ts",
   webServer: { ...server, cwd: resolve(import.meta.dirname, "..") },
-  use: { ...base.use, headless: false, screenshot: "off", trace: "off" },
+  use: {
+    ...base.use,
+    headless: false,
+    launchOptions: {
+      ...base.use?.launchOptions,
+      args: [
+        ...(base.use?.launchOptions?.args ?? []),
+        ...browserLaunchArgs(false),
+      ],
+    },
+    screenshot: "off",
+    trace: "off",
+  },
 });

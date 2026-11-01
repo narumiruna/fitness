@@ -37,7 +37,6 @@ import {
   queryClient,
   request,
 } from "./api/client";
-import { AccountMenu } from "./components/account-menu";
 import { ActionForm } from "./components/action-form";
 import { StrengthIcon } from "./components/dashboard";
 import { LanguageSelect } from "./components/language-select";
@@ -162,10 +161,11 @@ export function App() {
   return (
     <SessionContext.Provider value={bootstrap.data}>
       <Theme
-        accentColor="teal"
-        grayColor="slate"
+        accentColor="green"
+        grayColor="sage"
         appearance="light"
-        radius="medium"
+        radius="large"
+        panelBackground="translucent"
       >
         <Routes>
           <Route
@@ -284,7 +284,7 @@ function Shell() {
     }
   }, [location]);
   return (
-    <Box className="shell">
+    <Box className={`shell${user ? " authenticated" : ""}`}>
       <a className="skip-link" href="#main-content">
         {t("skipToContent")}
       </a>
@@ -292,8 +292,10 @@ function Shell() {
         <header>
           <Link highContrast asChild weight="bold" size="4">
             <RouterLink className="brand" to="/">
-              <StrengthIcon />
-              {t("appName")}
+              <span className="brand-mark">
+                <StrengthIcon />
+              </span>
+              <span className="brand-name">{t("appName")}</span>
             </RouterLink>
           </Link>
           {user ? (
@@ -317,32 +319,37 @@ function Shell() {
                 errorMessage={t("languageChangeError")}
               />
               {user ? (
-                <>
-                  <Flex
-                    align="center"
-                    gap="3"
-                    className="desktop-account-actions"
-                  >
-                    {user.role === "ADMIN" ? (
-                      <Link highContrast asChild>
-                        <RouterLink to="/admin/users">{t("admin")}</RouterLink>
-                      </Link>
-                    ) : null}
+                <Flex
+                  align="center"
+                  gap="3"
+                  className="desktop-account-actions"
+                >
+                  {user.role === "ADMIN" ? (
                     <Link highContrast asChild>
-                      <RouterLink to="/account/password">
-                        <PersonIcon aria-hidden="true" />
-                        {t("account")}
-                      </RouterLink>
+                      <RouterLink to="/admin/users">{t("admin")}</RouterLink>
                     </Link>
-                    <ActionForm action={logoutAction}>
-                      <Button highContrast variant="ghost" type="submit">
-                        <ExitIcon aria-hidden="true" />
-                        {t("signOut")}
-                      </Button>
-                    </ActionForm>
-                  </Flex>
-                  <AccountMenu />
-                </>
+                  ) : null}
+                  <Link highContrast asChild>
+                    <RouterLink
+                      to="/account/password"
+                      className="account-link"
+                      aria-label={t("account")}
+                    >
+                      <span className="user-avatar" aria-hidden="true">
+                        <PersonIcon />
+                      </span>
+                      <span className="account-name" aria-hidden="true">
+                        {user.username}
+                      </span>
+                    </RouterLink>
+                  </Link>
+                  <ActionForm action={logoutAction}>
+                    <Button highContrast variant="ghost" type="submit">
+                      <ExitIcon aria-hidden="true" />
+                      {t("signOut")}
+                    </Button>
+                  </ActionForm>
+                </Flex>
               ) : (
                 <Link highContrast asChild>
                   <RouterLink
