@@ -634,3 +634,24 @@ The expected result is a complete pass without skips or retries. Full production
 coverage and Node 24 execution were not verified locally. Do not treat the local
 subset as release approval. Production deployment remains separately authorized
 and is not part of this change.
+
+## Rendered Otter/Fitness UI comparison — 2026-11-01
+
+A separate [Playwright comparison report](reviews/otter-fitness-ui-comparison.md)
+compares Fitness `72be0cd` with Otter `d2cfe84`. The final case passed and captured
+43 matched viewport/locale/state pairs, with 102 original screenshots. All ten
+measured light palette/radius tokens matched, but button variants, actual font
+rendering, mobile breakpoints, auth ordering, card variants, and theme behavior
+differ. This is evidence of a shared design foundation, not complete UI parity.
+
+The comparison used real frontends, disposable Fitness SQLite, and synthetic
+Otter API responses. Only Otter's public font origins were allowed externally;
+no reference API, database, or Compose service was started. All 86 viewport
+states had zero document overflow; eight selected auth states had no violations
+of the chosen axe rules. Font provenance was checked with Chromium CDP.
+
+Paired images, a local gallery, raw measurements, and reproduction files remain
+ignored under `test-results/otter-fitness-comparison/`. Product source and the
+open PR were not changed. The report retains subjective visual, physical-device,
+assistive-technology, and release limits. This comparison does not replace the
+complete workflow CI or authorize deployment.
