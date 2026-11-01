@@ -1,0 +1,92 @@
+.account-settings {
+  display: grid;
+  width: 100%;
+  max-width: 45rem;
+  min-width: 0;
+  gap: 24px;
+  margin-inline: auto;
+}
+
+.account-settings-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  border-bottom: 1px solid var(--dashboard-border);
+}
+
+.account-settings-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 56px;
+  padding: 12px 8px;
+  color: var(--dashboard-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.account-settings-link:hover {
+  background: var(--gray-3);
+  text-decoration: none;
+}
+
+.account-settings-link[aria-current="page"] {
+  color: var(--accent-12);
+  font-weight: 600;
+}
+
+.account-settings-link[aria-current="page"]::after {
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 3px;
+  background: var(--dashboard-accent);
+  content: "";
+}
+
+.account-settings-link:focus-visible {
+  outline-offset: -3px;
+}
+
+.account-settings-content {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.account-password-panel {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+}
+
+.account-password-field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.account-password-actions {
+  padding-top: 20px;
+  border-top: 1px solid var(--dashboard-border);
+}
+
+.account-password-actions > .rt-Button {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .account-settings {
+    gap: 20px;
+  }
+
+  .account-password-panel {
+    gap: 20px;
+    padding: 20px;
+  }
+}

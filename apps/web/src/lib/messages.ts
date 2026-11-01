@@ -406,6 +406,7 @@ export const englishMessages = {
   passkeyDeleted: "Passkey removed: {name}.",
   noPasskeys: "No passkeys registered.",
   accountSecurity: "Account security",
+  accountSettings: "Account settings",
   changePassword: "Change password",
   currentPassword: "Current password",
   newPassword: "New password",

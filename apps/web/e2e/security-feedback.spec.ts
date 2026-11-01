@@ -172,6 +172,9 @@ for (const locale of locales) {
       );
     }
     await page.goto("/account/password");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      t("changePassword"),
+    );
     for (const [path, status] of outcomes) {
       await navigate(page, `/${path}`);
       await expect(page.locator("main")).toBeFocused();
@@ -212,6 +215,7 @@ for (const locale of locales) {
     await expect(security.getByRole("link")).toHaveText([
       t("changePassword"),
       t("passkeys"),
+      t("mcpConnections"),
     ]);
     await expect(
       security.getByRole("link", { name: t("changePassword") }),
@@ -275,6 +279,7 @@ for (const locale of locales) {
     await expect(security.getByRole("link")).toHaveText([
       t("changePassword"),
       t("passkeys"),
+      t("mcpConnections"),
     ]);
     await expect(
       security.getByRole("link", { name: t("passkeys") }),

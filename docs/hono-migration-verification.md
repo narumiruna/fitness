@@ -655,3 +655,58 @@ ignored under `test-results/otter-fitness-comparison/`. Product source and the
 open PR were not changed. The report retains subjective visual, physical-device,
 assistive-technology, and release limits. This comparison does not replace the
 complete workflow CI or authorize deployment.
+
+## Account settings design review baseline — 2026-11-01
+
+The [Round 01 account settings review](reviews/account-settings-ui-iteration.md)
+records the unchanged UI at `83cdb47`. A disposable Playwright run captured
+48 states and 96 screenshots across three account routes, both locales, and
+four viewport sizes. The first partial baseline is retained separately.
+
+The capture completed, but its final accessibility assertion failed: the agent
+revocation dialog Cancel button has 4.28:1 text contrast instead of 4.5:1 in
+four audited states. The other 20 audited states had no violations for the
+configured axe tags. All 48 states had zero measured document overflow. Local
+validation, Escape cancellation, and trigger-focus assertions completed; this
+does not establish full workflow, keyboard, or assistive-technology coverage.
+
+Original captures, capture source/logs, manifests, a gallery, and three generated
+design alternatives remain ignored under
+`test-results/account-settings-review/round-01/`. At the baseline review, no
+product implementation had changed. The user subsequently selected B-v1. A
+generated image is not verification evidence; baseline failure evidence remains
+retained. Commit/push was not authorized at the baseline review; the final
+user direction and delivery scope are recorded below.
+
+### Approved B-v1 implementation
+
+B-v1 adds a bounded account column, three shared route links with an underline
+marker, a focused password card/footer, and a high-contrast gray Cancel action.
+Password behavior, passkey recovery/removal, agent permissions, global navigation,
+and fonts remain unchanged. ACC-01 through ACC-03 meet the recorded acceptance
+checks; saved-passkey density (ACC-04) remains deferred.
+
+The final capture passed: 48 matching states, 96 images, 24 selected axe audits
+with no violations, zero document overflow, and local link targets at least 56px
+high. The original baseline and generated B-v1 image remain unchanged. Desktop
+and mobile three-way images are in `comparisons-v1/` under the artifact root.
+
+`npm run build` and `npm test` passed. The five-file account/security/passkey/MCP
+HTTP subset passed 59 cases; the complete second HTTPS/PostgreSQL run passed the
+same 59 cases. The first HTTPS run passed 58 and failed one test-setup focus
+assertion: it navigated before the initial main region mounted. The test now waits
+for its initial password heading; no focus assertion or application focus logic
+was removed. Its failed run and trace remain retained. One complete Otter shell
+reflow case also passed. See the review for exact commands, capture versions,
+source hashes, final static checks, and limits.
+
+This remains a partial workflow assessment on Node 26, not a complete Node 24 CI
+or physical-device/screen-reader assessment. Tests used owned disposable services,
+not the production Compose stack. After the three-way comparison, the user
+selected Stop and requested a pull request. ACC-04 remains deferred; no next
+round will start. The retained review assigns remaining device, assistive-
+technology, and full Node 24 CI checks to the QA/release owners. Commit, push,
+and PR creation are authorized; deployment, publication, and release tags are
+not. Stopping the iteration is not subjective visual acceptance or release
+approval. The completed iteration plan is removed after its checks and handoff
+are recorded.

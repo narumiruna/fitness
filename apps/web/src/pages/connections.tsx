@@ -8,14 +8,13 @@ import {
   Card,
   Flex,
   Heading,
-  Link,
   Spinner,
   Text,
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
 import { request } from "@/api/client";
+import { AccountSettingsLayout } from "@/components/account-settings-layout";
 import { useDictionary } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
@@ -59,14 +58,11 @@ export default function ConnectionsPage() {
   }
 
   return (
-    <section className="narrow stack" aria-busy={pending !== null}>
+    <AccountSettingsLayout busy={pending !== null}>
       <Heading as="h1" size="8">
         {t("mcpConnections")}
       </Heading>
       <Text as="p">{t("mcpConnectionsHelp")}</Text>
-      <Link highContrast asChild>
-        <RouterLink to="/account/password">{t("account")}</RouterLink>
-      </Link>
       {failed ? <Text role="alert">{t("mcpRevokeFailed")}</Text> : null}
       {revoked ? <Text role="status">{t("mcpRevoked")}</Text> : null}
       {connections.isPending ? (
@@ -134,7 +130,9 @@ export default function ConnectionsPage() {
                 </AlertDialog.Description>
                 <Flex gap="3" mt="4" justify="end">
                   <AlertDialog.Cancel>
-                    <Button variant="soft">{t("cancel")}</Button>
+                    <Button highContrast color="gray" variant="soft">
+                      {t("cancel")}
+                    </Button>
                   </AlertDialog.Cancel>
                   <AlertDialog.Action>
                     <Button
@@ -151,6 +149,6 @@ export default function ConnectionsPage() {
           </Card>
         ))
       )}
-    </section>
+    </AccountSettingsLayout>
   );
 }
