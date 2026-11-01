@@ -14,14 +14,25 @@ is included in browser code.
 
 ## Design and localization
 
-`apps/web/src/styles.css` retains the existing dashboard CSS and Radix theme
-integration. Keep active/nested navigation marked with `aria-current`, high
-contrast primary controls, keyboard-visible focus, and the skip-to-content link.
-Do not add a visual redesign as part of unrelated backend changes. On mobile,
-keep four labeled primary tabs in the compact header. The More dialog provides
-measurements, workout data, account, administrator access when authorized, and
-sign-out. Keep locale selection in the toolbar and return keyboard focus when
-the dialog closes.
+Fitness uses the default Otter forest style: Geist typography, Radix green/sage
+colors, 14px panels, 8px controls, light borders, and small surface shadows.
+`apps/web/src/styles.css` imports focused theme, shell, dashboard, report,
+training, and authentication styles from `apps/web/src/styles/`. The light
+appearance stays fixed; this change does not add palette settings.
+
+- Keep shared colors mapped to Radix semantic tokens in `styles/theme.css`.
+  - Use dark accent text when green text on a tinted background would fail contrast.
+  - Keep error, warning, and success colors distinct from navigation states.
+- Use a 72px header and a 248px fixed sidebar above 1100px. Use a 208px sidebar from 901px to 1100px. Between 721px and 900px, show six navigation links below the header.
+- At 720px and below, use a 64px header and a fixed bottom bar with four labeled destinations and More.
+  - Measure the bar with `ResizeObserver`. Reserve its actual height, safe-area inset, and content spacing so it does not cover controls.
+  - The More dialog provides measurements, workout data, account, authorized administrator access, and sign-out.
+  - Keep locale selection in the header and return keyboard focus when the dialog closes.
+- Keep active/nested navigation marked with `aria-current`, high-contrast primary controls, keyboard-visible focus, and the skip-to-content link.
+- Keep ordinary controls at least 44px high. Authentication controls are at least 48px high.
+- Use the split authentication layout on desktop. On narrow screens, place the form before the supporting description. Keep setup, errors, native validation, and passkey actions available.
+
+Do not add a visual redesign as part of unrelated backend changes.
 
 Typed English and Traditional Chinese dictionaries live in `apps/web/src/lib/`.
 Bootstrap resolves the HttpOnly locale cookie and browser preference on the API.
@@ -82,8 +93,15 @@ calendar navigation, virtual passkeys, data import/export, draft preservation,
 retry/conflict recovery, keyboard access, axe, and responsive layouts.
 
 Browser tests use disposable data on port 8784, refuse existing servers, and stop
-their own stack. Screenshots and traces are ignored local artifacts under
-`test-results/`; do not commit them. Development uses SQLite; production-mode
+their own stack. Run shared-package builds and the pre-commit gate before browser
+workflows. The development API restarts when shared package output changes.
+`tests/browser.ts` selects system Chrome when available and
+bundled full Chromium on Linux without Chrome. Persistent zoom tests use the
+same selection. The headed participant configuration adds the Wayland argument
+under WSLg without changing headless launches. `otter-ui.spec.ts` checks both
+locales at 1440px, 768px, 390px, and 320px, including loaded fonts, theme tokens,
+axe, navigation, reflow, and measured bottom-bar clearance. Screenshots and traces
+are ignored local artifacts under `test-results/`; do not commit them. Development uses SQLite; production-mode
 checks require isolated PostgreSQL and HTTPS. See [current migration evidence](hono-migration-verification.md)
 for command results and the separately authorized production rollout requirements. Historical dashboard/training evidence
 must not be treated as verification of the new runtime.

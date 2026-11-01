@@ -539,3 +539,119 @@ must retain the version-aware verifier. See [release recovery](releasing.md).
 A package changeset records the user-visible fixes. Pull request preparation was
 authorized after local verification. These checks did not deploy, publish,
 operate production data, or change an unrelated plan.
+
+## Otter-style Fitness UI — 2026-11-01
+
+Fitness now uses the default Otter forest design: Geist, Radix green/sage,
+rounded panels, shared 44px controls, a desktop sidebar, and fixed mobile
+navigation. Login and setup use a shared split layout with 48px controls.
+Training, calendar, reports, exercise records, account pages, and administration
+use the same design tokens. English and Traditional Chinese keys remain typed.
+The light appearance stays fixed; no palette settings were added.
+
+No API implementation, HTTP contract, database model, migration, production
+configuration, or stored workout data changed. The web package changeset records
+the user-visible redesign.
+
+### Local verification
+
+Environment: Node 26.11.1 and npm 11.20.0. The initial `npm ci` generated both
+Prisma clients. Linux did not have system Chrome. `tests/browser.ts` now selects
+bundled full Chromium in that case; installed system Chrome remains the default
+on supported systems. Persistent zoom checks use the same browser selection.
+Headless launch arguments are unchanged. The existing headed participant config
+adds `--ozone-platform=wayland` under WSLg and preserves other arguments. No
+headed or human participant session was run.
+
+- `npm run check`: passed with Biome and all workspace TypeScript checks.
+- `npm run build`: passed. Existing dependency annotation and large-chunk warnings remain.
+- `npm test`: all 84 pure tests passed, with no skips.
+- `prek run -a`: both gates passed.
+- `npm run changeset -- status`: passed; the new web patch changeset is valid.
+- Initial focused browser check: `otter-ui.spec.ts` and `visual-dashboard.spec.ts` passed. The new check covered 88 route/locale/width samples; the existing visual check covered 12 more. All sampled pages passed axe and document reflow checks.
+
+The new UI check covers login and ten populated authenticated routes in both
+locales at 1440px, 768px, 390px, and 320px. It verifies loaded Geist fonts,
+semantic theme attributes, nested navigation, role-specific controls, keyboard
+and pointer access to More, focus restoration, and measured bottom-bar clearance.
+Additional assertions cover compact portaled language menus and a wide print
+layout without a hidden-sidebar gutter.
+
+Initial checks found insufficient contrast on a green disclosure label, a
+viewport-height rule applied to portaled themes, and a retained sidebar margin
+in print. These rules were corrected without disabling accessibility checks.
+The focus-clearance test also now resets focus before its artificial scroll;
+calling `focus()` on an already focused element does not request a second scroll.
+Legacy teal assertions were changed to the requested forest color; explicit
+destructive accents and disabled controls are still checked separately. Desktop
+exercise actions now stay beside aliases without overlap.
+
+The initial full development run completed all 145 cases: 141 passed and four
+failed. Two failures were old teal assertions. One was the desktop alias/action
+placement corrected above. One navigation read failed with `ECONNREFUSED` while a
+concurrent pre-commit gate rebuilt the shared packages and restarted the watched
+API. These initial results are not reported as a passing full run. Subsequent
+browser checks run without concurrent package builds.
+
+Final verification on the corrected files:
+
+- `npm run test:ui:production -- otter-ui.spec.ts dashboard-review.spec.ts ui.spec.ts training-entry.spec.ts --output test-results/ui-redesign-production`: all 16 selected cases passed in 5.0 minutes with built assets, isolated PostgreSQL, and HTTPS. No skips or retries.
+- The development correction repeat passed all 10 selected cases in 3.0 minutes. It covered all four initial failures, the complete six-case serial UI workflow, and the updated disabled-control assertion. No skips or retries.
+- After the browser runners stopped, `npm run check`, `npm run build`, all 84 tests in `npm test`, `prek run -a`, and `git diff --check` passed again.
+- A separate strict TypeScript check of the changed browser specs and browser configuration passed.
+- Cleanup passed: no listeners remain on ports 8784/8785, and no disposable `fitness-test-*` PostgreSQL containers remain. No production service was stopped or changed.
+
+The exact correction-repeat command was:
+
+```sh
+npm run test:ui -- dashboard-review.spec.ts navigation-refresh.spec.ts ui.spec.ts ui-ux-remediation.spec.ts --grep "default solid|duplicate exercise|compact navigation for ADMIN.*zh-TW navigation at 1440px|setup, login failures|exercise aliases, all workout forms|admin roles and user data isolation|dashboard ranges, calendar selection|bounded chart periods|responsive routes, semantic controls|supporting screens put content" --output test-results/ui-redesign-repeat
+```
+
+The complete 145-case development command was not repeated after correction.
+The production run was a focused 16-case check, not the complete production
+suite. These limits are not reported as full green suite runs.
+
+### Evidence and external handoff
+
+Before captures remain ignored under `test-results/ui-redesign-before/`.
+Updated captures remain ignored under `test-results/ui-redesign-after/` and
+`test-results/ui-redesign-full/`. Final HTTPS captures and correction-repeat
+captures are under `test-results/ui-redesign-production/` and
+`test-results/ui-redesign-repeat/`. Images, traces, generated clients, and
+databases are not source changes and must not be committed.
+
+The product owner can use these captures to review the requested Otter style.
+The prerequisite is access to the local artifacts; the action is to compare the
+desktop and mobile layouts in both languages. The expected result is acceptance
+of the visual design. Subjective appearance, physical-device rendering, real
+assistive technology, and physical passkey hardware remain unverified. This
+handoff does not replace those checks or require new acceptance to close the
+coding work.
+
+The release owner must obtain green results from the existing Node 24 CI jobs
+for both complete browser suites after an authorized branch push or pull request.
+The expected result is a complete pass without skips or retries. Full production
+coverage and Node 24 execution were not verified locally. Do not treat the local
+subset as release approval. Production deployment remains separately authorized
+and is not part of this change.
+
+## Rendered Otter/Fitness UI comparison — 2026-11-01
+
+A separate [Playwright comparison report](reviews/otter-fitness-ui-comparison.md)
+compares Fitness `72be0cd` with Otter `d2cfe84`. The final case passed and captured
+43 matched viewport/locale/state pairs, with 102 original screenshots. All ten
+measured light palette/radius tokens matched, but button variants, actual font
+rendering, mobile breakpoints, auth ordering, card variants, and theme behavior
+differ. This is evidence of a shared design foundation, not complete UI parity.
+
+The comparison used real frontends, disposable Fitness SQLite, and synthetic
+Otter API responses. Only Otter's public font origins were allowed externally;
+no reference API, database, or Compose service was started. All 86 viewport
+states had zero document overflow; eight selected auth states had no violations
+of the chosen axe rules. Font provenance was checked with Chromium CDP.
+
+Paired images, a local gallery, raw measurements, and reproduction files remain
+ignored under `test-results/otter-fitness-comparison/`. Product source and the
+open PR were not changed. The report retains subjective visual, physical-device,
+assistive-technology, and release limits. This comparison does not replace the
+complete workflow CI or authorize deployment.

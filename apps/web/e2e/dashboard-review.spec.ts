@@ -30,12 +30,12 @@ test.afterEach(async () => {
 });
 test.afterAll(async () => prisma.$disconnect());
 
-test("default solid actions stay teal while explicit destructive accents remain red", async ({
+test("default solid actions use forest while explicit destructive accents remain red", async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 1440, height: 1080 });
   const primary = page.getByRole("link", { name: "New workout", exact: true });
-  await expect(primary).toHaveCSS("background-color", "rgb(8, 117, 101)");
+  await expect(primary).toHaveCSS("background-color", "rgb(25, 59, 45)");
   await prisma.passkey.create({
     data: {
       id: randomUUID(),
@@ -58,7 +58,7 @@ test("default solid actions stay teal while explicit destructive accents remain 
     return { actual: style.color, expected };
   });
   expect(colors.actual).toBe(colors.expected);
-  expect(colors.actual).not.toBe("rgb(8, 117, 101)");
+  expect(colors.actual).not.toBe("rgb(25, 59, 45)");
   await page.screenshot({ path: info.outputPath("explicit-red-delete.png") });
 });
 

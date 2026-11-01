@@ -1,5 +1,6 @@
 export const englishMessages = {
   appName: "Fitness",
+  trainingWorkspace: "Training workspace",
   mcpConsentTitle: "Connect an agent",
   mcpConsentSignIn: "Sign in to review this agent's access request.",
   mcpConsentUnavailable:
@@ -274,6 +275,21 @@ export const englishMessages = {
   signIn: "Sign in",
   username: "Username",
   password: "Password",
+  authLoginEyebrow: "Welcome back",
+  authLoginDescription: "Sign in to continue your training.",
+  authSetupEyebrow: "Initial setup",
+  authOr: "or",
+  authPromoEyebrow: "Your training, in one place",
+  authPromoTitle: "Keep your training clear.",
+  authPromoTitleAccent: "One session at a time.",
+  authPromoDescription:
+    "Record your sets, return to past workouts, and see how your training changes over time.",
+  authRecordTitle: "Record each set",
+  authRecordDescription: "Keep weights, reps, and notes together.",
+  authReviewTitle: "Review your history",
+  authReviewDescription: "See past workouts and training trends.",
+  authRepeatTitle: "Start from a template",
+  authRepeatDescription: "Reuse a saved workout for your next session.",
   loginTitle: "Sign in",
   loginError: "Invalid username or password.",
   setupTitle: "Create the first admin account",

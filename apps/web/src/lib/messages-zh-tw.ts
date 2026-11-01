@@ -2,6 +2,7 @@ import type { englishMessages } from "@/lib/messages";
 
 export const traditionalChineseMessages = {
   appName: "Fitness",
+  trainingWorkspace: "訓練工作區",
   mcpConsentTitle: "連接代理程式",
   mcpConsentSignIn: "請登入以檢視此代理程式的存取請求。",
   mcpConsentUnavailable:
@@ -260,6 +261,20 @@ export const traditionalChineseMessages = {
   signIn: "登入",
   username: "使用者名稱",
   password: "密碼",
+  authLoginEyebrow: "歡迎回來",
+  authLoginDescription: "登入以繼續你的訓練。",
+  authSetupEyebrow: "初始設定",
+  authOr: "或",
+  authPromoEyebrow: "集中管理你的訓練",
+  authPromoTitle: "讓訓練清晰有序。",
+  authPromoTitleAccent: "從每一次訓練開始。",
+  authPromoDescription: "記錄每一組、回顧過去的訓練，掌握訓練隨時間的變化。",
+  authRecordTitle: "記錄每一組",
+  authRecordDescription: "集中記錄重量、次數與筆記。",
+  authReviewTitle: "回顧訓練歷史",
+  authReviewDescription: "檢視過去的訓練與訓練趨勢。",
+  authRepeatTitle: "從範本開始",
+  authRepeatDescription: "使用已儲存的訓練範本，開始下一次訓練。",
   loginTitle: "登入",
   loginError: "使用者名稱或密碼錯誤。",
   setupTitle: "建立第一個管理員帳號",

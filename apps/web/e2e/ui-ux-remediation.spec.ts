@@ -6,6 +6,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { formatDateKey } from "@narumitw/fitness-core/calendar";
 import { chromium, expect, type Page, test } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { browserChannel } from "../../../tests/browser";
 import { prisma } from "../../api/src/lib/prisma";
 import { dictionary } from "../src/lib/translations";
 
@@ -173,7 +174,7 @@ test("supporting screens put content before secondary tools in both locales and 
               disabled: el.matches(":disabled"),
             }));
             expect(style.disabled).toBe(true);
-            expect(style.background).not.toBe("rgb(8, 117, 101)");
+            expect(style.background).not.toBe("rgb(25, 59, 45)");
           }
           if (route === "admin/users") {
             await expect(page.locator(".admin-create")).not.toHaveAttribute(
@@ -516,7 +517,7 @@ test("changed screens and expanded controls reflow at real 200 percent browser z
     const csv = await (await context.request.get("/data/export")).text();
     const origin = new URL(page.url()).origin;
     zoomContext = await chromium.launchPersistentContext(directory, {
-      channel: "chrome",
+      channel: browserChannel,
       headless: true,
       viewport: null,
       baseURL: origin,

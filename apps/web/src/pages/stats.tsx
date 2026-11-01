@@ -49,13 +49,13 @@ export default function StatsPage() {
     label: item.key === "other" ? t("otherExercises") : item.label,
   }));
   const colors = [
-    "#0f766e",
-    "#298c7f",
-    "#419e90",
-    "#68aa9e",
-    "#8fbdb4",
-    "#b4d1ca",
-    "#d6e4de",
+    "var(--accent-11)",
+    "var(--accent-8)",
+    "var(--accent-7)",
+    "var(--gray-9)",
+    "var(--gray-8)",
+    "var(--gray-7)",
+    "var(--gray-6)",
   ];
   let offset = 0;
   const stops = distribution.map((item, index) => {

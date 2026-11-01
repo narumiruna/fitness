@@ -1124,7 +1124,7 @@ test("responsive routes, semantic controls, CSS states, and themed portals", asy
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     expect(
       await page.locator(".radix-themes").getAttribute("data-accent-color"),
-    ).toBe("teal");
+    ).toBe("green");
     for (const width of [320, 390, 720, 721, 960, 961, 1023, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       await noOverflow(page);

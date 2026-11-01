@@ -233,7 +233,7 @@ export default function WorkoutsPage() {
                           </RouterLink>
                         </Heading>
                         <Badge
-                          color={workout.state === "ACTIVE" ? "teal" : "gray"}
+                          color={workout.state === "ACTIVE" ? "green" : "gray"}
                         >
                           {t(workout.state as MessageKey)}
                         </Badge>

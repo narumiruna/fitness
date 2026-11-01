@@ -221,7 +221,9 @@ export default function CalendarPage() {
                         )}
                   </Text>
                   <div className="meta-row">
-                    <Badge color={workout.state === "ACTIVE" ? "teal" : "gray"}>
+                    <Badge
+                      color={workout.state === "ACTIVE" ? "green" : "gray"}
+                    >
                       {t(workout.state as MessageKey)}
                     </Badge>
                     {workout.state === "COMPLETED" ? (

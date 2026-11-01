@@ -12,6 +12,7 @@ import {
   test,
 } from "@playwright/test";
 import bcrypt from "bcryptjs";
+import { browserChannel } from "../../../tests/browser";
 import { createParticipantFixture } from "../../../tests/fixtures/ui-ux-participant";
 import { normalizeExerciseAlias } from "../../api/src/lib/exercises";
 import { prisma } from "../../api/src/lib/prisma";
@@ -166,7 +167,7 @@ async function atDoubleZoom(page: Page, review: (page: Page) => Promise<void>) {
   const profile = await mkdtemp(join(tmpdir(), "fitness-review-zoom-"));
   try {
     const context = await chromium.launchPersistentContext(profile, {
-      channel: "chrome",
+      channel: browserChannel,
       headless: true,
       viewport: null,
       baseURL: new URL(page.url()).origin,

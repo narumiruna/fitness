@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { queryClient } from "./api/client";
 import { App } from "./app";
+import "@fontsource-variable/geist";
 import "@radix-ui/themes/styles.css";
 import "./styles.css";
 
