@@ -752,3 +752,43 @@ These local results are not reported as a full CI pass. The latest PR #34 checks
 must verify the pushed revision; that check run is the remote completion evidence.
 The stopped UI iteration, deferred ACC-04, physical-device/assistive-technology
 limits, and separate deployment authorization remain unchanged.
+
+### Database cancellation fixture preparation
+
+The next CI run, `41320779409` on `a834230`, exposed a separate database
+fixture failure: SIGINT cancellation did not reach its readiness marker within
+10.04 seconds; the following SIGTERM case passed in 0.57 seconds. No cancellation
+signal had been sent in the failed case. The fixture's first Docker use can
+download PostgreSQL inside that readiness budget.
+
+An isolated Docker wrapper simulated 11 seconds of image preparation without
+removing host images. Before the fix, it reproduced the same SIGINT marker
+failure; after preparation completed, the SIGTERM case passed. The first
+cancelled simulated run did not create a real container. With the fix, preparation
+completed before either timed case and both real-container cancellation checks
+passed. This establishes the setup-latency failure mechanism; it is not a
+measurement of the CI registry transfer itself. An earlier wrapper module-scope
+setup error is retained separately and is not counted as reproduction evidence.
+
+The cleanup fixture now inspects and, only if absent, pulls the shared
+`POSTGRES_TEST_IMAGE` before the timed cases. Both inspection and pull have
+bounded subprocess calls and preserve errors. The existing 10-second readiness
+loop, 30-second per-case deadline, expected signal exit codes, and container
+removal assertions remain unchanged. The shared image is still
+`postgres:17-bookworm`; no workflow, production configuration, or application
+behavior changed. These cases test cancellation during readiness polling, not
+during an image download.
+
+Additional local checks:
+
+- `npm run check`: passed.
+- `npm run test:db-init`: 29/29 passed on Node 26.11.1.
+- Node 24.22.1 cached-image signal tests repeated five times: 10/10 passed.
+- `fnm exec --using 24.22.1 npm run test:training:postgres`: 15/15 passed.
+- `fnm exec --using 24.22.1 npm run test:api:postgres`: 83/83 passed.
+- All owned containers and test processes stopped. Controlled before/after
+  source, logs, and the initial invalid setup remain ignored under
+  `test-results/pr34-pg-cold-repro/`.
+
+The latest PR-head CI run remains the final remote verification gate. Local
+results and prior-run results are not substituted for that check.
