@@ -710,3 +710,45 @@ and PR creation are authorized; deployment, publication, and release tags are
 not. Stopping the iteration is not subjective visual acceptance or release
 approval. The completed iteration plan is removed after its checks and handoff
 are recorded.
+
+## PR #34 MCP browser CI synchronization — 2026-11-01
+
+CI run `41310712193` on `b0f390a` passed checks, databases, the development
+browser suite, and image smoke. Production browser tests finished with 164 passed
+and one failure in the anonymous MCP authorization/revocation case.
+
+The failure trace shows the second unscoped Revoke access click starting at
+139454ms. A revoke POST returned 200 at 139483ms, before the intended dialog
+confirmation click started at 139487ms. The old dialog was still closing, so
+the page-wide button locator selected its confirmation action rather than the
+page trigger. The same Cancel/reopen selector pattern existed in the retry case.
+
+The MCP tests now scope triggers to the main region, wait for dialog removal and
+trigger focus after Cancel, and verify zero revoke requests before explicit
+confirmation. The real flow asserts one revoke request and the existing denied
+token access afterward; the retry flow preserves its failure/success checks and
+asserts exactly two requests. No application behavior, animation, workflow,
+timeout, retry count, or existing security assertion was weakened.
+
+Local evidence:
+
+- A temporary real-browser probe held the closing overlay/content for 900ms.
+  The original test reproduced the CI timeout at the confirmation click.
+- With the corrected tests, both affected flows repeated five times passed:
+  10/10 on Node 24.22.1 with built assets, local HTTPS, and disposable PostgreSQL.
+  The probe is archived outside source and is not a permanent animation change.
+- `npm run test:ui -- mcp.spec.ts --repeat-each 3`: 18/18 passed with disposable
+  SQLite on Node 26.11.1.
+- `fnm exec --using 24.22.1 npm run test:ui:production -- mcp.spec.ts --repeat-each 3`:
+  18/18 passed. Its build also passed. Node 24.22.1 matches the failed CI runtime;
+  the local browser remains bundled Chromium rather than CI's system Chrome.
+- `npm run check` passed. No production stack was used; owned servers and test
+  containers stopped. The temporary source probe was removed.
+- Original CI artifacts remain ignored under `test-results/pr34-ci-production/`;
+  deterministic before/after probes, repeat runs, and source/logs remain under
+  `test-results/pr34-ci-close-repro/`.
+
+These local results are not reported as a full CI pass. The latest PR #34 checks
+must verify the pushed revision; that check run is the remote completion evidence.
+The stopped UI iteration, deferred ACC-04, physical-device/assistive-technology
+limits, and separate deployment authorization remain unchanged.
