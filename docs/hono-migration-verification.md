@@ -792,3 +792,108 @@ Additional local checks:
 
 The latest PR-head CI run remains the final remote verification gate. Local
 results and prior-run results are not substituted for that check.
+
+## Version-only release automation — 2026-11-01
+
+This records the initial design at `16ad19d`. The CI-completion and SHA guards
+were later removed; see the simplification record below. The CLI rehearsals
+remain relevant because the version command and package policy are unchanged.
+
+Added `.github/workflows/release.yml` to create or update a version/changelog PR
+after successful, same-repository main push CI. It checks the CI, context, checkout,
+and latest-main revisions, serializes updates, uses pinned actions, and restores
+neither a package cache nor checkout credentials. It does not repeat the full
+main CI workflow.
+
+A repository-scoped GitHub App token provides only Contents and Pull requests
+write permissions so generated PRs can start normal CI. The default workflow
+token remains read-only. Changesets Action v2.1.2 uses the existing version and
+lockfile-sync command without a publish script; tag pushes and GitHub Releases
+are explicitly false. No npm credentials, OIDC, deployment, or container publish
+path was added. Private, independent workspace versioning is unchanged.
+
+The new-changeset rule remains strict for ordinary PRs. A bot PR is exempt only
+with the exact generated branch, title, main base, same repositories, consumed
+changesets, and allowed version-artifact paths. Human/fork/wrong-context and
+source/workflow/config/other-file lookalikes fail. All normal CI remains.
+The checker emits the verified version-PR classification to CI; only that case
+runs Changesets status against HEAD rather than the already-consumed base plan.
+
+Local checks passed:
+
+- Node 26.11.1/npm 11.20.0: `npm run check`, `npm test` (107 tests, including
+  31 focused changeset/workflow cases), and `npm run build`.
+- `actionlint .github/workflows/release.yml .github/workflows/ci.yml`,
+  `prek run -a`, and `git diff --check`.
+- Actual Bash guards with mocked Git/GitHub commands: accept the tested revision;
+  reject a different workflow context or checkout; skip an advanced main; and
+  fail closed when the GitHub ref lookup fails.
+
+Three disposable Node 24.22.1 clones exercised the real Changesets CLI 3 command:
+
+| Fixture | API / web / core / contracts versions after versioning |
+| --- | --- |
+| All pending package changesets | 1.1.0 / 1.1.0 / 1.1.0 / 1.1.0 |
+| Web-only patch | 1.0.0 / 1.0.1 / 1.0.0 / 1.0.0 |
+| Empty only | 1.0.0 / 1.0.0 / 1.0.0 / 1.0.0 |
+
+Each fixture preserved private flags and root tooling version 1.0.0, consumed its
+changesets, synchronized internal ranges/root lock entries, and passed a fresh
+`npm ci`. The generated-metadata check and `status --since HEAD` passed;
+ordinary/manual metadata-only checks still failed without a new changeset.
+The package fixtures reproduced the expected failure against main after the
+changesets were consumed, which establishes why CI needs the verified HEAD case.
+The all-pending clone also passed check, all 107 pure tests, and build after
+versioning. The empty-only input had zero releases; the pinned action's inspected
+empty-only guard skips PR creation. No live action execution was used to claim
+that result. The first clone's missing local main reference was corrected in
+the final rehearsals and documented in the safe recipe.
+
+Only disposable clones were versioned. The original four workspace versions
+remain 1.0.0, and the original lockfile and tags are unchanged. No production
+service or real data was used. Fresh installs report
+8 existing advisories (1 low, 2 moderate, 5 high), and Vite retains its large-chunk
+warning. No dependency upgrades were added to conceal these baseline reports.
+
+Ignored command logs and results are under
+`test-results/version-only-release-checks/` and
+`test-results/version-only-release-rehearsal/`; inspected upstream sources are
+under `.cache/release-research/`. Disposable clones are removed after verification.
+
+Repository-owner handoff is retained in `docs/releasing.md`: install the scoped
+App, set variable APP_CLIENT_ID and secret APP_PRIVATE_KEY in GitHub settings,
+check PR policy, and authorize the main merge. Expected behavior is one maintained
+version PR whose ordinary CI runs. Live App authentication, repository rules,
+and remote PR creation remain unverified. No token was minted, no workflow was
+dispatched, and no package, tag, GitHub Release, container, or deployment was
+published or created by this verification.
+
+### Simplification to the official action
+
+Following PR #35 feedback, `release.yml` now follows the official Changesets
+Action's main-push pattern. The workflow shrank from 96 to 51 lines. Removed the
+CI-completion listener, both SHA scripts, conditional setup/write steps, and
+redundant action inputs. The action handles changeset detection and PR updates.
+Main CI now runs in parallel; generated version PRs still require their normal
+CI and maintainer review. This deliberately replaces the initial CI-waiting
+behavior recorded above.
+
+The App token remains so generated PRs can trigger CI. Its action defaults to
+this repository when owner/repositories are unset; only Contents and Pull
+requests write permissions are requested. Publishing, tags, releases, automatic
+merging, and deployment remain disabled. The version command, lockfile policy,
+private packages, and generated-PR classifier are unchanged.
+
+Checks passed after simplification:
+
+- `npm run check`, `npm test` (101 tests), and `npm run build` on Node 26.11.1.
+- All 25 focused changeset/workflow cases on Node 26.11.1 and Node 24.22.1.
+- `actionlint .github/workflows/release.yml .github/workflows/ci.yml`,
+  `prek run -a`, and `git diff --check`.
+
+Six tests for the deleted custom guards were removed with their scripts; the
+22 changeset policy cases remain. The three workflow checks cover the native
+main trigger, official action/authentication/no-publish settings, and unchanged
+CI status selection. Earlier CLI rehearsals remain applicable; they were not
+reported as new runs. No package versions, lockfile, production files, or App
+settings changed. No release/deployment workflow was manually dispatched.

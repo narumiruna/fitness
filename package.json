@@ -16,7 +16,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts",
     "check:changesets": "node scripts/check-changesets.mjs",
-    "test:changesets": "node --test tests/changesets.test.mjs",
+    "test:changesets": "node --test tests/changesets.test.mjs tests/release-workflow.test.mjs",
     "predev": "npm run db:generate && prisma db push --config prisma-dev.config.ts",
     "dev": "node scripts/dev.mjs",
     "build": "npm run build:packages && npm run build --workspace @narumitw/fitness-api && npm run build --workspace @narumitw/fitness-web",

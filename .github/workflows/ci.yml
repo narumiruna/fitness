@@ -34,9 +34,14 @@ jobs:
         run: npm run test:api
       - name: Require a Changeset against main
         if: github.event_name == 'pull_request'
-        run: |
-          npm run check:changesets -- --base origin/main
-          npm run changeset -- status --since=origin/main
+        id: changesets
+        run: npm run check:changesets -- --base origin/main
+      - name: Validate Changesets status
+        if: github.event_name == 'pull_request'
+        env:
+          # A verified version PR has already consumed its release plan.
+          CHANGESET_BASE: ${{ steps.changesets.outputs.version-pr == 'true' && 'HEAD' || 'origin/main' }}
+        run: npm run changeset -- status --since="$CHANGESET_BASE"
       - name: Changesets status
         if: github.event_name == 'push'
         run: npm run changeset -- status

@@ -1,37 +1,104 @@
 # Version-only releases
 
-Changesets manage private workspace versions and changelogs. They do not publish
-packages, create release tags, or deploy the application.
+Changesets automate private workspace versions and changelogs through a reviewed
+pull request. There is no package publishing, tag push, GitHub Release, automatic
+merge, container publication, or deployment in this workflow.
 
 ## Package policy
 
-- Start each workspace package at `1.0.0` with `private: true`.
-- Use independent versions. Do not add fixed or linked groups.
-- Set `privatePackages.version` to `true` and `privatePackages.tag` to `false`.
-- Set `updateInternalDependencies` to `patch`.
-- Keep root tooling private and outside workspace releases.
-- Apply this policy to all four packages:
+- Keep all four workspace packages private and independently versioned:
   - `@narumitw/fitness-core`
   - `@narumitw/fitness-contracts`
   - `@narumitw/fitness-api`
   - `@narumitw/fitness-web`
-- List only existing workspace names in a changeset; Changesets rejects unknown
-  package names.
-- Do not add a publish script, npm token, release tag command, or automatic
-  release workflow.
+- Keep `fixed` and `linked` empty.
+- Keep `privatePackages.version: true` and `privatePackages.tag: false`.
+- Keep `updateInternalDependencies: patch`.
+- Keep root tooling private and outside workspace version bumps. Its workspace
+  dependency ranges and lockfile still need to match the versioned packages.
+- Do not add npm credentials, OIDC publishing permissions, or a publish command.
 
-## Changes in a PR
+## Automated version PR
 
-Each PR must add a new `.changeset/*.md` file. A change to an existing file does
-not meet this rule.
+`.github/workflows/release.yml` uses the official
+[Changesets GitHub Action](https://github.com/changesets/action) on pushes to
+`main`. It installs dependencies and lets the action create or update the
+version PR. Main CI runs in parallel; the version job does not wait for it.
+The version PR still requires normal CI and maintainer review before merging.
 
-For a user-visible change, run `npm run changeset` and select the affected
-packages and version types. You can also create a uniquely named file without a
-prompt:
+```mermaid
+flowchart TD
+  A["Push to main"] --> B["Main CI"]
+  A --> C["Changesets action"]
+  C -->|non-empty changesets| D["Create or update version PR"]
+  C -->|no changesets or empty only| E["No PR"]
+  D --> F["Normal PR CI and maintainer review"]
+  F --> G["Merge version metadata"]
+  G --> A
+```
+
+The action handles changeset detection, version commits, and PR updates.
+There is no custom CI-completion listener or SHA-checking script. Version jobs
+are serialized without cancelling an update in progress.
+
+It uses immutable action SHAs, Node 24, `npm ci`, no restored package cache, and
+no persisted checkout credentials. The existing version command remains:
+
+```sh
+npm run version-packages
+# changeset version && npm install --package-lock-only --ignore-scripts
+```
+
+Changesets Action v2 is configured with `version-script`, without
+`publish-script`, and with GitHub releases/tag pushes explicitly disabled.
+This matches Changesets CLI 3. Do not copy the old v1 input names or pass a custom
+token only through the `GITHUB_TOKEN` environment variable.
+
+Only-empty changesets do not create a version PR. They remain until a real
+release consumes them. The action owns `changeset-release/main`; put ordinary
+changes on a separate branch rather than editing that generated branch.
+
+## Repository owner setup
+
+Before enabling the workflow on main:
+
+1. Create and install a GitHub App for this repository.
+   - Grant repository Contents and Pull requests read/write permissions.
+   - Grant no other write permissions. Do not add the App to branch-protection
+     or ruleset bypass lists.
+2. Add the App client ID as repository variable `APP_CLIENT_ID`.
+3. Add its private key as repository Actions secret `APP_PRIVATE_KEY`.
+   - Enter the key in GitHub settings, not in source files or chat.
+4. Check the repository's Actions policy permits automated PR creation.
+   - The official action documents the `Allow GitHub Actions to create and approve
+     pull requests` setting. This workflow does not approve or merge PRs.
+
+The built-in workflow token has only Contents read. A short-lived App token is
+scoped to this repository with only the two write permissions above and is passed
+through `github-token`. App-created PRs and updates can trigger normal PR CI;
+the default `GITHUB_TOKEN` generally cannot do so. Do not silently fall back to
+it. No `NPM_TOKEN` is needed.
+
+Live App authentication, repository rules, and PR creation require the owner's
+setup and an authorized main merge. Local checks do not establish that these
+external prerequisites are configured.
+
+## Changes in an ordinary PR
+
+Each ordinary PR must add a new `.changeset/*.md` file. Editing an existing
+changeset does not meet this rule.
+
+For a user-visible change, select the affected packages and version types:
+
+```sh
+npm run changeset
+```
+
+A noninteractive package changeset can use:
 
 ```md
 ---
-"@narumitw/fitness-core": patch
+"@narumitw/fitness-web": patch
 ---
 
 Describe the user-visible result.
@@ -45,48 +112,101 @@ changes that do not need a version bump:
 ---
 ```
 
-Do not require a package version bump for every private implementation edit.
-Empty changesets meet the PR presence rule without a version bump.
+Do not require a package bump for every private implementation edit.
 
-## PR checks
+## CI changeset checks
 
-The verified default branch is `main`. CI must check out the PR head and fetch
-complete history, including the PR base. Use the actual PR base reference, not a
-fixed branch, for both commands:
+CI fetches complete Git history and checks the selected PR base. The presence
+check accepts a new committed package or empty changeset. It rejects uncommitted
+files, deleted files alone, README/config edits, and edits to existing changesets.
+
+Generated version PRs need a narrow exception because versioning consumes the
+changesets. `scripts/check-changesets.mjs` verifies all of these conditions:
+
+- The event is `pull_request`, the author type is `Bot`, and both PR repositories
+  match `GITHUB_REPOSITORY`.
+- Head is exactly `changeset-release/main`, base is `main`, and the title is
+  `chore(release): version packages`.
+- At least one existing changeset is deleted.
+- Every changed path is a consumed changeset, a modified root/workspace
+  `package.json`, modified `package-lock.json`, or an added/modified changelog
+  in one of the four workspace directories.
+  - Source files, workflows, configuration, README edits, and other paths fail.
+
+This is a release-metadata classification, not an authorization boundary.
+Maintainer review must still verify manifest contents and dependency ranges.
+
+The checker emits `version-pr=true` only for that exception. CI then validates
+Changesets status against `HEAD` because the version PR has already applied its
+plan. Ordinary PRs use `origin/main` and still need a new changeset. A blanket
+bot or branch-prefix exemption is not allowed. Installation, lint, types, build,
+unit/API/database/browser tests, and normal branch protection are not skipped.
 
 ```sh
-node scripts/check-changesets.mjs --base origin/main
-npm run changeset -- status --since=origin/main
-node --test tests/changesets.test.mjs
+npm run check:changesets -- --base origin/main
+npm run test:changesets
 ```
 
-The first command requires a new committed changeset relative to the merge base.
-It accepts empty changesets. It excludes `README.md`, configuration changes,
-uncommitted files, deleted files, and edits to existing changesets. The status
-command validates Changesets content and package release plans. Missing history
-or an unknown base is an error; fetch the base instead of skipping the check.
+Review each generated PR's versions, changelogs, internal ranges, root lockfile,
+and consumed changesets. Require its normal CI and maintainer approval before
+merging. No deployment follows the merge; `deploy.yml` remains manual.
 
-## Prepare a release PR
+## Recovery
 
-1. Create a release branch from the reviewed migration branch. Keep all release
-   operations local. Do not use the production checkout.
-2. Start with a clean working tree and run `npm ci`.
-3. Run `npm run changeset -- status` and review the release plan.
-4. Run `npm run version-packages`. This command must run `changeset version`
-   followed by `npm install --package-lock-only --ignore-scripts`. It must not run
-   publish, tagging, or deployment commands.
-5. Review package versions, changelogs, internal dependency ranges, consumed
-   changesets, and the root lockfile. All version and range values must agree.
-   Empty changesets are consumed without a package version bump.
-6. Run a clean installation, core tests, Changesets fixture tests, root checks,
-   and the application build. Run the isolated UI smoke test and stop its server.
-7. Stage only the reviewed release paths and open a manual release PR. Describe
-   the version-only result and include verification results. The release PR also
-   needs a new empty changeset because the version command consumed prior files.
+If App setup fails, no version PR is written. The owner can correct the setup and
+rerun the Release job for the latest main push. Do not rerun an older job after
+main has advanced.
 
-The deployment workflow is manual only. Code and version PR merges do not deploy
-production. Creating or merging a release PR does not authorize a deployment;
-do not dispatch the production workflow without separate authorization.
+To stop automation, the owner can disable the Release workflow and close the
+unmerged generated PR. A reviewed revert of this workflow and its CI integration
+restores the manual process. These are separate repository-owner actions, not
+local verification steps. No database, tag, publication, or deployment rollback
+is part of this change.
+
+## Manual fallback and safe rehearsal
+
+For a manual version PR, start from clean reviewed main on a release branch such
+as `narumi/chore/version-packages`. Run `npm ci`, review
+`npm run changeset -- status`, then run `npm run version-packages`. Review the
+same metadata and run installation, tests, checks, and build. Add a new empty
+changeset because the narrow bot exception does not apply to human/manual PRs.
+
+For local experiments, use a disposable clone, not the production checkout:
+
+```sh
+scratch=$(mktemp -d)
+git clone --no-hardlinks --no-local . "$scratch/fitness"
+(
+  cd "$scratch/fitness"
+  git show-ref --verify --quiet refs/heads/main || git branch main origin/main
+  npm ci
+  npm run version-packages
+  git diff --check
+  git diff -- package-lock.json package.json packages apps .changeset
+  npm ci
+  npm run check
+  npm run build
+)
+```
+
+The local main reference is required by Changesets status comparisons, even when
+the source checkout is a feature branch. Verify real package and empty-only
+cases, internal ranges, lockfile consistency, and unchanged original versions/tags.
+Never run publish/tag/release/deploy commands as part of the experiment. Remove
+only the disposable clone when finished.
+
+## References
+
+- [Changesets automation and version-only mode](https://changesets.dev/guide/automating)
+- [Private applications](https://changesets.dev/guide/beyond-npm)
+- [Changesets Action v2.1.2 API/source](https://github.com/changesets/action/tree/ae32849d5ba541f9ae29e40e22a623bc13562f51)
+- [GitHub App token action](https://github.com/actions/create-github-app-token)
+- [Workflow-trigger token behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
+
+Local references inspected: `~/src/pi-extensions/.github/workflows/publish.yml`
+for scoped permissions and pinned actions; `~/src/pi-browser-agent/`
+for lockfile synchronization; Otter, Morsel, and TypeScript Template for their
+release patterns. Their package/tag/container publishing paths were not copied.
 
 ## Deployment runner
 
@@ -100,34 +220,6 @@ Docker data. Keep `orbctl` on the runner's PATH.
 Starting OrbStack can resume existing production containers. Test workflow
 changes with mocked commands; dispatch the workflow only with explicit production
 authorization.
-
-## Verify the version command safely
-
-Run the version experiment in a disposable local clone of the reviewed commit:
-
-```sh
-scratch=$(mktemp -d)
-git clone --no-hardlinks --no-local . "$scratch/fitness"
-(
-  cd "$scratch/fitness"
-  npm ci
-  npm run version-packages
-  npm run changeset -- status
-  git diff --check
-  git diff -- package-lock.json packages apps .changeset
-  npm ci
-  npm run check
-  npm run build
-)
-```
-
-Confirm that a package changeset changes the intended version and changelog.
-Check that internal dependency ranges and the lockfile match the new versions.
-Repeat with an empty changeset and confirm that no package version changes.
-Compare `git status --short` and `git tag --list` in the original checkout before
-and after the experiment. Neither may change. Remove only the disposable clone
-when the review is complete. Do not run `changeset publish`, create remote tags,
-or change production services.
 
 ## Password hash compatibility and recovery
 
