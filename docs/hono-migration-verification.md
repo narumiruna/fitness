@@ -795,6 +795,10 @@ results and prior-run results are not substituted for that check.
 
 ## Version-only release automation — 2026-11-01
 
+This records the initial design at `16ad19d`. The CI-completion and SHA guards
+were later removed; see the simplification record below. The CLI rehearsals
+remain relevant because the version command and package policy are unchanged.
+
 Added `.github/workflows/release.yml` to create or update a version/changelog PR
 after successful, same-repository main push CI. It checks the CI, context, checkout,
 and latest-main revisions, serializes updates, uses pinned actions, and restores
@@ -863,3 +867,33 @@ version PR whose ordinary CI runs. Live App authentication, repository rules,
 and remote PR creation remain unverified. No token was minted, no workflow was
 dispatched, and no package, tag, GitHub Release, container, or deployment was
 published or created by this verification.
+
+### Simplification to the official action
+
+Following PR #35 feedback, `release.yml` now follows the official Changesets
+Action's main-push pattern. The workflow shrank from 96 to 51 lines. Removed the
+CI-completion listener, both SHA scripts, conditional setup/write steps, and
+redundant action inputs. The action handles changeset detection and PR updates.
+Main CI now runs in parallel; generated version PRs still require their normal
+CI and maintainer review. This deliberately replaces the initial CI-waiting
+behavior recorded above.
+
+The App token remains so generated PRs can trigger CI. Its action defaults to
+this repository when owner/repositories are unset; only Contents and Pull
+requests write permissions are requested. Publishing, tags, releases, automatic
+merging, and deployment remain disabled. The version command, lockfile policy,
+private packages, and generated-PR classifier are unchanged.
+
+Checks passed after simplification:
+
+- `npm run check`, `npm test` (101 tests), and `npm run build` on Node 26.11.1.
+- All 25 focused changeset/workflow cases on Node 26.11.1 and Node 24.22.1.
+- `actionlint .github/workflows/release.yml .github/workflows/ci.yml`,
+  `prek run -a`, and `git diff --check`.
+
+Six tests for the deleted custom guards were removed with their scripts; the
+22 changeset policy cases remain. The three workflow checks cover the native
+main trigger, official action/authentication/no-publish settings, and unchanged
+CI status selection. Earlier CLI rehearsals remain applicable; they were not
+reported as new runs. No package versions, lockfile, production files, or App
+settings changed. No release/deployment workflow was manually dispatched.

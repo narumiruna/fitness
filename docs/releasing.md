@@ -20,28 +20,26 @@ merge, container publication, or deployment in this workflow.
 
 ## Automated version PR
 
-`.github/workflows/release.yml` runs after the existing CI workflow completes.
-Only successful, same-repository `push` runs for `main` qualify. PR CI, fork CI,
-failed CI, and cancelled CI cannot start the version job.
+`.github/workflows/release.yml` uses the official
+[Changesets GitHub Action](https://github.com/changesets/action) on pushes to
+`main`. It installs dependencies and lets the action create or update the
+version PR. Main CI runs in parallel; the version job does not wait for it.
+The version PR still requires normal CI and maintainer review before merging.
 
 ```mermaid
 flowchart TD
-  A["Push to main"] --> B["Complete CI"]
-  B -->|success| C{"Tested SHA is still main"}
-  B -->|failure or cancellation| D["No version PR update"]
-  C -->|no| D
-  C -->|yes| E["Changesets version-only action"]
-  E -->|non-empty changesets| F["Create or update version PR"]
-  E -->|no changesets or empty only| G["No PR"]
-  F --> H["Normal PR CI and maintainer review"]
-  H --> I["Merge version metadata"]
-  I --> A
+  A["Push to main"] --> B["Main CI"]
+  A --> C["Changesets action"]
+  C -->|non-empty changesets| D["Create or update version PR"]
+  C -->|no changesets or empty only| E["No PR"]
+  D --> F["Normal PR CI and maintainer review"]
+  F --> G["Merge version metadata"]
+  G --> A
 ```
 
-The workflow checks both its GitHub context SHA and the checked-out SHA against
-the successful CI revision. It checks current main again after dependency setup,
-before creating a write token. Stale completions are skipped, not released.
-Version jobs are serialized without cancelling an update in progress.
+The action handles changeset detection, version commits, and PR updates.
+There is no custom CI-completion listener or SHA-checking script. Version jobs
+are serialized without cancelling an update in progress.
 
 It uses immutable action SHAs, Node 24, `npm ci`, no restored package cache, and
 no persisted checkout credentials. The existing version command remains:
@@ -156,8 +154,8 @@ merging. No deployment follows the merge; `deploy.yml` remains manual.
 ## Recovery
 
 If App setup fails, no version PR is written. The owner can correct the setup and
-rerun the eligible Release job while main still matches its tested SHA. If main
-has advanced, use successful CI for the new main revision instead.
+rerun the Release job for the latest main push. Do not rerun an older job after
+main has advanced.
 
 To stop automation, the owner can disable the Release workflow and close the
 unmerged generated PR. A reviewed revert of this workflow and its CI integration
@@ -204,10 +202,9 @@ only the disposable clone when finished.
 - [Changesets Action v2.1.2 API/source](https://github.com/changesets/action/tree/ae32849d5ba541f9ae29e40e22a623bc13562f51)
 - [GitHub App token action](https://github.com/actions/create-github-app-token)
 - [Workflow-trigger token behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
-- [Privileged workflow_run considerations](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)
 
 Local references inspected: `~/src/pi-extensions/.github/workflows/publish.yml`
-for CI gating, scoped permissions, and pinned actions; `~/src/pi-browser-agent/`
+for scoped permissions and pinned actions; `~/src/pi-browser-agent/`
 for lockfile synchronization; Otter, Morsel, and TypeScript Template for their
 release patterns. Their package/tag/container publishing paths were not copied.
 

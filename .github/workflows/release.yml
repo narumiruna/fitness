@@ -1,13 +1,11 @@
 name: Release
 
-# Version/changelog PRs only. Publishing and deployment are separate operations.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: release-main
@@ -15,82 +13,39 @@ concurrency:
 
 jobs:
   version:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: read
     steps:
-      - name: Check out main
+      - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check tested revision
-        id: revision
-        env:
-          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          if [[ "$GITHUB_SHA" == "$TESTED_SHA" && "$(git rev-parse HEAD)" == "$TESTED_SHA" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "current=false" >> "$GITHUB_OUTPUT"
-            echo "Main advanced after this CI run; wait for CI on the new revision."
-          fi
-
       - name: Set up Node.js
-        if: steps.revision.outputs.current == 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           package-manager-cache: false
 
-      - name: Install locked dependencies
-        if: steps.revision.outputs.current == 'true'
+      - name: Install dependencies
         run: npm ci
 
-      - name: Recheck latest main before writing
-        if: steps.revision.outputs.current == 'true'
-        id: current-main
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
-          if [[ "$latest" == "$TESTED_SHA" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "current=false" >> "$GITHUB_OUTPUT"
-            echo "Main advanced during setup; skip this version PR update."
-          fi
-
-      - name: Create repository-scoped GitHub App token
-        if: steps.current-main.outputs.current == 'true'
+      - name: Create GitHub App token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Create or update version-only PR
-        if: steps.current-main.outputs.current == 'true'
+      - name: Create or update version PR
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           version-script: npm run version-packages
           commit-message: "chore(release): version packages"
           pr-title: "chore(release): version packages"
-          pr-base-branch: main
-          push-with-git-cli: false
           create-github-releases: false
           push-git-tags: false
