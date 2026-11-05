@@ -20,7 +20,7 @@ import { ActionForm } from "@/components/action-form";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormSelect } from "@/components/form-select";
 import { PreviousSession } from "@/components/previous-session";
-import { RecordedSet } from "@/components/recorded-set";
+import { RecordedSetList } from "@/components/recorded-set-list";
 import { SessionPanel } from "@/components/session-panel";
 import { useDictionary, useLocale } from "@/lib/i18n";
 
@@ -33,8 +33,6 @@ export default function WorkoutPage() {
   const formatNumber = (value: number) =>
     new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
   const workoutDate = formatDateInput(workout.date);
-  const nextOrder =
-    workout.sets.reduce((max, set) => Math.max(max, set.order), 0) + 1;
   const performedSets = workout.sets.filter((s) => s.completed);
   const totalReps = performedSets.reduce((total, set) => total + set.reps, 0);
   const totalVolume = performedSets.reduce(
@@ -101,13 +99,15 @@ export default function WorkoutPage() {
             {t("addSet")}
           </Heading>
           <ActionForm
-            className="form-grid"
+            className="form-grid workout-add-set-form"
             action={createWorkoutSetAction}
             resetOnSuccess
           >
             <input name="workoutId" type="hidden" value={workout.id} />
-            <Text as="label" size="2" weight="medium" className="field-label">
-              {t("exercise")}
+            <div className="field-label">
+              <Text size="2" weight="medium">
+                {t("exercise")}
+              </Text>
               <PreviousSession
                 exercises={exercises}
                 history={history}
@@ -118,7 +118,7 @@ export default function WorkoutPage() {
                   copy: t("copyValues"),
                 }}
               />
-            </Text>
+            </div>
             <Text as="label">
               {t("setType")}
               <FormSelect
@@ -155,16 +155,6 @@ export default function WorkoutPage() {
               <Text as="label" size="2" weight="medium" className="field-label">
                 {t("reps")}
                 <TextField.Root min="1" name="reps" required type="number" />
-              </Text>
-              <Text as="label" size="2" weight="medium" className="field-label">
-                {t("order")}
-                <TextField.Root
-                  min="1"
-                  name="order"
-                  required
-                  type="number"
-                  defaultValue={nextOrder}
-                />
               </Text>
             </div>
             <Text as="label" size="2" weight="medium" className="field-label">
@@ -280,41 +270,11 @@ function CompletedSets() {
             {t("noSets")}
           </Text>
         ) : (
-          <div className="recorded-set-list">
-            {workout.sets.map((set) => (
-              <RecordedSet
-                key={setFormKey(set)}
-                set={set}
-                workoutId={workout.id}
-                exercises={exercises}
-              />
-            ))}
-          </div>
+          <RecordedSetList workout={workout} exercises={exercises} />
         )}
       </section>
     </Card>
   );
-}
-
-// Remount the editor only when confirmed values change, not when its disclosure closes.
-function setFormKey(set: {
-  id: string;
-  exerciseId: string;
-  order: number;
-  weight: number;
-  reps: number;
-  notes: string | null;
-}) {
-  return JSON.stringify([
-    set.id,
-    set.exerciseId,
-    set.order,
-    set.weight,
-    set.reps,
-    set.notes,
-    "type" in set ? set.type : null,
-    "rir" in set ? set.rir : null,
-  ]);
 }
 
 function formatDateInput(date: Date) {

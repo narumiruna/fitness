@@ -8,6 +8,7 @@ export const actionNames = [
   "previewImportAction",
   "confirmImportAction",
   "createExerciseAction",
+  "createExerciseOptionAction",
   "updateExerciseAction",
   "createExerciseAliasAction",
   "setLocaleAction",
@@ -31,6 +32,7 @@ export const actionNames = [
   "updateWorkoutAction",
   "duplicateWorkoutAction",
   "createWorkoutSetAction",
+  "reorderWorkoutSetsAction",
   "updateWorkoutSetAction",
   "deleteWorkoutSetAction",
   "deleteWorkoutAction",
@@ -46,6 +48,7 @@ export const formFailureSchema = z.object({
     "sessionIncomplete",
     "sessionUnavailable",
     "invalidWorkoutInput",
+    "duplicateExercise",
   ]),
 });
 export type FormFailure = z.infer<typeof formFailureSchema>;

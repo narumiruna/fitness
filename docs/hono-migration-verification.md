@@ -897,3 +897,72 @@ main trigger, official action/authentication/no-publish settings, and unchanged
 CI status selection. Earlier CLI rehearsals remain applicable; they were not
 reported as new runs. No package versions, lockfile, production files, or App
 settings changed. No release/deployment workflow was manually dispatched.
+
+## Workout entry simplification — 2026-11-06
+
+The Workouts page now creates a record directly, with the current server date.
+The calendar creation page keeps its selected date without setup fields. Date,
+title, and notes remain available in Edit workout. Untitled records use the
+existing localized workout label.
+
+The exercise picker can create and select an exercise in a dialog. Duplicate
+names and request failures keep the dialog and set inputs. Clearing a saved set
+form keeps the selected exercise for the next set.
+
+New sets append automatically. Drag handles support mouse, emulated touch, and
+keyboard movement. Reordering checks the owner, completed state, exact membership,
+and expected version in one transaction. Result edits cannot restore stale order.
+An unconfirmed reorder disables set editors until the latest order is loaded.
+Keyboard focus returns to the moved set, or to recovery controls after failure.
+Sparse high orders are normalized when append capacity remains.
+
+| Check | Actual result |
+| --- | --- |
+| `npm run check` | Passed: Biome and root/workspace TypeScript |
+| `npm test` | 101 passed; no failures or skips |
+| `npm run build` | Passed; the existing >500 kB chunk warning remains |
+| `npm run test:api` | 94 passed with disposable SQLite |
+| `npm run test:api:postgres` | 94 passed with an isolated PostgreSQL container |
+| `npm run test:training:sqlite` | 15 passed, including upgrade and backup restoration |
+| `npm run test:training:postgres` | 15 passed, including upgrade and backup restoration |
+| Related development browser suite | 64 passed across nine files; no retries or skips |
+| Final recorded-workout development rerun | 22 passed across four files after the keyboard-test correction; no retries or skips |
+| Final production-mode HTTPS browser cases | 12 passed with isolated PostgreSQL; no retries or skips |
+| Repeated production keyboard cases | 6 passed: both locales, three explicit repetitions, no retries |
+| `prek run -a` | Passed: Biome and TypeScript hooks |
+| `git diff --check` | Passed |
+
+Local runtime: Node 26.11.1 and npm 11.20.0. These results do not claim Node 24
+CI coverage.
+
+The focused cases cover both locales, duplicate exercise names, failed requests,
+retained input, automatic selection, append, drag, keyboard cancellation, focus,
+persistence, and lost committed responses. Axe checks cover normal, dialog, and
+recovery states. Touch coverage uses Chrome event emulation, not physical devices.
+
+An earlier development run had 56 passes, three failures, and four cases not run.
+It exposed an editor disclosure regression and a keyboard-test synchronization
+failure. Editors now keep drafts during reorder and close after confirmed result
+changes. The keyboard sensor installs its listener after its active flag changes.
+Tests now hold the pickup Space key for 25 ms to model physical input. Test
+timeouts were not increased, and movement keys are not retried.
+
+Earlier production attempts also failed on that keyboard-test synchronization.
+Those attempts are not counted as passed verification. The final production run
+and repeated keyboard cases above passed after the correction. Earlier captures
+remain in `.cache/workout-entry/first-development-artifacts/`,
+`.cache/workout-entry/production-final-artifacts/`, and
+`.cache/workout-entry/geometry-artifacts/`.
+
+Command logs and final captures are retained under `.cache/workout-entry/`,
+including `development-verified-artifacts/` and `production-verified-artifacts/`.
+Mobile Traditional Chinese and desktop English captures were inspected. Ports
+8784/8785 and disposable test containers were checked after the final run.
+No database schema, production service, deployment, package version, or release
+workflow was changed by this work.
+
+External handoff: a maintainer can check drag gestures on physical touch devices
+and announcements with a screen reader, using a non-production build. The expected
+result is correct set movement, clear position announcements, and retained focus.
+Physical-device and screen-reader behavior remain unverified. These checks do not
+authorize deployment.

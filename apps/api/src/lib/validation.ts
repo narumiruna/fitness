@@ -23,6 +23,7 @@ export const createWorkoutSchema = z.object({
 });
 
 export const createWorkoutDraftSchema = createWorkoutSchema.extend({
+  date: createWorkoutSchema.shape.date.optional(),
   key: z.string().uuid(),
 });
 
@@ -47,6 +48,21 @@ export const createSetSchema = z.object({
   reps: z.coerce.number().int().min(1).max(1000),
   order: z.coerce.number().int().min(1).max(1000),
   notes: z.string().trim().max(1000).optional(),
+});
+
+export const createRecordedSetSchema = createSetSchema.extend({
+  order: createSetSchema.shape.order.optional(),
+});
+
+export const reorderWorkoutSetsSchema = z.object({
+  workoutId: z.string().min(1),
+  version: z
+    .union([z.number(), z.string().trim().min(1)])
+    .pipe(z.coerce.number<string | number>().int().min(0)),
+  setIds: z
+    .array(z.string().min(1).max(128))
+    .max(1000)
+    .refine((ids) => new Set(ids).size === ids.length),
 });
 
 export const updateSetSchema = createSetSchema.extend({

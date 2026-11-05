@@ -817,9 +817,11 @@ test("localized history, confirmation, and creation feedback use the selected la
     .getByRole("button", { name: "取消" })
     .click();
   await page.goto("/workouts/new");
-  const title = page.locator('input[name="title"]');
-  await title.evaluate((el) => el.removeAttribute("maxlength"));
-  await title.fill("x".repeat(121));
+  const date = page.locator('input[type="hidden"][name="date"]');
+  await expect(page.getByLabel("標題", { exact: true })).toHaveCount(0);
+  await date.evaluate((el) => {
+    (el as HTMLInputElement).value = "2026-02-30";
+  });
   await page
     .locator("main")
     .getByRole("button", { name: "建立訓練", exact: true })
@@ -832,10 +834,10 @@ test("localized history, confirmation, and creation feedback use the selected la
 test("creation retry reuses a workout after the committed redirect response is lost", async ({
   page,
 }) => {
-  await page.goto("/workouts/new");
+  await page.goto("/workouts/new?date=2026-10-01");
   const key = await page.locator('input[name="key"]').inputValue();
-  await page.getByLabel("Title", { exact: true }).fill("Lost redirect workout");
-  await page.getByLabel("Notes", { exact: true }).fill("Committed draft");
+  const date = page.locator('input[type="hidden"][name="date"]');
+  await expect(date).toHaveValue("2026-10-01");
   const initialCount = await prisma.workout.count({ where: { userId } });
   await page.route("**/api/actions/createWorkoutAction", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
@@ -853,13 +855,11 @@ test("creation retry reuses a workout after the committed redirect response is l
     initialCount + 1,
   );
   const committed = await prisma.workout.findFirstOrThrow({
-    where: { userId, title: "Lost redirect workout" },
+    where: { userId, startKey: { endsWith: key } },
   });
-  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
-    "Lost redirect workout",
-  );
+  await expect(date).toHaveValue("2026-10-01");
   await page.unroute("**/api/actions/createWorkoutAction");
-  // Cookie revalidation must not replace the mounted draft's idempotency key.
+  // Cookie revalidation must not replace the mounted creation key or date.
   await page.getByRole("combobox", { name: "Language", exact: true }).click();
   await page.getByRole("option", { name: "正體中文", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
@@ -868,9 +868,7 @@ test("creation retry reuses a workout after the committed redirect response is l
   await page.getByRole("option", { name: "English", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator('input[name="key"]')).toHaveValue(key);
-  await page
-    .getByLabel("Title", { exact: true })
-    .fill("Edited after ambiguous failure");
+  await expect(date).toHaveValue("2026-10-01");
   await page
     .getByRole("button", { name: "Create workout", exact: true })
     .click();
@@ -878,31 +876,32 @@ test("creation retry reuses a workout after the committed redirect response is l
   expect(await prisma.workout.count({ where: { userId } })).toBe(
     initialCount + 1,
   );
-  expect(
-    (await prisma.workout.findUniqueOrThrow({ where: { id: committed.id } }))
-      .title,
-  ).toBe("Lost redirect workout");
+  const retried = await prisma.workout.findUniqueOrThrow({
+    where: { id: committed.id },
+  });
+  expect(retried.title).toBeNull();
+  expect(retried.notes).toBeNull();
+  expect(formatDateKey(retried.date)).toBe("2026-10-01");
   await page.goto("/workouts/new");
   await expect(page.locator('input[name="key"]')).not.toHaveValue(key);
 });
 
-test("focused creation preserves prefills and drafts, validates server-side, and retries network failure", async ({
+test("focused creation retains the selected date, retries network failure, and validates later edits", async ({
   page,
 }, info) => {
   const initialCount = await prisma.workout.count({ where: { userId } });
-  await page.goto("/workouts");
-  await page.getByRole("link", { name: "New workout", exact: true }).click();
-  await expect(page).toHaveURL(/\/workouts\/new$/);
+  await page.goto("/workouts/new");
+  await expect(page.getByLabel("Date", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Title", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Notes", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: "Cancel", exact: true }).click();
   expect(await prisma.workout.count({ where: { userId } })).toBe(initialCount);
   await page.goto("/workouts/new?date=2026-02-30");
-  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(
-    formatDateKey(new Date()),
-  );
+  const date = page.locator('input[type="hidden"][name="date"]');
+  await expect(date).toHaveValue(formatDateKey(new Date()));
   await page.goto("/workouts/new?date=2026-10-01&date=2026-10-02");
-  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(
-    "2026-10-01",
-  );
+  await expect(date).toHaveValue("2026-10-01");
+  const key = await page.locator('input[name="key"]').inputValue();
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(
@@ -927,20 +926,6 @@ test("focused creation preserves prefills and drafts, validates server-side, and
       fullPage: true,
     });
   }
-  const title = page.getByLabel("Title", { exact: true });
-  const notes = page.getByLabel("Notes", { exact: true });
-  await title.evaluate((el) => el.removeAttribute("maxlength"));
-  await title.fill("x".repeat(121));
-  await notes.fill("Creation draft");
-  await page
-    .getByRole("button", { name: "Create workout", exact: true })
-    .click();
-  await expect(page.locator("main").getByRole("status")).toContainText(
-    "Enter a valid date",
-  );
-  await expect(title).toHaveValue("x".repeat(121));
-  await expect(notes).toHaveValue("Creation draft");
-  await title.fill("Created UX workout");
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -960,7 +945,8 @@ test("focused creation preserves prefills and drafts, validates server-side, and
   await expect(page.locator("main").getByRole("status")).toContainText(
     "Not saved. Check the input",
   );
-  await expect(notes).toHaveValue("Creation draft");
+  await expect(date).toHaveValue("2026-10-01");
+  await expect(page.locator('input[name="key"]')).toHaveValue(key);
   expect(await prisma.workout.count({ where: { userId } })).toBe(initialCount);
   await page.unroute("**/api/actions/createWorkoutAction");
   await page
@@ -971,9 +957,46 @@ test("focused creation preserves prefills and drafts, validates server-side, and
   expect(await prisma.workout.count({ where: { userId } })).toBe(
     initialCount + 1,
   );
-  const created = await prisma.workout.findFirstOrThrow({
-    where: { userId, title: "Created UX workout" },
+  const createdId = new URL(page.url()).pathname.split("/").at(-1);
+  const created = await prisma.workout.findUniqueOrThrow({
+    where: { id: createdId },
   });
   expect(formatDateKey(created.date)).toBe("2026-10-01");
-  expect(created.notes).toBe("Creation draft");
+  expect(created.title).toBeNull();
+  expect(created.notes).toBeNull();
+  await openDisclosure(
+    page.locator("details > summary").filter({ hasText: /^Edit workout$/ }),
+  );
+  const edit = page.locator("form").filter({
+    has: page.getByRole("button", { name: "Update workout", exact: true }),
+  });
+  const title = edit.getByLabel("Title", { exact: true });
+  const notes = edit.getByLabel("Notes", { exact: true });
+  await title.fill("x".repeat(121));
+  await notes.fill("Edited workout notes");
+  await edit
+    .getByRole("button", { name: "Update workout", exact: true })
+    .click();
+  await expect(edit.getByRole("alert")).toContainText("Not saved.");
+  await expect(title).toHaveValue("x".repeat(121));
+  await expect(notes).toHaveValue("Edited workout notes");
+  expect(
+    (await prisma.workout.findUniqueOrThrow({ where: { id: createdId } }))
+      .title,
+  ).toBeNull();
+  await title.fill("Created UX workout");
+  await edit
+    .getByRole("button", { name: "Update workout", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Created UX workout",
+  );
+  const updated = await prisma.workout.findUniqueOrThrow({
+    where: { id: createdId },
+  });
+  expect(formatDateKey(updated.date)).toBe("2026-10-01");
+  expect(updated.notes).toBe("Edited workout notes");
+  expect(await prisma.workout.count({ where: { userId } })).toBe(
+    initialCount + 1,
+  );
 });

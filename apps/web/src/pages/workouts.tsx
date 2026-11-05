@@ -10,9 +10,10 @@ import {
   Text,
   TextField,
 } from "@radix-ui/themes";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
+  createWorkoutAction,
   createWorkoutFromTemplateAction,
   deleteWorkoutTemplateAction,
   duplicateWorkoutAction,
@@ -27,6 +28,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { TemplatePlanning } from "@/components/template-planning";
 import { TrainingEntry } from "@/components/training-entry";
 import { WorkoutCalendar } from "@/components/workout-calendar";
+import { WorkoutDraftKey } from "@/components/workout-draft-key";
 import { type MessageKey, useDictionary, useLocale } from "@/lib/i18n";
 
 type WorkoutFilters = {
@@ -54,6 +56,7 @@ export default function WorkoutsPage() {
   } = usePageView("workouts");
   const t = useDictionary();
   const locale = useLocale();
+  const [creationKey] = useState(() => crypto.randomUUID());
   const now = calendarDate(today);
   const activeFilters = [
     filters.month ? `${t("month")}: ${filters.month}` : "",
@@ -73,12 +76,16 @@ export default function WorkoutsPage() {
         <Heading as="h1" size="8">
           {t("workouts")}
         </Heading>
-        <Button highContrast asChild>
-          <RouterLink to="/workouts/new">
+        <ActionForm
+          action={createWorkoutAction}
+          className="workout-create-form"
+        >
+          <WorkoutDraftKey initialKey={creationKey} />
+          <Button highContrast type="submit">
             <PlusIcon aria-hidden="true" />
             {t("newWorkoutAction")}
-          </RouterLink>
-        </Button>
+          </Button>
+        </ActionForm>
       </div>
       <div className="workouts-layout">
         <TrainingEntry

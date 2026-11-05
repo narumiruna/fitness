@@ -7,11 +7,12 @@ import { prisma } from "../lib/prisma.js";
 import {
   createRecordedSet,
   deleteRecordedSet,
+  reorderRecordedSets,
   updateRecordedSet,
 } from "../lib/recorded-sets.js";
 import { createRecordedWorkout } from "../lib/recorded-workouts.js";
 import {
-  createSetSchema,
+  createRecordedSetSchema,
   createWorkoutDraftSchema,
   createWorkoutFromTemplateSchema,
   deleteWorkoutTemplateSchema,
@@ -27,7 +28,7 @@ export async function createWorkoutAction(formData: FormData) {
     const parsed = createWorkoutDraftSchema.safeParse({
       key: formData.get("key"),
       title: optionalFormString(formData.get("title")),
-      date: formData.get("date"),
+      date: formData.get("date") ?? undefined,
       notes: optionalFormString(formData.get("notes")),
     });
 
@@ -112,17 +113,28 @@ export async function createWorkoutSetAction(formData: FormData) {
   return loggedAction("createWorkoutSetAction", async () => {
     const user = await requireUser();
     const workoutId = String(formData.get("workoutId") ?? "");
-    const input = createSetSchema.parse({
+    const input = createRecordedSetSchema.parse({
       exerciseId: formData.get("exerciseId"),
       weight: formData.get("weight"),
       reps: formData.get("reps"),
-      order: formData.get("order"),
+      order: formData.get("order") ?? undefined,
       type: formData.get("type") ?? undefined,
       rir: formData.get("rir"),
       notes: optionalFormString(formData.get("notes")),
     });
 
     await createRecordedSet(user.id, workoutId, input);
+  });
+}
+
+export async function reorderWorkoutSetsAction(formData: FormData) {
+  return loggedAction("reorderWorkoutSetsAction", async () => {
+    const user = await requireUser();
+    await reorderRecordedSets(user.id, {
+      workoutId: formData.get("workoutId"),
+      version: formData.get("version"),
+      setIds: formData.getAll("setIds"),
+    });
   });
 }
 

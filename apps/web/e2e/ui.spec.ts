@@ -270,27 +270,29 @@ test("exercise aliases, all workout forms, filters, templates, and statistics", 
 
   await page.goto("/workouts/new");
   const create = formWith(page, "Create workout");
-  await create.getByLabel("Date", { exact: true }).fill("");
-  expect(
-    await create.evaluate((el) => (el as HTMLFormElement).checkValidity()),
-  ).toBe(false);
-  await create
-    .getByLabel("Date", { exact: true })
-    .fill(new Date().toLocaleDateString("en-CA"));
-  await create.getByLabel("Title", { exact: true }).fill("UI workout");
-  await create.getByLabel("Notes", { exact: true }).fill("UI notes");
-  const date = await create.getByLabel("Date", { exact: true }).inputValue();
-  await expect(create.getByLabel("Date", { exact: true })).toHaveAttribute(
-    "type",
-    "date",
-  );
+  const hiddenDate = create.locator('input[type="hidden"][name="date"]');
+  await expect(hiddenDate).toHaveValue(formatDateKey(new Date()));
+  await expect(create.getByLabel("Date", { exact: true })).toHaveCount(0);
+  await expect(create.getByLabel("Title", { exact: true })).toHaveCount(0);
+  await expect(create.getByLabel("Notes", { exact: true })).toHaveCount(0);
+  const date = await hiddenDate.inputValue();
   await create.getByRole("button", { name: "Create workout" }).click();
   await expect(page).toHaveURL(/\/workouts\/(?!new$)[^/?]+$/);
   workoutPath = new URL(page.url()).pathname;
   const workoutId = workoutPath.split("/").at(-1) ?? "";
   await openDisclosure(page, "Edit workout");
   const edit = formWith(page, "Update workout");
+  await edit.getByLabel("Date", { exact: true }).fill("");
+  expect(
+    await edit.evaluate((el) => (el as HTMLFormElement).checkValidity()),
+  ).toBe(false);
+  await edit.getByLabel("Date", { exact: true }).fill(date);
+  await expect(edit.getByLabel("Date", { exact: true })).toHaveAttribute(
+    "type",
+    "date",
+  );
   await edit.getByLabel("Title", { exact: true }).fill("UI workout edited");
+  await edit.getByLabel("Notes", { exact: true }).fill("UI notes");
   await edit.getByRole("button", { name: "Update workout" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "UI workout edited",
@@ -751,9 +753,11 @@ test("dashboard ranges, calendar selection, private usage, confirmations, and vi
     .locator(".selected-date-panel")
     .getByRole("link", { name: /^Create workout/ })
     .click();
-  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(nextKey);
+  await expect(page.locator('input[type="hidden"][name="date"]')).toHaveValue(
+    nextKey,
+  );
   await page.goto("/workouts/new?date=2026-02-30");
-  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(
+  await expect(page.locator('input[type="hidden"][name="date"]')).toHaveValue(
     formatDateKey(now),
   );
   await page.goto("/stats");

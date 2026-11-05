@@ -74,7 +74,10 @@ test("same-page redirects keep focus and ignore malformed fragments", async ({
     }),
   );
   await page.goto("/workouts");
-  const control = page.getByRole("link", { name: "New workout", exact: true });
+  const control = page.getByRole("button", {
+    name: "New workout",
+    exact: true,
+  });
   await control.focus();
   await page.evaluate(() =>
     window.dispatchEvent(
@@ -303,7 +306,7 @@ test("logout cancels private in-flight reads before the next account", async ({
   await expect(page.locator("main")).not.toContainText("77.7");
 });
 
-test("mutations are not retried and network failure keeps the draft and request key", async ({
+test("mutations are not retried and network failure keeps the selected date and request key", async ({
   page,
 }) => {
   const key = "11111111-1111-4111-8111-111111111111";
@@ -318,16 +321,17 @@ test("mutations are not retried and network failure keeps the draft and request 
       : route.fulfill({ json: { result: { error: "invalidWorkoutInput" } } });
   });
   await page.goto("/workouts/new");
-  await page.getByLabel("Title", { exact: true }).fill("Retained draft");
+  const date = page.locator('input[type="hidden"][name="date"]');
+  await expect(date).toHaveValue("2026-10-20");
+  await expect(page.getByLabel("Title", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Notes", { exact: true })).toHaveCount(0);
   await page
     .getByRole("button", { name: "Create workout", exact: true })
     .click();
   await expect(page.locator("main").getByRole("status")).toContainText(
     "Not saved.",
   );
-  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
-    "Retained draft",
-  );
+  await expect(date).toHaveValue("2026-10-20");
   await expect(page.locator('input[name="key"]')).toHaveValue(key);
   expect(requests).toBe(1);
   await page
@@ -336,5 +340,7 @@ test("mutations are not retried and network failure keeps the draft and request 
   await expect(page.locator("main").getByRole("status")).toContainText(
     "Enter a valid date",
   );
+  await expect(date).toHaveValue("2026-10-20");
+  await expect(page.locator('input[name="key"]')).toHaveValue(key);
   expect(requests).toBe(2);
 });

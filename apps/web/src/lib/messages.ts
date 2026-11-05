@@ -206,6 +206,8 @@ export const englishMessages = {
 
   newWorkoutAction: "New workout",
   newExerciseAction: "New exercise",
+  inlineExerciseHelp:
+    "Create and select an exercise without leaving this workout.",
   duplicateExercise:
     "This exercise name already exists. Use the existing exercise or choose another name.",
   duplicateAlias:
@@ -299,6 +301,8 @@ export const englishMessages = {
   date: "Date",
   notes: "Notes",
   createWorkout: "Create workout",
+  workoutQuickStartHelp:
+    "Add your sets now. You can change the date, title, and notes later in Edit workout.",
   workoutsIntro: "Track training sessions, sets, and progress.",
   recentWorkouts: "Recent workouts",
   repeatWorkout: "Repeat",
@@ -327,6 +331,17 @@ export const englishMessages = {
   more: "more",
   addSet: "Add set",
   noSets: "No sets yet.",
+  reorderSetsHelp:
+    "Drag a handle to change set order. With a keyboard, press Space, use the arrow keys, then press Space again.",
+  reorderSet: "Move set {position}: {exercise}",
+  reorderSetStart: "Set {position} selected.",
+  reorderSetOver: "New position: {position}.",
+  reorderSetEnd: "Set moved to position {position}.",
+  reorderSetCancel: "Movement canceled. Set order is unchanged.",
+  reorderSetsSaved: "Set order saved.",
+  reorderSetsFailed:
+    "Could not confirm set order. Load the latest order and try again.",
+  refreshSetOrder: "Load latest order",
   updateSet: "Update set",
   exercise: "Exercise",
   weight: "Weight (kg)",

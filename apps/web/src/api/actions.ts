@@ -21,6 +21,7 @@ export const formFailureSchema = z.object({
     "sessionIncomplete",
     "sessionUnavailable",
     "invalidWorkoutInput",
+    "duplicateExercise",
   ]),
 });
 export type FormFailure = z.infer<typeof formFailureSchema>;
@@ -119,6 +120,7 @@ export const duplicateWorkoutAction = formAction("duplicateWorkoutAction");
 export const createWorkoutSetAction = formAction("createWorkoutSetAction");
 export const updateWorkoutSetAction = formAction("updateWorkoutSetAction");
 export const deleteWorkoutSetAction = formAction("deleteWorkoutSetAction");
+export const reorderWorkoutSetsAction = formAction("reorderWorkoutSetsAction");
 export const deleteWorkoutAction = formAction("deleteWorkoutAction");
 export const saveWorkoutTemplateAction = formAction(
   "saveWorkoutTemplateAction",
@@ -136,6 +138,15 @@ export const startSessionAction = formAction("startSessionAction");
 export const editSessionSetAction = formAction("editSessionSetAction");
 export const changeSessionAction = formAction("changeSessionAction");
 export const createExerciseAction = formAction("createExerciseAction");
+export async function createExerciseOptionAction(data: FormData) {
+  const envelope = await invoke("createExerciseOptionAction", data);
+  const failure = formFailureSchema.safeParse(envelope.result);
+  return failure.success
+    ? failure.data
+    : z
+        .object({ id: z.string(), defaultName: z.string() })
+        .parse(envelope.result);
+}
 export const updateExerciseAction = formAction("updateExerciseAction");
 export const createExerciseAliasAction = formAction(
   "createExerciseAliasAction",
