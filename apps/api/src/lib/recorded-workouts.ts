@@ -1,3 +1,4 @@
+import { formatDateKey } from "@narumitw/fitness-core/calendar";
 import { prisma } from "./prisma.js";
 import { createWorkoutDraftSchema } from "./validation.js";
 
@@ -21,7 +22,7 @@ export async function createRecordedWorkout(userId: string, raw: unknown) {
         userId,
         startKey,
         title: input.title,
-        date: new Date(`${input.date}T00:00:00`),
+        date: new Date(`${input.date ?? formatDateKey(new Date())}T00:00:00`),
         notes: input.notes,
       },
       select: { id: true },

@@ -1,4 +1,4 @@
-import { Button, Card, Text, TextArea, TextField } from "@radix-ui/themes";
+import { Button, Card, Text } from "@radix-ui/themes";
 import { Link as RouterLink } from "react-router-dom";
 import { createWorkoutAction } from "@/api/actions";
 import { usePageView } from "@/api/views";
@@ -21,30 +21,12 @@ export default function NewWorkoutPage() {
           errors={{ invalidWorkoutInput: t("invalidWorkoutInput") }}
         >
           <WorkoutDraftKey initialKey={key} />
-          <Text as="label" className="field-label">
-            {t("date")}
-            <TextField.Root
-              name="date"
-              type="date"
-              defaultValue={initialDate}
-              required
-            />
+          <input type="hidden" name="date" value={initialDate} />
+          <Text as="p" size="2" color="gray">
+            {t("workoutQuickStartHelp")}
           </Text>
-          <Text as="label" className="field-label">
-            {t("workoutTitle")}
-            <TextField.Root
-              name="title"
-              maxLength={120}
-              placeholder={t("workoutTitlePlaceholder")}
-            />
-          </Text>
-          <Text as="label" className="field-label">
-            {t("notes")}
-            <TextArea
-              name="notes"
-              maxLength={2000}
-              placeholder={t("workoutNotesPlaceholder")}
-            />
+          <Text as="p" size="2">
+            {t("date")}: <time dateTime={initialDate}>{initialDate}</time>
           </Text>
           <div className="card-actions">
             <Button highContrast type="submit">

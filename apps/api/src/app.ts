@@ -220,7 +220,20 @@ export function createApp(options: AppOptions = {}) {
       let data: FormData;
       if (input instanceof FormData) data = input;
       else {
-        const fields = formFieldsSchema.parse(input);
+        // A full workout reorder can contain more than 64 set IDs. Keep the
+        // larger array allowance specific to this action and this field.
+        const fields =
+          action === "reorderWorkoutSetsAction"
+            ? z
+                .object({
+                  workoutId: z.string(),
+                  version: z.string(),
+                  setIds: z
+                    .union([z.string(), z.array(z.string()).max(1000)])
+                    .default([]),
+                })
+                .parse(input)
+            : formFieldsSchema.parse(input);
         data = new FormData();
         for (const [key, value] of Object.entries(fields))
           for (const text of Array.isArray(value) ? value : [value])

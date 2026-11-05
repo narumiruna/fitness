@@ -34,7 +34,10 @@ test("default solid actions use forest while explicit destructive accents remain
   page,
 }, info) => {
   await page.setViewportSize({ width: 1440, height: 1080 });
-  const primary = page.getByRole("link", { name: "New workout", exact: true });
+  const primary = page.getByRole("button", {
+    name: "New workout",
+    exact: true,
+  });
   await expect(primary).toHaveCSS("background-color", "rgb(25, 59, 45)");
   await prisma.passkey.create({
     data: {

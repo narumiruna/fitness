@@ -1,5 +1,6 @@
-import { Button, Select, Text } from "@radix-ui/themes";
+import { Button, Text } from "@radix-ui/themes";
 import { useState } from "react";
+import { ExerciseSelect } from "./exercise-select";
 
 export function PreviousSession({
   exercises,
@@ -17,16 +18,7 @@ export function PreviousSession({
   const source = history[id];
   return (
     <div className="stack">
-      <Select.Root name="exerciseId" value={id} onValueChange={setId} required>
-        <Select.Trigger aria-label={labels.exercise} />
-        <Select.Content>
-          {exercises.map((e) => (
-            <Select.Item key={e.id} value={e.id}>
-              {e.defaultName}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
+      <ExerciseSelect exercises={exercises} value={id} onValueChange={setId} />
       <Text size="2">
         {labels.previous}: {source?.date ?? labels.empty}
       </Text>

@@ -11,6 +11,7 @@ import {
 import {
   createExerciseAction,
   createExerciseAliasAction,
+  createExerciseOptionAction,
   updateExerciseAction,
 } from "./actions/exercises.js";
 import { setLocaleAction } from "./actions/locale.js";
@@ -46,6 +47,7 @@ import {
   deleteWorkoutSetAction,
   deleteWorkoutTemplateAction,
   duplicateWorkoutAction,
+  reorderWorkoutSetsAction,
   saveWorkoutTemplateAction,
   updateWorkoutAction,
   updateWorkoutSetAction,
@@ -60,6 +62,7 @@ export const formActions = {
   createExerciseAction,
   updateExerciseAction,
   createExerciseAliasAction,
+  createExerciseOptionAction,
   saveMeasurementAction,
   deleteMeasurementAction,
   saveGoalAction,
@@ -75,6 +78,7 @@ export const formActions = {
   createWorkoutAction,
   updateWorkoutAction,
   duplicateWorkoutAction,
+  reorderWorkoutSetsAction,
   createWorkoutSetAction,
   updateWorkoutSetAction,
   deleteWorkoutSetAction,
