@@ -966,3 +966,36 @@ and announcements with a screen reader, using a non-production build. The expect
 result is correct set movement, clear position announcements, and retained focus.
 Physical-device and screen-reader behavior remain unverified. These checks do not
 authorize deployment.
+
+### PR #36 review — reorder view refresh
+
+Review ledger:
+
+| Item | Evidence and scope | Severity | Outcome |
+| --- | --- | --- | --- |
+| [R1: failed view refresh](https://github.com/narumiruna/fitness/pull/36#discussion_r4484201004) | The new reorder action reported success after a saved POST and a failed view GET. Two new browser cases reproduced the failure before the fix. This violates the new reorder recovery contract. | P2 | Fixed. Reorder now requires a successful view refresh before it reports success. |
+| N1: hosted runner image notices | Three passed jobs reported the same scheduled Ubuntu 26 image change. This PR does not change `.github/workflows/ci.yml` or its existing `ubuntu-latest` labels. | P3, informational | Valid but out of scope; deferred. Use a separate CI PR if an image pin or compatibility change is needed. No issue was created. |
+
+Only `reorderWorkoutSetsAction` now enables `throwOnError` during view refresh.
+Other actions keep their existing refresh behavior. A failed GET uses the existing
+failure message, disabled editors, and reload button. Reload failures keep those
+controls active. A successful reload restores the saved order and current version.
+
+The new browser cases cover both locales. They verify a 200 POST followed by a 503
+GET, a second failed reload, retained weight and notes, recovery focus, and a later
+reorder that uses version `1` rather than stale version `0`. No mutation is retried.
+The cases failed on the reviewed code and passed after the fix.
+
+| Check | Actual result |
+| --- | --- |
+| `npm run check` | Passed |
+| `npm test` | 101 passed |
+| `npm run build` | Passed; the existing >500 kB chunk warning remains |
+| Related development browser cases | 27 passed across workout entry, API client, recorded-workout review, and result review |
+| Production-mode HTTPS browser cases | 14 passed with isolated PostgreSQL |
+| `prek run -a` and `git diff --check` | Passed |
+
+The browser runs had no retries or skips. Logs and captures are under
+`.cache/pr-36-review/`. Ports 8784/8785 and disposable test containers were clear
+after the tests. No API, database schema, production service, or deployment change
+was needed. Physical-device and screen-reader checks remain in the handoff above.

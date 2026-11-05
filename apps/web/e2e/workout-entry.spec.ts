@@ -286,6 +286,124 @@ for (const locale of ["en", "zh-TW"] as const) {
     }
   });
 
+  test(`a saved reorder requires recovery when its view refresh fails (${locale})`, async ({
+    page,
+  }) => {
+    const data = await fixture(page, locale, 3);
+    const t = dictionary(locale);
+    const ids = data.workout.sets.map((set) => set.id);
+    const row = (id: string) =>
+      page.locator(`article.recorded-set[data-set-id="${id}"]`);
+    const handle = (id: string) => row(id).locator(".recorded-set-drag-handle");
+    const versions: string[] = [];
+    let failRefresh = false;
+    let failedReads = 0;
+    try {
+      await page.setViewportSize({ width: 390, height: 1000 });
+      await row(ids[0]).locator("summary").click();
+      await row(ids[0]).getByLabel(t("weight"), { exact: true }).fill("12.5");
+      await row(ids[0])
+        .getByLabel(t("notes"), { exact: true })
+        .fill("Keep the correction");
+      await row(ids[0]).locator("summary").click();
+      await page.route(`**/api/views/workouts/${data.workout.id}`, (route) => {
+        if (!failRefresh) return route.continue();
+        failedReads++;
+        return route.fulfill({ status: 503, json: {} });
+      });
+      await page.route(
+        "**/api/actions/reorderWorkoutSetsAction",
+        async (route) => {
+          versions.push(String(route.request().postDataJSON().version));
+          const response = await route.fetch();
+          expect(response.status()).toBe(200);
+          if (versions.length === 1) failRefresh = true;
+          await route.fulfill({ response });
+        },
+      );
+      await drag(page, handle(ids[2]), handle(ids[0]));
+      await expect
+        .poll(() => savedOrder(data.workout.id))
+        .toEqual([
+          [ids[2], 1],
+          [ids[0], 2],
+          [ids[1], 3],
+        ]);
+      await expect(page.getByRole("alert")).toHaveText(t("reorderSetsFailed"));
+      expect(failedReads).toBe(1);
+      expect(versions).toEqual(["0"]);
+      await expect(
+        page.getByRole("status").filter({ hasText: t("reorderSetsSaved") }),
+      ).toHaveCount(0);
+      await expect(handle(ids[0])).toBeDisabled();
+      const reload = page.getByRole("button", {
+        name: t("refreshSetOrder"),
+        exact: true,
+      });
+      await expect(reload).toBeFocused();
+      await accessible(page);
+      await row(ids[0]).locator("summary").click();
+      await expect(
+        row(ids[0]).getByLabel(t("weight"), { exact: true }),
+      ).toBeDisabled();
+      await expect(
+        row(ids[0]).getByLabel(t("weight"), { exact: true }),
+      ).toHaveValue("12.5");
+      await expect(
+        row(ids[0]).getByLabel(t("notes"), { exact: true }),
+      ).toHaveValue("Keep the correction");
+      await reload.click();
+      await expect.poll(() => failedReads).toBe(2);
+      await expect(reload).toBeEnabled();
+      await expect(page.getByRole("alert")).toHaveText(t("reorderSetsFailed"));
+      await expect(handle(ids[0])).toBeDisabled();
+      expect(versions).toEqual(["0"]);
+      failRefresh = false;
+      await reload.click();
+      await expect(handle(ids[2])).toBeEnabled();
+      await expect(handle(ids[2])).toBeFocused();
+      await expect(row(ids[0]).locator('input[name="order"]')).toHaveValue("2");
+      await expect(
+        row(ids[0]).getByLabel(t("weight"), { exact: true }),
+      ).toHaveValue("12.5");
+      expect(
+        await page
+          .locator("article.recorded-set")
+          .evaluateAll((rows) =>
+            rows.map((row) => row.getAttribute("data-set-id")),
+          ),
+      ).toEqual([ids[2], ids[0], ids[1]]);
+      await row(ids[0]).locator("summary").click();
+      await pickUpSet(page, row(ids[2]));
+      await page.keyboard.press("ArrowDown");
+      await expect(page.locator('[aria-live="assertive"]')).toHaveText(
+        t("reorderSetOver").replace("{position}", "2"),
+      );
+      await page.keyboard.press("Space");
+      await expect
+        .poll(() => savedOrder(data.workout.id))
+        .toEqual([
+          [ids[0], 1],
+          [ids[2], 2],
+          [ids[1], 3],
+        ]);
+      await expect(
+        page.getByRole("status").filter({ hasText: t("reorderSetsSaved") }),
+      ).toBeVisible();
+      expect(versions).toEqual(["0", "1"]);
+      await row(ids[0]).locator("summary").click();
+      await expect(
+        row(ids[0]).getByLabel(t("weight"), { exact: true }),
+      ).toHaveValue("12.5");
+      await expect(
+        row(ids[0]).getByLabel(t("notes"), { exact: true }),
+      ).toHaveValue("Keep the correction");
+      await accessible(page);
+    } finally {
+      await data.dispose();
+    }
+  });
+
   test(`drag and keyboard sorting preserve drafts, recover failures, and persist (${locale})`, async ({
     page,
   }, info) => {

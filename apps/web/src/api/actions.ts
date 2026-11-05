@@ -91,7 +91,12 @@ async function invoke(
     ].includes(name)
   )
     await queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
-  await refreshViews();
+  if (name === "reorderWorkoutSetsAction")
+    await queryClient.invalidateQueries(
+      { queryKey: ["view"] },
+      { throwOnError: true },
+    );
+  else await refreshViews();
   if (destination)
     window.dispatchEvent(
       new CustomEvent("fitness:navigate", {
