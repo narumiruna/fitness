@@ -24,7 +24,7 @@ function isGeneratedVersionPr(mergeBase) {
     readFileSync(GITHUB_EVENT_PATH, "utf8"),
   );
   if (
-    pr?.user?.type !== "Bot" ||
+    !["Bot", "User"].includes(pr?.user?.type) ||
     pr.title !== "chore(release): version packages" ||
     pr.head?.ref !== "changeset-release/main" ||
     pr.base?.ref !== "main" ||
