@@ -1,5 +1,11 @@
 # @narumitw/fitness-web
 
+## 1.1.1
+
+### Patch Changes
+
+- 18a5b3e: Protect live set drafts from unreviewed changes, retain keyboard focus after set edits, confirm template saves, and improve mobile chart and measurement history controls.
+
 ## 1.1.0
 
 ### Minor Changes
