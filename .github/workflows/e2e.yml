@@ -1,0 +1,47 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [development, production]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - name: Require disposable PostgreSQL support
+        if: matrix.mode == 'production'
+        run: docker info
+      - name: Development browser tests with disposable SQLite
+        if: matrix.mode == 'development'
+        run: npm run test:ui
+      - name: Production HTTPS browser tests with disposable PostgreSQL
+        if: matrix.mode == 'production'
+        run: npm run test:ui:production
+      - name: Save browser failure reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-${{ matrix.mode }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
