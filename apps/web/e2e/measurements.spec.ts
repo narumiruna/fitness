@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { parseDateKey } from "@narumitw/fitness-core/calendar";
-import { test as base, expect, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../api/src/lib/prisma";
 import { dictionary } from "../src/lib/translations";
@@ -52,6 +57,41 @@ async function expectNoPageOverflow(page: Page) {
     viewportWidth: innerWidth,
   }));
   expect(bounds.documentWidth).toBeLessThanOrEqual(bounds.viewportWidth);
+}
+
+async function expectHistoryFits(history: Locator) {
+  const overflow = await history.evaluate((region) => {
+    const elements = [
+      region,
+      ...region.querySelectorAll(
+        ".rt-ScrollAreaViewport, .rt-ScrollAreaViewport > div, table, tbody, tbody tr, td, details[open], form",
+      ),
+    ];
+    return elements
+      .filter(
+        (element) =>
+          element.clientWidth > 0 &&
+          element.scrollWidth > element.clientWidth + 1,
+      )
+      .map((element) => ({
+        tag: element.tagName,
+        className: element.className,
+        width: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      }));
+  });
+  expect(overflow).toEqual([]);
+}
+
+async function expectWithinHistory(element: Locator, history: Locator) {
+  await expect(element).toBeVisible();
+  const bounds = await element.boundingBox();
+  const region = await history.boundingBox();
+  if (!bounds || !region) throw new Error("Missing measurement history bounds");
+  expect(bounds.x).toBeGreaterThanOrEqual(region.x - 1);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(
+    region.x + region.width + 1,
+  );
 }
 
 test("measurement validation preserves drafts and same-date saves replace one record", async ({
@@ -213,133 +253,176 @@ test("measurement deletion supports cancellation and rejects another user's reco
 });
 
 for (const locale of ["en", "zh-TW"] as const) {
-  test(`Measurements entry, history, and expanded edits reflow at 320 in ${locale}`, async ({
-    page,
-    userId,
-  }) => {
-    const t = dictionary(locale);
-    await page
-      .context()
-      .addCookies([
-        { name: "locale", value: locale, url: new URL(page.url()).origin },
-      ]);
-    await page.setViewportSize({ width: 320, height: 844 });
-    await page.reload();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      t("measurements"),
-    );
-    const form = measurementForm(page, t("date"));
-    await expect(form.getByLabel(t("date"))).toHaveAccessibleDescription(
-      t("measurementDateHelp"),
-    );
-    await expect(form.getByLabel(t("weight"))).toHaveAccessibleDescription(
-      t("measurementsHelp"),
-    );
-    await expect(
-      form.getByRole("button", { name: t("saveMeasurement"), exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText(t("noMeasurements"))).toBeVisible();
-    await expectNoPageOverflow(page);
+  for (const width of [320, 390]) {
+    test(`Measurements entry, history, and expanded edits reflow at ${width} in ${locale}`, async ({
+      page,
+      userId,
+    }, info) => {
+      const t = dictionary(locale);
+      await page
+        .context()
+        .addCookies([
+          { name: "locale", value: locale, url: new URL(page.url()).origin },
+        ]);
+      await page.setViewportSize({ width, height: 844 });
+      await page.reload();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        t("measurements"),
+      );
+      const form = measurementForm(page, t("date"));
+      await expect(form.getByLabel(t("date"))).toHaveAccessibleDescription(
+        t("measurementDateHelp"),
+      );
+      await expect(form.getByLabel(t("weight"))).toHaveAccessibleDescription(
+        t("measurementsHelp"),
+      );
+      await expect(
+        form.getByRole("button", { name: t("saveMeasurement"), exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText(t("noMeasurements"))).toBeVisible();
+      await expectNoPageOverflow(page);
 
-    const targetEditor = page.locator(".measurements-goal");
-    await targetEditor.locator("summary").click();
-    await expect(
-      targetEditor.getByRole("button", { name: t("saveTarget"), exact: true }),
-    ).toBeVisible();
-    await expectNoPageOverflow(page);
+      const targetEditor = page.locator(".measurements-goal");
+      await targetEditor.locator("summary").click();
+      await expect(
+        targetEditor.getByRole("button", {
+          name: t("saveTarget"),
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expectNoPageOverflow(page);
 
-    await prisma.bodyMeasurement.createMany({
-      data: [
-        {
-          userId,
-          date: parseDateKey("2025-01-15") as Date,
-          weight: 75.25,
-          waist: 90.5,
-        },
-        {
-          userId,
-          date: parseDateKey("2025-01-16") as Date,
-          weight: 74.5,
-          waist: 89.5,
-        },
-        { userId, date: parseDateKey("2025-01-17") as Date, weight: 74.2 },
-      ],
-    });
-    await page.reload();
-    const history = page.getByRole("region", {
-      name: t("measurementHistoryTable"),
-      exact: true,
-    });
-    await expect(
-      history.getByRole("table", { name: t("measurementHistoryTable") }),
-    ).toBeVisible();
-    await expectNoPageOverflow(page);
-    expect(
-      await page.locator(".measurements-page").evaluate((section) => {
-        const entry = section.querySelector(".measurements-entry");
-        const history = section.querySelector(".measurements-history");
-        const chart = section.querySelector(".training-chart");
-        const goal = section.querySelector(".measurements-goal");
-        return [entry, history, chart].every((element, index) =>
-          Boolean(
-            element &&
-              [history, chart, goal][index] &&
-              element.compareDocumentPosition(
-                [history, chart, goal][index] as Element,
-              ) & Node.DOCUMENT_POSITION_FOLLOWING,
-          ),
+      await prisma.bodyMeasurement.createMany({
+        data: [
+          {
+            userId,
+            date: parseDateKey("2025-01-15") as Date,
+            weight: 75.25,
+            waist: 90.5,
+          },
+          {
+            userId,
+            date: parseDateKey("2025-01-16") as Date,
+            weight: 74.5,
+            waist: 89.5,
+          },
+          { userId, date: parseDateKey("2025-01-17") as Date, weight: 74.2 },
+        ],
+      });
+      await page.reload();
+      const history = page.getByRole("region", {
+        name: t("measurementHistoryTable"),
+        exact: true,
+      });
+      await expect(
+        history.getByRole("table", { name: t("measurementHistoryTable") }),
+      ).toBeVisible();
+      await expectNoPageOverflow(page);
+      expect(
+        await page.locator(".measurements-page").evaluate((section) => {
+          const entry = section.querySelector(".measurements-entry");
+          const history = section.querySelector(".measurements-history");
+          const chart = section.querySelector(".training-chart");
+          const goal = section.querySelector(".measurements-goal");
+          return [entry, history, chart].every((element, index) =>
+            Boolean(
+              element &&
+                [history, chart, goal][index] &&
+                element.compareDocumentPosition(
+                  [history, chart, goal][index] as Element,
+                ) & Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+          );
+        }),
+      ).toBe(true);
+      await expectHistoryFits(history);
+      await expect(history.getByRole("table")).toHaveCount(1);
+      for (const date of ["2025-01-15", "2025-01-16", "2025-01-17"]) {
+        const record = measurementRow(page, date);
+        await expectWithinHistory(record.locator("time"), history);
+        await expectWithinHistory(record.getByRole("cell").nth(1), history);
+        await expectWithinHistory(record.getByRole("cell").nth(2), history);
+        const editAction = record.locator("summary");
+        await expect(editAction).toHaveText(t("editMeasurement"));
+        await expectWithinHistory(editAction, history);
+        // Check the full label, not only a possibly clipped summary box.
+        const labelFits = await editAction.evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const text = range.getBoundingClientRect();
+          const box = element.getBoundingClientRect();
+          return text.left >= box.left - 1 && text.right <= box.right + 1;
+        });
+        expect(labelFits).toBe(true);
+        await expectWithinHistory(
+          record.getByRole("button", { name: t("delete"), exact: true }),
+          history,
         );
-      }),
-    ).toBe(true);
-    await history.focus();
-    await expect(history).toBeFocused();
-    await page.keyboard.press("ArrowRight");
-    await expect
-      .poll(() => history.evaluate((element) => element.scrollLeft))
-      .toBeGreaterThan(0);
+        await expect(record.locator("details form")).toHaveCount(1);
+      }
 
-    const row = measurementRow(page, "2025-01-15");
-    const summary = row.locator("summary");
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    await expect(row.locator("details")).toHaveAttribute("open", "");
-    const edit = row.locator("details form");
-    await expect(edit.getByLabel(t("weight"))).toHaveValue("75.25");
-    await expect(edit.getByLabel(t("waist"))).toHaveValue("90.5");
-    await expectNoPageOverflow(page);
-    await edit.evaluate((element) => {
-      (element as HTMLFormElement).noValidate = true;
-    });
-    await edit.getByLabel(t("weight")).fill("501");
-    const save = edit.getByRole("button", {
-      name: t("saveMeasurement"),
-      exact: true,
-    });
-    await save.focus();
-    await page.keyboard.press("Enter");
-    await expect(edit.getByRole("status")).toHaveText(t("saveFailed"));
-    await expect(edit.getByLabel(t("weight"))).toHaveValue("501");
-    await expect(row.locator("details")).toHaveAttribute("open", "");
-    await expectNoPageOverflow(page);
+      await history.screenshot({
+        path: info.outputPath(`measurement-history-${locale}-${width}.png`),
+      });
+      const row = measurementRow(page, "2025-01-15");
+      const summary = row.locator("summary");
+      await summary.focus();
+      await page.keyboard.press("Enter");
+      await expect(row.locator("details")).toHaveAttribute("open", "");
+      const edit = row.locator("details form");
+      await expect(edit.getByLabel(t("weight"))).toHaveValue("75.25");
+      await expect(edit.getByLabel(t("waist"))).toHaveValue("90.5");
+      for (const control of [
+        edit.getByLabel(t("weight")),
+        edit.getByLabel(t("waist")),
+        edit.getByRole("button", { name: t("saveMeasurement"), exact: true }),
+        edit.getByRole("button", { name: t("cancel"), exact: true }),
+        row.getByRole("button", { name: t("delete"), exact: true }),
+      ]) {
+        await expectWithinHistory(control, history);
+      }
+      await expectHistoryFits(history);
+      await expectNoPageOverflow(page);
+      await edit.evaluate((element) => {
+        (element as HTMLFormElement).noValidate = true;
+      });
+      await edit.getByLabel(t("weight")).fill("501");
+      const save = edit.getByRole("button", {
+        name: t("saveMeasurement"),
+        exact: true,
+      });
+      await save.focus();
+      await page.keyboard.press("Enter");
+      await expect(edit.getByRole("status")).toHaveText(t("saveFailed"));
+      await expect(edit.getByLabel(t("weight"))).toHaveValue("501");
+      await expect(row.locator("details")).toHaveAttribute("open", "");
+      await expectHistoryFits(history);
+      await expectNoPageOverflow(page);
 
-    await edit.getByLabel(t("weight")).fill("75.5");
-    await edit.getByRole("button", { name: t("cancel"), exact: true }).focus();
-    await page.keyboard.press("Enter");
-    await expect(row.locator("details")).not.toHaveAttribute("open");
-    await expect(summary).toBeFocused();
-    await expect(row.getByRole("cell").nth(1)).toHaveText("75.25");
-    await page.keyboard.press("Enter");
-    await expect(edit.getByLabel(t("weight"))).toHaveValue("75.5");
-    await edit.getByLabel(t("waist")).fill("");
-    await save.focus();
-    await page.keyboard.press("Enter");
-    await expect(row.getByRole("cell").nth(1)).toHaveText("75.5");
-    await expect(row.getByRole("cell").nth(2)).toHaveText("—");
-    await page.reload();
-    await expect(row.getByRole("cell").nth(1)).toHaveText("75.5");
-    await expectNoPageOverflow(page);
-    expect(await prisma.bodyMeasurement.count({ where: { userId } })).toBe(3);
-  });
+      await edit.getByLabel(t("weight")).fill("75.5");
+      await edit
+        .getByRole("button", { name: t("cancel"), exact: true })
+        .focus();
+      await page.keyboard.press("Enter");
+      await expect(row.locator("details")).not.toHaveAttribute("open");
+      await expect(summary).toBeFocused();
+      await expect(row.getByRole("cell").nth(1)).toHaveText("75.25");
+      await page.keyboard.press("Enter");
+      await expect(edit.getByLabel(t("weight"))).toHaveValue("75.5");
+      await expectHistoryFits(history);
+      await expectWithinHistory(save, history);
+      await edit.getByLabel(t("waist")).fill("");
+      await save.focus();
+      await page.keyboard.press("Enter");
+      await expect(row.getByRole("cell").nth(1)).toHaveText("75.5");
+      await expect(row.getByRole("cell").nth(2)).toHaveText("—");
+      await page.reload();
+      await expect(row.getByRole("cell").nth(1)).toHaveText("75.5");
+      await expectNoPageOverflow(page);
+      expect(await prisma.bodyMeasurement.count({ where: { userId } })).toBe(3);
+      await expectHistoryFits(history);
+    });
+  }
 
   for (const fixture of [
     { name: "close-to-target", values: [70.19, 70.21], target: 70.2 },

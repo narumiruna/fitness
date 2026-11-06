@@ -1075,3 +1075,60 @@ Live PAT authentication and remote PR creation were not tested. The next
 authorized main-push Release run must verify the existing `PAT_TOKEN` secret and
 its repository write permissions. No repository settings or credentials were
 changed, and no release or deployment workflow was dispatched.
+
+## UI/UX review findings — 2026-11-06
+
+Resolved the five findings from the rendered desktop/mobile review:
+
+- Live set forms compare incoming set values with their reviewed snapshot.
+  Same-set changes require explicit review before a draft can be saved or
+  completed. Unrelated set changes can advance the session version without
+  discarding drafts. The recovery panel shows the latest values and keeps local
+  weight, reps, RIR, and notes until the user confirms the review.
+- Recorded-set summaries remain mounted when their editors refresh. Successful
+  updates restore keyboard focus to the summary without taking focus from an
+  unrelated control.
+- Template saves announce success and disable unchanged repeat submissions after
+  confirmed saves. A changed title or source workout version permits a new save.
+- Charts use measured CSS-pixel coordinates, 11px axis labels, and 32–44px point
+  targets. Overlapping targets select the nearest point. Period axes use compact
+  dates; tooltips and chart data retain full labels and numeric precision.
+- Measurement history cells stack below 600px. Both values, full edit/delete
+  actions, and expanded editors fit at 320px and 390px without horizontal scroll.
+  Desktop table semantics and one editor per record remain.
+
+| Check | Actual result |
+| --- | --- |
+| `npm run check` | Passed, including the final source and browser-test changes |
+| `npm test` | 102 passed; no failures or skips |
+| `npm run build` | Passed; the existing >500 kB browser chunk warning remains |
+| Focused browser regression | 65 passed in 5.2 minutes; no retries or skips |
+| `prek run -a` | Passed before commit on the current main base |
+| TypeScript for the three added/changed browser specs | Passed with a temporary configuration that extends the root configuration |
+| `git diff --check` | Passed |
+
+The browser command used the disposable SQLite runner with these specifications:
+`uiux-review-fixes`, `training-chart`, `measurements`, `ux-findings`,
+`recorded-workout-review`, `workout-entry`, `ui-ux-remediation`,
+`visual-dashboard`, and `training-entry`, all under `apps/web/e2e/` with the
+`.spec.ts` suffix. Coverage includes English and Traditional Chinese, 320/390/1440px
+layouts, two-tab save/completion conflicts, sequential saves, keyboard focus,
+failed-response drafts, template repeat suppression and source changes, dense and
+sparse chart targets, real touch events, axe checks, and real 200% browser zoom.
+
+The first focused attempt had 17 passing and six failing cases. Two failures
+identified overlapping long period labels; four identified an incorrect event
+recipient in the new synthetic tab-return test. Both were corrected before the
+passing regression run. Mobile chart, measurement, and conflict-panel captures
+in ignored `test-results/` were inspected. No image or database is committed.
+
+PR preparation used `805d4a9` as the main base. That update changed only package
+versions, changelogs, and consumed Changesets. Application source and browser
+runners are unchanged from the 65-case run. Pure tests, the build, and the
+pre-commit gate passed again on that base.
+
+The existing Node 26 `kill EPERM` warning in `scripts/dev.mjs` occurred during
+shutdown after all 65 cases passed. Both ports 8784/8785 and the owning test/server
+processes were confirmed clear afterward. No production-mode, Docker, physical
+device, or human screen-reader check was performed. No production service,
+release, deployment, or credential was changed.

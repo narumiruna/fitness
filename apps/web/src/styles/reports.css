@@ -138,6 +138,12 @@
   opacity: 0.8;
 }
 
+.chart-point-target {
+  fill: transparent;
+  pointer-events: all;
+  cursor: pointer;
+}
+
 .training-chart svg {
   display: block;
   width: 100%;
@@ -174,6 +180,13 @@
   justify-content: space-between;
   gap: 16px;
   padding-block: 6px;
+}
+
+.chart-data-row dt,
+.chart-data-row dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .distribution {
@@ -479,12 +492,84 @@
 }
 
 .measurements-table {
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 .measurement-edit {
   width: 14rem;
+  max-width: 100%;
+}
+
+.measurement-edit > summary {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  /* Keep the table and its column headers available to assistive technology. */
+  .measurements-table .rt-TableRootTable {
+    table-layout: fixed;
+    height: auto;
+  }
+
+  .measurements-table .rt-TableHeader {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .measurements-table .rt-TableBody {
+    display: block;
+  }
+
+  .measurements-table .rt-TableBody .rt-TableRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 12px;
+    border-bottom: 1px solid var(--gray-a5);
+  }
+
+  .measurements-table .rt-TableBody .rt-TableCell {
+    display: block;
+    min-width: 0;
+    height: auto;
+    padding: 8px 12px;
+    box-shadow: none;
+    overflow-wrap: anywhere;
+  }
+
+  .measurements-table [data-label]::before {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    content: attr(data-label);
+  }
+
+  .measurements-table .rt-TableBody .measurement-actions {
+    display: grid;
+    gap: 12px;
+  }
+
+  .measurement-edit {
+    width: 100%;
+  }
+
+  .measurement-actions > .rt-Button {
+    justify-self: start;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .measurement-edit .rt-Button {
+    height: auto;
+    min-height: 44px;
+    white-space: normal;
+  }
 }
 
 @media (min-width: 1401px) {
