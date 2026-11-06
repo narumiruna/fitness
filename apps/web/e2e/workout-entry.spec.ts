@@ -101,9 +101,12 @@ async function drag(page: Page, handle: Locator, target: Locator) {
 async function pickUpSet(page: Page, row: Locator) {
   await expect(row).not.toHaveAttribute("data-dragging");
   await row.locator(".recorded-set-drag-handle").focus();
-  // A held key lets KeyboardSensor attach its deferred key listener before release.
-  await page.keyboard.press("Space", { delay: 25 });
+  await page.keyboard.press("Space");
   await expect(row).toHaveAttribute("data-dragging", "true");
+  // KeyboardSensor queues its key listener after activation. Wait for that task.
+  await page.evaluate(
+    () => new Promise<void>((resolve) => window.setTimeout(resolve, 0)),
+  );
 }
 
 async function savedOrder(workoutId: string) {

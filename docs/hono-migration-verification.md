@@ -999,3 +999,54 @@ The browser runs had no retries or skips. Logs and captures are under
 `.cache/pr-36-review/`. Ports 8784/8785 and disposable test containers were clear
 after the tests. No API, database schema, production service, or deployment change
 was needed. Physical-device and screen-reader checks remain in the handoff above.
+
+### Follow-up CI repair — keyboard listener readiness
+
+[Main CI run 42088612114](https://github.com/narumiruna/fitness/actions/runs/42088612114)
+failed at merged PR #36 commit `23c0617`. The production browser job had one failure
+and 174 passes. Checks, databases, development browsers, and image smoke passed.
+The failed case expected `New position: 3.` but received `New position: 2.`.
+
+The downloaded trace is the before-fix regression evidence. Row transforms had
+cleared before the second keyboard pickup. The failed ArrowDown scrolled the page
+by 40 px and moved only the active row by 40 px. A handled sortable move earlier
+in the trace moved 107 px and displaced the target row. This supports an unhandled
+key event, not unfinished row motion. Listener registration itself was not traced.
+
+`KeyboardSensor` starts dragging before it queues its document key listener with
+`setTimeout`. A fixed 25 ms Space hold did not ensure that task had run. The test
+helper now waits for a later browser timer task after the active flag appears.
+No application code, timeout, retry setting, or movement assertion was changed.
+The existing ordering, cancellation, draft, focus, and request checks remain.
+An empty Changeset covers this test-only follow-up to #36.
+
+Validation used Node 24.22.2 and npm 11.19.1, matching the failed CI job:
+
+| Check | Actual result |
+| --- | --- |
+| `npm run check` | Passed |
+| `npm test` | 101 passed |
+| `npm run build` | Passed; the existing >500 kB chunk warning remains |
+| Development workout-entry cases | 10 passed |
+| Production HTTPS workout-entry and recorded-workout cases | 14 passed with isolated PostgreSQL |
+| Production keyboard cases, both locales, 15 explicit repetitions | 30 passed; no retries or skips |
+
+An initial Node 24 development attempt reused the main workspace native SQLite
+module, which was built for Node 26. It failed with `ERR_DLOPEN_FAILED` before
+fixture creation. That attempt is not counted as passed validation. A separate
+source copy received a locked `npm ci` under Node 24. All browser results above
+come from that copy. The original workspace native module was not rebuilt.
+Logs, the source patch, and captures remain under `.cache/ci-fix-42088612114/`.
+Ports 8784/8785 and disposable test containers were clear after the tests.
+
+The separate [Release run 42088612225](https://github.com/narumiruna/fitness/actions/runs/42088612225)
+failed while creating the GitHub App token. Its exact error was:
+`The 'client-id' (or deprecated 'app-id') input must be set to a non-empty string.`
+The workflow reads `vars.APP_CLIENT_ID`. This is a repository setup blocker, not
+the browser failure; Release also failed on the previous main revision.
+
+Repository-owner handoff: follow `docs/releasing.md` to configure `APP_CLIENT_ID`
+and verify the installed App and `APP_PRIVATE_KEY` secret. The next authorized
+main-push Release run must receive a nonempty client ID and create its App token.
+App authentication remains unverified. No credential, release workflow,
+production service, or deployment was changed by this repair.
