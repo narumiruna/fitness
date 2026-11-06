@@ -11,6 +11,7 @@ import { useState } from "react";
 import {
   acceptProgressionAction,
   editSessionSetAction,
+  type FormErrorCode,
   startSessionAction,
 } from "@/api/actions";
 import { type PageView, usePageView } from "@/api/views";
@@ -200,101 +201,14 @@ export function SessionPanel({
                   ) : null}
                 </summary>
                 {live ? (
-                  <SafeForm
-                    action={editSessionSetAction}
+                  <SessionSetForm
+                    set={s}
+                    workoutId={workout.id}
+                    version={workout.version}
+                    active={workout.state === "ACTIVE"}
+                    current={current}
                     errors={sessionErrors}
-                    refreshLabel={t("refreshSession")}
-                    error={t("saveFailed")}
-                    success={t("saved")}
-                  >
-                    <input type="hidden" name="workoutId" value={workout.id} />
-                    <input type="hidden" name="setId" value={s.id} />
-                    <input
-                      type="hidden"
-                      name="version"
-                      value={workout.version}
-                    />
-                    <input
-                      type="hidden"
-                      name="exerciseId"
-                      value={s.exerciseId}
-                    />
-                    <input type="hidden" name="order" value={s.order} />
-                    <input type="hidden" name="type" value={s.type} />
-                    <div className="form-grid two">
-                      <Text as="label" className="field-label">
-                        {t("weight")}
-                        <TextField.Root
-                          name="weight"
-                          type="number"
-                          min={0}
-                          max={2000}
-                          step="0.001"
-                          defaultValue={s.actualsEntered ? s.weight : ""}
-                          required
-                        />
-                      </Text>
-                      <Text as="label" className="field-label">
-                        {t("reps")}
-                        <TextField.Root
-                          name="reps"
-                          type="number"
-                          min={1}
-                          max={1000}
-                          defaultValue={s.actualsEntered ? s.reps : ""}
-                          required
-                        />
-                      </Text>
-                    </div>
-                    <div className="card-actions">
-                      {/* Keep input Enter save-only; completion requires its explicit action. */}
-                      <Button highContrast variant="soft" type="submit">
-                        {t("save")}
-                      </Button>
-                      {!s.completed && workout.state === "ACTIVE" ? (
-                        <Button
-                          highContrast
-                          variant={current ? "solid" : "soft"}
-                          type="submit"
-                          name="command"
-                          value="complete"
-                        >
-                          {t("complete")}
-                        </Button>
-                      ) : null}
-                    </div>
-                    <details>
-                      <summary>{t("sessionOptionalFields")}</summary>
-                      <div className="form-grid">
-                        <Text as="label" className="field-label">
-                          {t("rir")}
-                          <TextField.Root
-                            name="rir"
-                            type="number"
-                            min={0}
-                            max={10}
-                            step="0.5"
-                            defaultValue={s.rir ?? ""}
-                            aria-describedby={`session-rir-help-${s.id}`}
-                          />
-                        </Text>
-                        <Text
-                          id={`session-rir-help-${s.id}`}
-                          size="2"
-                          color="gray"
-                        >
-                          {t("rirHelp")}
-                        </Text>
-                        <Text as="label" className="field-label">
-                          {t("notes")}
-                          <TextField.Root
-                            name="notes"
-                            defaultValue={s.notes ?? ""}
-                          />
-                        </Text>
-                      </div>
-                    </details>
-                  </SafeForm>
+                  />
                 ) : null}
               </details>
             </Card>
@@ -350,5 +264,182 @@ export function SessionPanel({
         </details>
       ) : null}
     </Card>
+  );
+}
+
+type SessionSet = PageView<"workout">["workout"]["sets"][number];
+
+function sessionSetSnapshot(set: SessionSet) {
+  return JSON.stringify([
+    set.exerciseId,
+    set.order,
+    set.type,
+    set.actualsEntered,
+    set.completed,
+    set.weight,
+    set.reps,
+    set.rir,
+    set.notes ?? "",
+  ]);
+}
+
+function SessionSetForm({
+  set,
+  workoutId,
+  version,
+  active,
+  current,
+  errors,
+}: {
+  set: SessionSet;
+  workoutId: string;
+  version: number;
+  active: boolean;
+  current: boolean;
+  errors: Partial<Record<FormErrorCode, string>>;
+}) {
+  const t = useDictionary();
+  const snapshot = sessionSetSnapshot(set);
+  const [reviewed, setReviewed] = useState(() => ({ snapshot, version }));
+  const changed = reviewed.snapshot !== snapshot;
+
+  async function save(data: FormData) {
+    // Other sets can advance the session version, but a changed set needs review.
+    if (changed) return { error: "sessionConflict" as const };
+    const result = await editSessionSetAction(data);
+    if (!result) {
+      setReviewed({
+        snapshot: sessionSetSnapshot({
+          ...set,
+          actualsEntered: true,
+          completed: set.completed || data.get("command") === "complete",
+          weight: Number(data.get("weight")),
+          reps: Number(data.get("reps")),
+          rir: data.get("rir") === "" ? null : Number(data.get("rir")),
+          notes: String(data.get("notes") ?? "").trim(),
+        }),
+        version: Number(data.get("version")) + 1,
+      });
+    }
+    return result;
+  }
+
+  return (
+    <SafeForm
+      action={save}
+      errors={errors}
+      refreshLabel={t("refreshSession")}
+      error={t("saveFailed")}
+      success={t("saved")}
+    >
+      <input type="hidden" name="workoutId" value={workoutId} />
+      <input type="hidden" name="setId" value={set.id} />
+      <input
+        type="hidden"
+        name="version"
+        value={changed ? reviewed.version : version}
+      />
+      <input type="hidden" name="exerciseId" value={set.exerciseId} />
+      <input type="hidden" name="order" value={set.order} />
+      <input type="hidden" name="type" value={set.type} />
+      {changed ? (
+        <div className="stack session-set-conflict">
+          <Text role="alert">{t("sessionSetChanged")}</Text>
+          <Text weight="bold">{t("latestSavedValues")}</Text>
+          <Text>
+            {t("exercise")}: {set.exercise?.defaultName}
+          </Text>
+          <Text>
+            {t("setType")}: {t(set.type as MessageKey)}
+          </Text>
+          <Text>
+            {t("weight")}: {set.actualsEntered ? set.weight : t("unknown")}
+          </Text>
+          <Text>
+            {t("reps")}: {set.actualsEntered ? set.reps : t("unknown")}
+          </Text>
+          <Text>
+            {t("rir")}: {set.rir ?? t("unknown")}
+          </Text>
+          <Text>
+            {t("notes")}: {set.notes || t("unknown")}
+          </Text>
+          <Button
+            highContrast
+            type="button"
+            variant="soft"
+            onClick={() => setReviewed({ snapshot, version })}
+          >
+            {t("keepSessionDraft")}
+          </Button>
+        </div>
+      ) : null}
+      <div className="form-grid two">
+        <Text as="label" className="field-label">
+          {t("weight")}
+          <TextField.Root
+            name="weight"
+            type="number"
+            min={0}
+            max={2000}
+            step="0.001"
+            defaultValue={set.actualsEntered ? set.weight : ""}
+            required
+          />
+        </Text>
+        <Text as="label" className="field-label">
+          {t("reps")}
+          <TextField.Root
+            name="reps"
+            type="number"
+            min={1}
+            max={1000}
+            defaultValue={set.actualsEntered ? set.reps : ""}
+            required
+          />
+        </Text>
+      </div>
+      <div className="card-actions">
+        {/* Keep input Enter save-only; completion requires its explicit action. */}
+        <Button highContrast variant="soft" type="submit">
+          {t("save")}
+        </Button>
+        {!set.completed && active ? (
+          <Button
+            highContrast
+            variant={current ? "solid" : "soft"}
+            type="submit"
+            name="command"
+            value="complete"
+          >
+            {t("complete")}
+          </Button>
+        ) : null}
+      </div>
+      <details>
+        <summary>{t("sessionOptionalFields")}</summary>
+        <div className="form-grid">
+          <Text as="label" className="field-label">
+            {t("rir")}
+            <TextField.Root
+              name="rir"
+              type="number"
+              min={0}
+              max={10}
+              step="0.5"
+              defaultValue={set.rir ?? ""}
+              aria-describedby={`session-rir-help-${set.id}`}
+            />
+          </Text>
+          <Text id={`session-rir-help-${set.id}`} size="2" color="gray">
+            {t("rirHelp")}
+          </Text>
+          <Text as="label" className="field-label">
+            {t("notes")}
+            <TextField.Root name="notes" defaultValue={set.notes ?? ""} />
+          </Text>
+        </div>
+      </details>
+    </SafeForm>
   );
 }

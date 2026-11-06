@@ -160,7 +160,17 @@ export default function StatsPage() {
               />
               <TrainingChart
                 locale={locale}
-                points={stats.weekly}
+                points={stats.weekly.map((point) => ({
+                  ...point,
+                  axisLabel: calendarDate(point.key).toLocaleDateString(
+                    locale,
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    },
+                  ),
+                }))}
                 label={weeklyLabel}
                 kind="bar"
                 dataLabel={t("chartData")}

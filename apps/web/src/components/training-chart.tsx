@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/lib/locales";
 
 type Point = {
@@ -22,7 +22,21 @@ export function TrainingChart({
   dataLabel: string;
   target?: { value: number; label: string };
 }) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(600);
   const [active, setActive] = useState<Point>();
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) setWidth(entry.contentRect.width);
+    });
+    observer.observe(chart);
+    return () => observer.disconnect();
+  }, []);
+  const numberFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 20,
+  });
   const activePoint =
     active && points.find((point) => point.key === active.key);
   const maximum = points.reduce(
@@ -30,12 +44,14 @@ export function TrainingChart({
     Math.max(1, target?.value ?? 0),
   );
   const max = kind === "bar" ? Math.ceil(maximum / 4) * 4 : maximum;
-  const width = 600;
+  // Match SVG units to CSS pixels so labels and hit targets do not shrink.
   const height = 230;
+  const narrow = width < 480;
+  const hitRadius = narrow ? 16 : 22;
   const left = 54;
-  const right = 18;
-  const top = 18;
-  const bottom = 36;
+  const right = 24;
+  const top = 24;
+  const bottom = 52;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
   // UTC is used only for stable SVG spacing; displayed dates are server-provided local date labels.
@@ -52,19 +68,41 @@ export function TrainingChart({
           plotWidth;
   const y = (value: number) => top + plotHeight * (1 - value / max);
   const line = points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ");
+  function selectPointerPoint(event: { clientX: number; clientY: number }) {
+    const bounds = chartRef.current
+      ?.querySelector("svg")
+      ?.getBoundingClientRect();
+    if (!bounds) return;
+    const pointerX = ((event.clientX - bounds.left) * width) / bounds.width;
+    const pointerY = ((event.clientY - bounds.top) * height) / bounds.height;
+    let nearest: Point | undefined;
+    let distance = Number.POSITIVE_INFINITY;
+    points.forEach((point, index) => {
+      const candidate =
+        (x(index) - pointerX) ** 2 +
+        (kind === "line" ? (y(point.value) - pointerY) ** 2 : 0);
+      if (candidate < distance) {
+        distance = candidate;
+        nearest = point;
+      }
+    });
+    // Dense targets can overlap. Select the nearest point, not the last SVG node.
+    setActive(nearest);
+  }
   return (
-    <div className="training-chart">
+    <div className="training-chart" ref={chartRef}>
       {target ? (
         <p className="chart-target">
           <span>
-            {target.label}:{" "}
-            {new Intl.NumberFormat(locale, {
-              maximumFractionDigits: 20,
-            }).format(target.value)}
+            {target.label}: {numberFormatter.format(target.value)}
           </span>
         </p>
       ) : null}
-      <svg viewBox={`0 0 ${width} ${height}`} aria-label={label}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        height={height}
+        aria-label={label}
+      >
         {[0, 0.25, 0.5, 0.75, 1].map((f) => (
           <g key={f}>
             <line
@@ -114,20 +152,21 @@ export function TrainingChart({
             key={p.key}
             tabIndex={0}
             role="button"
-            onClick={() => setActive(p)}
+            onClick={selectPointerPoint}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 setActive(p);
               }
             }}
-            aria-label={`${p.label}: ${p.value}`}
+            aria-label={`${p.label}: ${numberFormatter.format(p.value)}`}
             onFocus={() => setActive(p)}
             onBlur={() => setActive(undefined)}
-            onMouseEnter={() => setActive(p)}
+            onMouseEnter={selectPointerPoint}
+            onMouseMove={selectPointerPoint}
             onMouseLeave={() => setActive(undefined)}
           >
-            <title>{`${p.label}: ${p.value}`}</title>
+            <title>{`${p.label}: ${numberFormatter.format(p.value)}`}</title>
             {kind === "bar" ? (
               <rect
                 className="chart-bar"
@@ -146,12 +185,18 @@ export function TrainingChart({
             ) : (
               <circle className="chart-point" cx={x(i)} cy={y(p.value)} r="4" />
             )}
+            <circle
+              className="chart-point-target"
+              cx={x(i)}
+              cy={y(p.value)}
+              r={hitRadius}
+            />
           </g>
         ))}
         {[
           ...new Set([
             0,
-            Math.floor((points.length - 1) / 2),
+            ...(narrow ? [] : [Math.floor((points.length - 1) / 2)]),
             points.length - 1,
           ]),
         ]
@@ -159,11 +204,18 @@ export function TrainingChart({
           .map((i) => (
             <text
               key={points[i].key}
-              className="chart-axis"
+              className="chart-axis chart-axis-date"
               x={x(i)}
-              y={height - 10}
+              // Use separate rows on narrow charts to keep full dates readable.
+              y={height - (narrow && i === 0 && points.length > 1 ? 26 : 10)}
               textAnchor={
-                i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"
+                points.length === 1
+                  ? "middle"
+                  : i === 0
+                    ? "start"
+                    : i === points.length - 1
+                      ? "end"
+                      : "middle"
               }
             >
               {points[i].axisLabel ?? points[i].label}
@@ -172,7 +224,7 @@ export function TrainingChart({
       </svg>
       <p className="chart-tooltip" aria-live="polite">
         {activePoint
-          ? `${activePoint.label}: ${new Intl.NumberFormat(locale).format(activePoint.value)}`
+          ? `${activePoint.label}: ${numberFormatter.format(activePoint.value)}`
           : "\u00a0"}
       </p>
       <details className="chart-data">
@@ -181,7 +233,7 @@ export function TrainingChart({
           {points.map((p) => (
             <div className="chart-data-row" key={p.key}>
               <dt>{p.label}</dt>
-              <dd>{new Intl.NumberFormat(locale).format(p.value)}</dd>
+              <dd>{numberFormatter.format(p.value)}</dd>
             </div>
           ))}
         </dl>

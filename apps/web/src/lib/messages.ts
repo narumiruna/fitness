@@ -114,6 +114,10 @@ export const englishMessages = {
   sessionUnavailable:
     "Not saved. This session or set is no longer available for this action.",
   refreshSession: "Load latest session",
+  sessionSetChanged:
+    "This set changed elsewhere. Review the latest saved values before keeping your draft. Your draft has not been saved.",
+  latestSavedValues: "Latest saved values",
+  keepSessionDraft: "I reviewed the changes. Keep my draft",
   invalidWorkoutInput:
     "Not saved. Enter a valid date, a title of at most 120 characters, and notes of at most 2,000 characters.",
   partialFinish: "I confirm finishing with skipped sets.",

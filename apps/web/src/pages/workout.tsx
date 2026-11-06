@@ -8,6 +8,7 @@ import {
   TextArea,
   TextField,
 } from "@radix-ui/themes";
+import { useState } from "react";
 import {
   createWorkoutSetAction,
   deleteWorkoutAction,
@@ -21,6 +22,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { FormSelect } from "@/components/form-select";
 import { PreviousSession } from "@/components/previous-session";
 import { RecordedSetList } from "@/components/recorded-set-list";
+import { SafeForm } from "@/components/safe-form";
 import { SessionPanel } from "@/components/session-panel";
 import { useDictionary, useLocale } from "@/lib/i18n";
 
@@ -230,25 +232,59 @@ export default function WorkoutPage() {
       <Card asChild>
         <details>
           <summary>{t("saveAsTemplate")}</summary>
-          <ActionForm action={saveWorkoutTemplateAction} className="form-grid">
-            <input name="workoutId" type="hidden" value={workout.id} />
-            <Text as="label" size="2" weight="medium" className="field-label">
-              {t("templateName")}
-              <TextField.Root
-                defaultValue={workout.title || t("workout")}
-                name="title"
-                required
-              />
-            </Text>
-            <Button highContrast variant="soft" type="submit">
-              {t("saveAsTemplate")}
-            </Button>
-          </ActionForm>
+          <SaveTemplateForm
+            workoutId={workout.id}
+            version={workout.version}
+            initialTitle={workout.title || t("workout")}
+          />
         </details>
       </Card>
 
       <SessionPanel workout={workout} />
     </section>
+  );
+}
+
+function SaveTemplateForm({
+  workoutId,
+  version,
+  initialTitle,
+}: {
+  workoutId: string;
+  version: number;
+  initialTitle: string;
+}) {
+  const t = useDictionary();
+  const [title, setTitle] = useState(initialTitle);
+  const [saved, setSaved] = useState<{ title: string; version: number } | null>(
+    null,
+  );
+  return (
+    <SafeForm
+      action={saveWorkoutTemplateAction}
+      error={t("saveFailed")}
+      success={t("saved")}
+      onSuccess={() => setSaved({ title: title.trim(), version })}
+    >
+      <input name="workoutId" type="hidden" value={workoutId} />
+      <Text as="label" size="2" weight="medium" className="field-label">
+        {t("templateName")}
+        <TextField.Root
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          name="title"
+          required
+        />
+      </Text>
+      <Button
+        highContrast
+        variant="soft"
+        type="submit"
+        disabled={title.trim() === saved?.title && version === saved.version}
+      >
+        {t("saveAsTemplate")}
+      </Button>
+    </SafeForm>
   );
 }
 

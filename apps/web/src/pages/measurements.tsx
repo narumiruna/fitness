@@ -97,8 +97,6 @@ export default function MeasurementsPage() {
           <section
             className="measurements-table-scroll"
             aria-label={t("measurementHistoryTable")}
-            // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus the local table scroll region.
-            tabIndex={0}
           >
             <Table.Root className="measurements-table">
               <caption className="sr-only">
@@ -114,17 +112,24 @@ export default function MeasurementsPage() {
                   </Table.ColumnHeaderCell>
                 </Table.Row>
               </Table.Header>
-              <Table.Body>
+              <Table.Body role="rowgroup">
                 {records.map((r) => (
-                  <Table.Row key={`${r.id}-${r.updatedAt.toISOString()}`}>
-                    <Table.Cell>
+                  <Table.Row
+                    role="row"
+                    key={`${r.id}-${r.updatedAt.toISOString()}`}
+                  >
+                    <Table.Cell role="cell" data-label={t("date")}>
                       <time dateTime={formatDateKey(r.date)}>
                         {dateFormatter.format(r.date)}
                       </time>
                     </Table.Cell>
-                    <Table.Cell>{r.weight ?? "—"}</Table.Cell>
-                    <Table.Cell>{r.waist ?? "—"}</Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell role="cell" data-label={t("weight")}>
+                      {r.weight ?? "—"}
+                    </Table.Cell>
+                    <Table.Cell role="cell" data-label={t("waist")}>
+                      {r.waist ?? "—"}
+                    </Table.Cell>
+                    <Table.Cell role="cell" className="measurement-actions">
                       <details className="measurement-edit">
                         <summary>{t("editMeasurement")}</summary>
                         <SafeForm

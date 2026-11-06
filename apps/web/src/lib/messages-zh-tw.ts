@@ -109,6 +109,10 @@ export const traditionalChineseMessages = {
   sessionIncomplete: "未儲存。有尚未完成的組數。請選擇結束並確認略過組數。",
   sessionUnavailable: "未儲存。此訓練或組數已無法執行此操作。",
   refreshSession: "載入最新訓練狀態",
+  sessionSetChanged:
+    "此組已在其他位置變更。保留草稿前，請先檢查最新儲存的資料。草稿尚未儲存。",
+  latestSavedValues: "最新儲存的資料",
+  keepSessionDraft: "我已檢查變更，保留我的草稿",
   invalidWorkoutInput:
     "未儲存。請輸入有效日期，標題最多 120 字元，備註最多 2,000 字元。",
   partialFinish: "我確認要結束訓練，並略過未完成的組數。",

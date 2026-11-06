@@ -11,6 +11,7 @@ import {
   TextArea,
   TextField,
 } from "@radix-ui/themes";
+import { useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { deleteWorkoutSetAction, updateWorkoutSetAction } from "@/api/actions";
 import type { PageView } from "@/api/views";
@@ -35,6 +36,7 @@ export function RecordedSet({
   sortingDisabled: boolean;
 }) {
   const t = useDictionary();
+  const summary = useRef<HTMLElement>(null);
   const {
     attributes,
     listeners,
@@ -103,20 +105,42 @@ export function RecordedSet({
         )}
       </div>
       {set.completed ? (
-        <details
-          className="recorded-set-editor"
-          key={JSON.stringify([
-            set.exerciseId,
-            set.weight,
-            set.reps,
-            set.type,
-            set.rir,
-            set.notes,
-          ])}
-        >
-          <summary>{t("updateSet")}</summary>
-          <div className="stack">
-            <ActionForm className="form-grid" action={updateWorkoutSetAction}>
+        <details className="recorded-set-editor">
+          <summary ref={summary}>{t("updateSet")}</summary>
+          <div
+            className="stack"
+            key={JSON.stringify([
+              set.exerciseId,
+              set.weight,
+              set.reps,
+              set.type,
+              set.rir,
+              set.notes,
+            ])}
+          >
+            <ActionForm
+              className="form-grid"
+              action={async (data) => {
+                const result = await updateWorkoutSetAction(data);
+                if (!result) {
+                  const editor = summary.current?.closest("details");
+                  const restoreFocus =
+                    document.activeElement === document.body ||
+                    editor?.contains(document.activeElement);
+                  const changed =
+                    data.get("exerciseId") !== set.exerciseId ||
+                    Number(data.get("weight")) !== set.weight ||
+                    Number(data.get("reps")) !== set.reps ||
+                    data.get("type") !== set.type ||
+                    String(data.get("rir") ?? "") !== String(set.rir ?? "") ||
+                    String(data.get("notes") ?? "").trim() !==
+                      (set.notes ?? "");
+                  if (editor && changed) editor.open = false;
+                  if (restoreFocus) summary.current?.focus();
+                }
+                return result;
+              }}
+            >
               <input name="workoutId" type="hidden" value={workoutId} />
               <input name="setId" type="hidden" value={set.id} />
               <input name="order" type="hidden" value={set.order} />
