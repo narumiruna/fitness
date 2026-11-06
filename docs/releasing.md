@@ -62,24 +62,24 @@ changes on a separate branch rather than editing that generated branch.
 
 Before enabling the workflow on main:
 
-1. Create and install a GitHub App for this repository.
-   - Grant repository Contents and Pull requests read/write permissions.
-   - Grant no other write permissions. Do not add the App to branch-protection
-     or ruleset bypass lists.
-2. Add the App client ID as repository variable `APP_CLIENT_ID`.
-3. Add its private key as repository Actions secret `APP_PRIVATE_KEY`.
-   - Enter the key in GitHub settings, not in source files or chat.
-4. Check the repository's Actions policy permits automated PR creation.
+1. Store the existing personal access token as repository Actions secret
+   `PAT_TOKEN`.
+   - Enter the token in GitHub settings, not in source files or chat.
+   - For a fine-grained token, select only this repository and grant Contents
+     and Pull requests read/write permissions. Grant no other write permissions.
+   - The token owner must have write access. Do not add the owner to
+     branch-protection or ruleset bypass lists for this workflow.
+2. Check the repository's Actions policy permits automated PR creation.
    - The official action documents the `Allow GitHub Actions to create and approve
      pull requests` setting. This workflow does not approve or merge PRs.
 
-The built-in workflow token has only Contents read. A short-lived App token is
-scoped to this repository with only the two write permissions above and is passed
-through `github-token`. App-created PRs and updates can trigger normal PR CI;
-the default `GITHUB_TOKEN` generally cannot do so. Do not silently fall back to
-it. No `NPM_TOKEN` is needed.
+The built-in workflow token has only Contents read. The action receives
+`secrets.PAT_TOKEN` through `github-token`. PAT-created PRs and updates can
+trigger normal PR CI; the default `GITHUB_TOKEN` generally cannot do so.
+Do not silently fall back to it. No GitHub App setup, private key, or `NPM_TOKEN`
+is needed.
 
-Live App authentication, repository rules, and PR creation require the owner's
+Live PAT authentication, repository rules, and PR creation require the owner's
 setup and an authorized main merge. Local checks do not establish that these
 external prerequisites are configured.
 
@@ -123,8 +123,8 @@ files, deleted files alone, README/config edits, and edits to existing changeset
 Generated version PRs need a narrow exception because versioning consumes the
 changesets. `scripts/check-changesets.mjs` verifies all of these conditions:
 
-- The event is `pull_request`, the author type is `Bot`, and both PR repositories
-  match `GITHUB_REPOSITORY`.
+- The event is `pull_request`, the author type is `User` (PAT) or `Bot`, and both
+  PR repositories match `GITHUB_REPOSITORY`.
 - Head is exactly `changeset-release/main`, base is `main`, and the title is
   `chore(release): version packages`.
 - At least one existing changeset is deleted.
@@ -139,7 +139,7 @@ Maintainer review must still verify manifest contents and dependency ranges.
 The checker emits `version-pr=true` only for that exception. CI then validates
 Changesets status against `HEAD` because the version PR has already applied its
 plan. Ordinary PRs use `origin/main` and still need a new changeset. A blanket
-bot or branch-prefix exemption is not allowed. Installation, lint, types, build,
+author or branch-prefix exemption is not allowed. Installation, lint, types, build,
 unit/API/database/browser tests, and normal branch protection are not skipped.
 
 ```sh
@@ -153,9 +153,9 @@ merging. No deployment follows the merge; `deploy.yml` remains manual.
 
 ## Recovery
 
-If App setup fails, no version PR is written. The owner can correct the setup and
-rerun the Release job for the latest main push. Do not rerun an older job after
-main has advanced.
+If the PAT is missing, expired, or lacks write permissions, the version PR cannot
+be written. The owner can correct `PAT_TOKEN` and rerun the Release job for the
+latest main push. Do not rerun an older job after main has advanced.
 
 To stop automation, the owner can disable the Release workflow and close the
 unmerged generated PR. A reviewed revert of this workflow and its CI integration
@@ -169,7 +169,7 @@ For a manual version PR, start from clean reviewed main on a release branch such
 as `narumi/chore/version-packages`. Run `npm ci`, review
 `npm run changeset -- status`, then run `npm run version-packages`. Review the
 same metadata and run installation, tests, checks, and build. Add a new empty
-changeset because the narrow bot exception does not apply to human/manual PRs.
+changeset because this manual branch does not match the generated-PR exception.
 
 For local experiments, use a disposable clone, not the production checkout:
 
@@ -200,7 +200,7 @@ only the disposable clone when finished.
 - [Changesets automation and version-only mode](https://changesets.dev/guide/automating)
 - [Private applications](https://changesets.dev/guide/beyond-npm)
 - [Changesets Action v2.1.2 API/source](https://github.com/changesets/action/tree/ae32849d5ba541f9ae29e40e22a623bc13562f51)
-- [GitHub App token action](https://github.com/actions/create-github-app-token)
+- [Managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 - [Workflow-trigger token behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
 
 Local references inspected: `~/src/pi-extensions/.github/workflows/publish.yml`

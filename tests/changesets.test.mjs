@@ -192,10 +192,10 @@ test("fails closed for unavailable Git history and invalid arguments", (t) => {
   }
 });
 
-function versionEvent() {
+function versionEvent(authorType = "Bot") {
   return {
     pull_request: {
-      user: { type: "Bot" },
+      user: { type: authorType },
       title: "chore(release): version packages",
       head: {
         ref: "changeset-release/main",
@@ -228,6 +228,15 @@ test("accepts only the generated version PR shape and reports its status base", 
   assert.equal(f.output(), "version-pr=true\n");
 });
 
+test("accepts generated version PRs created with a PAT", (t) => {
+  const f = versionFixture(t);
+  f.commit();
+  const result = f.checkEvent(versionEvent("User"));
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Verified generated version PR/);
+  assert.equal(f.output(), "version-pr=true\n");
+});
+
 test("ordinary new changesets do not select the version-PR exception", async (t) => {
   for (const content of [
     "---\n---\n",
@@ -248,12 +257,15 @@ test("ordinary new changesets do not select the version-PR exception", async (t)
   }
 });
 
-test("rejects human, fork, wrong-branch/title/base and non-PR lookalikes", (t) => {
+test("rejects missing/unknown authors, forks, wrong-branch/title/base and non-PR lookalikes", (t) => {
   const f = versionFixture(t);
   f.commit();
   const modifications = [
     (pr) => {
-      pr.user.type = "User";
+      delete pr.user;
+    },
+    (pr) => {
+      pr.user.type = "Organization";
     },
     (pr) => {
       pr.head.repo.full_name = "fork/fitness";
@@ -271,11 +283,13 @@ test("rejects human, fork, wrong-branch/title/base and non-PR lookalikes", (t) =
       pr.title = "Version Packages";
     },
   ];
-  for (const modify of modifications) {
-    const event = versionEvent();
-    modify(event.pull_request);
-    assert.equal(f.checkEvent(event).status, 1);
-    assert.equal(f.output(), "");
+  for (const authorType of ["Bot", "User"]) {
+    for (const modify of modifications) {
+      const event = versionEvent(authorType);
+      modify(event.pull_request);
+      assert.equal(f.checkEvent(event).status, 1);
+      assert.equal(f.output(), "");
+    }
   }
   assert.equal(f.checkEvent({}).status, 1);
   assert.equal(
@@ -301,7 +315,8 @@ test("rejects generated-PR lookalikes with source, workflow, config or unexpecte
       const f = versionFixture(t);
       f.write(path, "Unexpected content.\n");
       f.commit();
-      assert.equal(f.checkEvent(versionEvent()).status, 1);
+      for (const authorType of ["Bot", "User"])
+        assert.equal(f.checkEvent(versionEvent(authorType)).status, 1);
     });
   }
 });

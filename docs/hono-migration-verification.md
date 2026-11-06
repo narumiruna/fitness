@@ -1050,3 +1050,28 @@ and verify the installed App and `APP_PRIVATE_KEY` secret. The next authorized
 main-push Release run must receive a nonempty client ID and create its App token.
 App authentication remains unverified. No credential, release workflow,
 production service, or deployment was changed by this repair.
+
+## Release authentication with PAT_TOKEN
+
+The release workflow now passes `secrets.PAT_TOKEN` directly to Changesets Action.
+The GitHub App token step was removed. This replaces the App setup and
+repository-owner handoff recorded above; current setup is in `docs/releasing.md`.
+The built-in workflow token remains read-only, and publishing, tag pushes,
+GitHub Releases, automatic merging, and deployment remain disabled.
+
+The generated-version-PR check now accepts `User` authors for PAT-created PRs
+and retains `Bot` support. Exact branch, title, base, same-repository, consumed
+changeset, and allowed-path checks remain. Tests cover PAT-created PR acceptance
+and rejection of forks, incorrect metadata, and unexpected file changes for
+both author types. An empty Changeset records this tooling-only change.
+
+Local checks on Node 26.11.1 and npm 11.20.0:
+
+- `npm run test:changesets`: 26 passed, with no failures or skips.
+- `npm run check`: passed.
+- `git diff --check`: passed.
+
+Live PAT authentication and remote PR creation were not tested. The next
+authorized main-push Release run must verify the existing `PAT_TOKEN` secret and
+its repository write permissions. No repository settings or credentials were
+changed, and no release or deployment workflow was dispatched.

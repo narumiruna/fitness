@@ -19,18 +19,15 @@ test("release workflow uses the official action on main pushes without a custom 
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /package-manager-cache: false/);
   assert.match(workflow, /run: npm ci/);
-  assert.equal([...workflow.matchAll(/uses:/g)].length, 4);
-  assert.equal([...workflow.matchAll(/uses: [\w/-]+@[a-f0-9]{40}/g)].length, 4);
+  assert.equal([...workflow.matchAll(/uses:/g)].length, 3);
+  assert.equal([...workflow.matchAll(/uses: [\w/-]+@[a-f0-9]{40}/g)].length, 3);
 });
 
-test("version-only settings use the App token and exclude publishing", () => {
-  assert.match(workflow, /permission-contents: write/);
-  assert.match(workflow, /permission-pull-requests: write/);
-  // With owner/repositories unset, the App action scopes its token to this repository.
-  assert.doesNotMatch(workflow, /owner:|repositories:/);
-  assert.match(
+test("version-only settings use PAT_TOKEN and exclude publishing", () => {
+  assert.match(workflow, /github-token: \$\{\{ secrets.PAT_TOKEN \}\}/);
+  assert.doesNotMatch(
     workflow,
-    /github-token: \$\{\{ steps.app-token.outputs.token \}\}/,
+    /create-github-app-token|app-token|APP_CLIENT_ID|APP_PRIVATE_KEY|secrets\.GITHUB_TOKEN/,
   );
   assert.match(workflow, /version-script: npm run version-packages/);
   assert.match(
