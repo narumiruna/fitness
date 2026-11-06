@@ -70,7 +70,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@narumitw/fitness-core": "1.0.0"
+    "@narumitw/fitness-core": "1.1.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
